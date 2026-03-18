@@ -63,8 +63,8 @@ export default function AboutSection() {
               <div className="absolute -bottom-3 -right-3 w-full h-full border-2 border-[#C9A84C]/30 rounded-sm pointer-events-none" />
               {/* Company badge */}
               <div className="absolute -top-4 -left-4 bg-[#C9A84C] text-[#1A1A2E] px-4 py-2 rounded-sm shadow-lg">
-                <p className="font-bold text-xs leading-tight">ก่อตั้งมากกว่า</p>
-                <p className="font-display text-2xl leading-none">10 ปี</p>
+                <p className="font-bold text-xs leading-tight">ผู้เชี่ยวชาญมีประสบการณ์กว่า</p>
+                <p className="font-display text-2xl leading-none">20 ปี</p>
               </div>
             </div>
           </div>
