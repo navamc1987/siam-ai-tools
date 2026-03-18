@@ -34,9 +34,9 @@ const products = [
       "ทดสอบและตรวจสอบคุณภาพ",
       "บริการซ่อมบำรุง 24/7",
     ],
-    price: "35,000 - 85,000",
-    priceUnit: "บาท/โครงการ",
-    originalPrice: "40,000 - 95,000",
+    price: "2,500",
+    priceUnit: "บาท/จุด",
+    originalPrice: "3,500",
     rating: 4.9,
     reviews: 32,
   },
@@ -54,9 +54,9 @@ const products = [
       "ออกแบบระบบเครือข่ายเหมาะสม",
       "ทดสอบและปรับแต่งสัญญาณ",
     ],
-    price: "35,000 - 85,000",
-    priceUnit: "บาท/โครงการ",
-    originalPrice: "40,000 - 95,000",
+    price: "2,500",
+    priceUnit: "บาท/จุด",
+    originalPrice: "3,500",
     rating: 4.8,
     reviews: 28,
   },
@@ -370,13 +370,15 @@ export default function ProductsSection() {
                   className="relative bg-white/5 cursor-pointer overflow-hidden group/image"
                   onClick={() => setSelectedImage(product.image)}
                 >
+                  <div className="w-full h-52 flex items-center justify-center overflow-hidden">
                   <img
                     src={product.image}
                     alt={`${product.name} - ${product.description.substring(0, 50)}...`}
-                    className="w-full h-auto object-contain p-4 transition-transform duration-700 group-hover/image:scale-105"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover/image:scale-105"
                     loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f1e] via-[#0f0f1e]/30 to-transparent" />
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f1e] via-[#0f0f1e]/30 to-transparent pointer-events-none" />
 
                   {/* Zoom indicator */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 bg-black/40">
