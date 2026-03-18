@@ -9,8 +9,29 @@ import { ShoppingCart, Star, Tag, CheckCircle } from "lucide-react";
 const PRODUCT_1_IMAGE = "https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=600&q=80";
 const PRODUCT_2_IMAGE = "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=600&q=80";
 const PRODUCT_3_IMAGE = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80";
+const PRODUCT_HIKVISION_IMAGE = "/images/products/hikvision-ip-1-4.png";
 
 const products = [
+  {
+    id: 4,
+    image: PRODUCT_HIKVISION_IMAGE,
+    badge: "คุ้มค่า",
+    name: "ชุดกล้องวงจรปิด IP 1-4 ตัว",
+    nameEn: "Hikvision IP Camera Set 4MP",
+    description:
+      "ชุดกล้องวงจรปิด IP Hikvision ความละเอียด 4MP เสียงชัด พร้อมเครื่องบันทึก 4CH 4K P.o.E. NVR รับประกัน 2 ปี เหมาะสำหรับบ้านและสำนักงาน",
+    features: [
+      "กล้อง IP 4MP เสียงชัดเจน",
+      "NVR 4CH 4K P.o.E.",
+      "HDD สูงสุด 2TB (ตามจำนวนกล้อง)",
+      "สาย LAN พร้อมติดตั้ง 20-80 ม.",
+    ],
+    price: "7,900 - 18,500",
+    priceUnit: "บาท/ชุด",
+    originalPrice: "9,500 - 22,500",
+    rating: 4.9,
+    reviews: 45,
+  },
   {
     id: 1,
     image: PRODUCT_1_IMAGE,
@@ -207,9 +228,9 @@ export default function ProductsSection() {
                   <div className="bg-green-500/15 border border-green-500/30 text-green-400 text-xs font-semibold px-2 py-1 rounded-sm">
                     ประหยัด{" "}
                     {Math.round(
-                      ((parseInt(product.originalPrice.replace(",", "")) -
-                        parseInt(product.price.replace(",", ""))) /
-                        parseInt(product.originalPrice.replace(",", ""))) *
+                      (((parseInt(product.originalPrice.split("-")[0].replace(",", "")) -
+                        parseInt(product.price.split("-")[0].replace(",", "")))) /
+                        parseInt(product.originalPrice.split("-")[0].replace(",", ""))) *
                         100
                     )}
                     %
