@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Award, Users, Wrench, Building2 } from "lucide-react";
 
-const ABOUT_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663450220945/2xv2kDRJAu53CHYeiRqts8/about-team-aLXuqC57smUfAdEFvTdPLp.webp";
+const ABOUT_IMAGE = "/images/about/team-photo.jpg";
 
 const stats = [
   { icon: Award, value: "10+", label: "ปีประสบการณ์" },
@@ -57,7 +57,7 @@ export default function AboutSection() {
               <img
                 src={ABOUT_IMAGE}
                 alt="ทีมงาน สยาม เอไอ ทูลส์"
-                className="w-full rounded-sm object-cover aspect-video"
+                className="w-full rounded-sm object-cover aspect-[4/5] lg:aspect-auto max-h-[600px]"
               />
               {/* Gold border accent */}
               <div className="absolute -bottom-3 -right-3 w-full h-full border-2 border-[#C9A84C]/30 rounded-sm pointer-events-none" />
