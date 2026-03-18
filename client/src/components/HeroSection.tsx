@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Phone, MapPin } from "lucide-react";
 
-const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663450220945/2xv2kDRJAu53CHYeiRqts8/hero-banner-jfbsdHioRwSL6VXowVxe8s.webp";
+const HERO_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/IyYgmfAgroqsxMYA.jpg";
 
 export default function HeroSection() {
   const [visible, setVisible] = useState(false);
