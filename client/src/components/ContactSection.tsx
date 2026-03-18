@@ -4,7 +4,13 @@
  * Dark background, gold accents
  */
 import { useEffect, useRef, useState } from "react";
-import { Phone, MapPin, Clock, Mail, ExternalLink } from "lucide-react";
+import { Phone, MapPin, Clock, ExternalLink } from "lucide-react";
+import emailjs from "@emailjs/browser";
+
+const SERVICE_ID = "service_82f17qc";
+const TEMPLATE_CONTACT = "template_lpwp12s";
+const TEMPLATE_AUTOREPLY = "template_k4mczze";
+const PUBLIC_KEY = "Hrybri0n2ViF8KUzf";
 
 function useInView(threshold = 0.1) {
   const ref = useRef<HTMLDivElement>(null);
@@ -46,15 +52,32 @@ const contactItems = [
 
 export default function ContactSection() {
   const { ref, inView } = useInView();
-  const [formData, setFormData] = useState({ name: "", phone: "", message: "" });
+  const [formData, setFormData] = useState({ name: "", email: "", phone: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate form submission
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 4000);
-    setFormData({ name: "", phone: "", message: "" });
+    setLoading(true);
+    setError(false);
+    try {
+      const templateParams = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        message: formData.message,
+      };
+      await emailjs.send(SERVICE_ID, TEMPLATE_CONTACT, templateParams, PUBLIC_KEY);
+      await emailjs.send(SERVICE_ID, TEMPLATE_AUTOREPLY, templateParams, PUBLIC_KEY);
+      setSubmitted(true);
+      setFormData({ name: "", email: "", phone: "", message: "" });
+      setTimeout(() => setSubmitted(false), 5000);
+    } catch (err) {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -62,7 +85,6 @@ export default function ContactSection() {
       <div className="absolute inset-0 hex-pattern opacity-30" />
 
       <div className="container relative z-10">
-        {/* Section header */}
         <div className="flex items-center gap-3 mb-4">
           <div className="w-8 h-0.5 bg-[#C9A84C]" />
           <span className="text-[#C9A84C] text-xs font-semibold tracking-widest uppercase">
@@ -78,36 +100,24 @@ export default function ContactSection() {
 
         <div ref={ref} className="grid lg:grid-cols-2 gap-12">
           {/* Left: Contact info + Map */}
-          <div
-            className={`transition-all duration-700 ${
-              inView ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8"
-            }`}
-          >
-            {/* Contact cards */}
+          <div className={`transition-all duration-700 ${inView ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8"}`}>
             <div className="space-y-4 mb-8">
               {contactItems.map((item, i) => (
-                <div
-                  key={i}
-                  className="bg-[#0f0f1e] border border-[#C9A84C]/20 rounded-sm p-5 flex gap-4 hover:border-[#C9A84C]/50 transition-colors"
-                >
+                <div key={i} className="bg-[#0f0f1e] border border-[#C9A84C]/20 rounded-sm p-5 flex gap-4 hover:border-[#C9A84C]/50 transition-colors">
                   <div className="w-10 h-10 rounded-sm bg-[#C9A84C]/15 flex items-center justify-center shrink-0">
                     <item.icon className="w-5 h-5 text-[#C9A84C]" />
                   </div>
                   <div>
-                    <p className="text-[#C9A84C] text-xs font-semibold tracking-wide mb-1">
-                      {item.title}
-                    </p>
+                    <p className="text-[#C9A84C] text-xs font-semibold tracking-wide mb-1">{item.title}</p>
                     {item.href ? (
-                      <a
+                      
                         href={item.href}
                         target={item.href.startsWith("http") ? "_blank" : undefined}
                         rel="noopener noreferrer"
                         className="text-white font-medium text-sm hover:text-[#C9A84C] transition-colors flex items-start gap-1"
                       >
                         {item.value}
-                        {item.href.startsWith("http") && (
-                          <ExternalLink className="w-3 h-3 mt-0.5 shrink-0" />
-                        )}
+                        {item.href.startsWith("http") && <ExternalLink className="w-3 h-3 mt-0.5 shrink-0" />}
                       </a>
                     ) : (
                       <p className="text-white font-medium text-sm">{item.value}</p>
@@ -118,36 +128,32 @@ export default function ContactSection() {
               ))}
             </div>
 
-            {/* Map embed */}
             <div className="rounded-sm overflow-hidden border border-[#C9A84C]/20 h-56">
               <iframe
                 title="แผนที่ สยาม เอไอ ทูลส์"
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3884.7!2d101.0!3d13.1!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTPCsDA2JzAwLjAiTiAxMDHCsDAwJzAwLjAiRQ!5e0!3m2!1sth!2sth!4v1234567890"
-                width="100%"
-                height="100%"
+                width="100%" height="100%"
                 style={{ border: 0, filter: "invert(90%) hue-rotate(180deg)" }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
+                allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"
               />
             </div>
           </div>
 
           {/* Right: Contact form */}
-          <div
-            className={`transition-all duration-700 delay-200 ${
-              inView ? "opacity-100 translate-x-0" : "opacity-0 translate-x-8"
-            }`}
-          >
+          <div className={`transition-all duration-700 delay-200 ${inView ? "opacity-100 translate-x-0" : "opacity-0 translate-x-8"}`}>
             <div className="bg-[#0f0f1e] border border-[#C9A84C]/20 rounded-sm p-8">
               <h4 className="text-white font-bold text-xl mb-2">ส่งข้อความหาเรา</h4>
-              <p className="text-white/50 text-sm mb-6">
-                กรอกข้อมูลด้านล่าง เราจะติดต่อกลับโดยเร็วที่สุด
-              </p>
+              <p className="text-white/50 text-sm mb-6">กรอกข้อมูลด้านล่าง เราจะติดต่อกลับโดยเร็วที่สุด</p>
 
               {submitted && (
                 <div className="bg-[#C9A84C]/15 border border-[#C9A84C]/40 rounded-sm p-4 mb-6 text-[#C9A84C] text-sm font-medium">
-                  ขอบคุณที่ติดต่อเรา เราจะติดต่อกลับโดยเร็วที่สุดครับ/ค่ะ
+                  ✅ ขอบคุณที่ติดต่อเรา เราได้รับข้อความแล้ว และจะติดต่อกลับโดยเร็วที่สุดครับ/ค่ะ
+                </div>
+              )}
+
+              {error && (
+                <div className="bg-red-500/15 border border-red-500/40 rounded-sm p-4 mb-6 text-red-400 text-sm font-medium">
+                  ❌ เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง
                 </div>
               )}
 
@@ -157,8 +163,7 @@ export default function ContactSection() {
                     ชื่อ-นามสกุล <span className="text-[#C9A84C]">*</span>
                   </label>
                   <input
-                    type="text"
-                    required
+                    type="text" required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="กรุณากรอกชื่อ-นามสกุล"
@@ -167,11 +172,22 @@ export default function ContactSection() {
                 </div>
                 <div>
                   <label className="text-white/70 text-sm font-medium block mb-2">
+                    อีเมล <span className="text-[#C9A84C]">*</span>
+                  </label>
+                  <input
+                    type="email" required
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="กรุณากรอกอีเมล"
+                    className="w-full bg-[#1A1A2E] border border-[#C9A84C]/20 rounded-sm px-4 py-3 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#C9A84C]/60 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="text-white/70 text-sm font-medium block mb-2">
                     เบอร์โทรศัพท์ <span className="text-[#C9A84C]">*</span>
                   </label>
                   <input
-                    type="tel"
-                    required
+                    type="tel" required
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="กรุณากรอกเบอร์โทรศัพท์"
@@ -192,9 +208,10 @@ export default function ContactSection() {
                 </div>
                 <button
                   type="submit"
-                  className="btn-gold w-full py-3.5 rounded-sm font-bold text-sm tracking-wide"
+                  disabled={loading}
+                  className="btn-gold w-full py-3.5 rounded-sm font-bold text-sm tracking-wide disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  ส่งข้อความ
+                  {loading ? "กำลังส่ง..." : "ส่งข้อความ"}
                 </button>
               </form>
             </div>
