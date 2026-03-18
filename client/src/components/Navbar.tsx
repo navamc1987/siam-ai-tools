@@ -10,6 +10,7 @@ const navItems = [
   { label: "หน้าแรก", href: "#home" },
   { label: "เกี่ยวกับเรา", href: "#about" },
   { label: "บริการ", href: "#services" },
+  { label: "สินค้า", href: "#products" },
   { label: "ติดต่อเรา", href: "#contact" },
 ];
 

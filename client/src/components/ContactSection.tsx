@@ -102,7 +102,7 @@ export default function ContactSection() {
                   <div>
                     <p className="text-[#C9A84C] text-xs font-semibold tracking-wide mb-1">{item.title}</p>
                     {item.href ? (
-                      
+                      <a
                         href={item.href}
                         target={item.href.startsWith("http") ? "_blank" : undefined}
                         rel="noopener noreferrer"
