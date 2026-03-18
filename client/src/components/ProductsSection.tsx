@@ -277,15 +277,15 @@ export default function ProductsSection() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
             <div>
               <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
-                ผลิตภัณฑ์ AI
+                บริการและผลิตภัณฑ์
               </h2>
               <h3 className="text-xl md:text-2xl font-bold text-[#C9A84C] mt-1">
-                เครื่องมือปัญญาประดิษฐ์สำหรับธุรกิจ
+                โซลูชันครบวงจรสำหรับธุรกิจและที่อยู่อาศัย
               </h3>
             </div>
             <p className="text-white/50 text-sm max-w-sm text-right hidden md:block">
-              โซลูชัน AI ครบวงจรที่ออกแบบมาเพื่อ<br />
-              เพิ่มประสิทธิภาพธุรกิจของคุณ
+              กล้องวงจรปิด ระบบไฟฟ้า Fiber Optic<br />
+              LAN/WIFI บ้านน็อคดาวน์ และอื่นๆ
             </p>
           </div>
 
