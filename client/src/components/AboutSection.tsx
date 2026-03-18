@@ -12,7 +12,7 @@ const stats = [
   { icon: Award, value: "10+", label: "ปีประสบการณ์" },
   { icon: Building2, value: "200+", label: "โครงการที่สำเร็จ" },
   { icon: Users, value: "50+", label: "ลูกค้าที่ไว้วางใจ" },
-  { icon: Wrench, value: "24/7", label: "บริการซ่อมบำรุง" },
+  { icon: Wrench, value: "เร็วที่สุด 1-3 วัน", label: "บริการซ่อมบำรุง" },
 ];
 
 function useInView(threshold = 0.2) {
