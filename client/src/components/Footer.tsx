@@ -1,8 +1,9 @@
 /*
- * Design: Bold Industrial + Thai Heritage Fusion
- * Dark footer with gold accents, company info, quick links
+ * Design: GitHub-Inspired Minimalist Footer
+ * - Pure white background with clean top border
+ * - Simple text links, structured company info
  */
-import { Zap, Phone, MapPin, Clock } from "lucide-react";
+import { Zap, Phone, MapPin, Clock, Github, Facebook, LineChart } from "lucide-react";
 
 export default function Footer() {
   const handleNavClick = (href: string) => {
@@ -11,46 +12,40 @@ export default function Footer() {
   };
 
   return (
-    <footer className="bg-[#0a0a18] border-t border-[#C9A84C]/20">
-      <div className="container py-12">
-        <div className="grid md:grid-cols-3 gap-10">
-          {/* Brand */}
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-sm bg-[#C9A84C] flex items-center justify-center">
-                <Zap className="w-5 h-5 text-[#1A1A2E]" fill="currentColor" />
+    <footer className="bg-white border-t border-[#d0d7de] pt-16 pb-8">
+      <div className="container">
+        <div className="grid md:grid-cols-4 gap-12 mb-16">
+          {/* Brand & Mission */}
+          <div className="col-span-1 md:col-span-1">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-8 h-8 rounded-lg bg-[#1f2328] flex items-center justify-center">
+                <Zap className="w-4 h-4 text-white" fill="currentColor" />
               </div>
-              <div>
-                <p className="text-[#C9A84C] font-bold text-sm">สยาม เอไอ ทูลส์</p>
-                <p className="text-white/40 text-[10px] tracking-widest uppercase">Siam AI Tools</p>
-              </div>
+              <p className="text-[#1f2328] font-bold text-lg">สยาม เอไอ ทูลส์</p>
             </div>
-            <p className="text-white/50 text-sm leading-relaxed mb-4">
-              ห้างหุ้นส่วนจำกัด สยาม เอไอ ทูลส์<br />
-              เลขทะเบียน: 0203568004052
+            <p className="text-[#656d76] text-sm leading-relaxed mb-6">
+              มุ่งมั่นส่งมอบเทคโนโลยีที่ทันสมัยและบริการที่เรียบง่าย เพื่อขับเคลื่อนธุรกิจไทยสู่ยุคดิจิทัลอย่างยั่งยืน
             </p>
-            <p className="text-white/40 text-xs">
-              ผู้เชี่ยวชาญด้านระบบไฟฟ้า เทคโนโลยี<br />
-              และโปรแกรมบริหารจัดการองค์กร
-            </p>
+            <div className="flex gap-4">
+              <a href="#" className="text-[#656d76] hover:text-[#0969da] transition-colors"><Facebook className="w-5 h-5" /></a>
+              <a href="#" className="text-[#656d76] hover:text-[#0969da] transition-colors"><LineChart className="w-5 h-5" /></a>
+              <a href="#" className="text-[#656d76] hover:text-[#0969da] transition-colors"><Github className="w-5 h-5" /></a>
+            </div>
           </div>
 
-          {/* Quick links */}
+          {/* Quick Links */}
           <div>
-            <h4 className="text-[#C9A84C] font-semibold text-sm tracking-wide mb-4 uppercase">
-              เมนูหลัก
-            </h4>
-            <ul className="space-y-2">
+            <h4 className="text-[#1f2328] font-bold text-sm mb-6 uppercase tracking-wider">เมนูหลัก</h4>
+            <ul className="space-y-4">
               {[
                 { label: "หน้าแรก", href: "#home" },
-                { label: "เกี่ยวกับเรา", href: "#about" },
-                { label: "บริการ", href: "#services" },
+                { label: "สินค้าและบริการ", href: "#products" },
                 { label: "ติดต่อเรา", href: "#contact" },
               ].map((item) => (
                 <li key={item.href}>
                   <button
                     onClick={() => handleNavClick(item.href)}
-                    className="text-white/50 hover:text-[#C9A84C] text-sm transition-colors"
+                    className="text-[#656d76] hover:text-[#0969da] text-sm font-medium transition-colors"
                   >
                     {item.label}
                   </button>
@@ -59,45 +54,46 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Contact info */}
+          {/* Services */}
           <div>
-            <h4 className="text-[#C9A84C] font-semibold text-sm tracking-wide mb-4 uppercase">
-              ติดต่อ
-            </h4>
-            <ul className="space-y-3">
-              <li className="flex items-start gap-2">
-                <Phone className="w-4 h-4 text-[#C9A84C] mt-0.5 shrink-0" />
-                <a href="tel:0810793266" className="text-white/50 hover:text-[#C9A84C] text-sm transition-colors">
+            <h4 className="text-[#1f2328] font-bold text-sm mb-6 uppercase tracking-wider">บริการของเรา</h4>
+            <ul className="space-y-4">
+              {["ERPNext Implementation", "AI Chatbot Solutions", "Network & Fiber Optic", "CCTV & Security Systems"].map((service) => (
+                <li key={service}>
+                  <span className="text-[#656d76] text-sm font-medium">{service}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Contact Info */}
+          <div>
+            <h4 className="text-[#1f2328] font-bold text-sm mb-6 uppercase tracking-wider">ติดต่อ</h4>
+            <ul className="space-y-4">
+              <li className="flex items-start gap-3">
+                <Phone className="w-4 h-4 text-[#0969da] mt-1 shrink-0" />
+                <a href="tel:0810793266" className="text-[#656d76] hover:text-[#0969da] text-sm font-medium transition-colors">
                   081-079-3266
                 </a>
               </li>
-              <li className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-[#C9A84C] mt-0.5 shrink-0" />
-                <span className="text-white/50 text-sm">
-                  567/65 หมู่ที่ 4 ต.เขาคันทรง<br />
-                  อ.ศรีราชา จ.ชลบุรี 20110
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Clock className="w-4 h-4 text-[#C9A84C] mt-0.5 shrink-0" />
-                <span className="text-white/50 text-sm">
-                  จันทร์ – เสาร์: 08:00 – 17:00
+              <li className="flex items-start gap-3">
+                <MapPin className="w-4 h-4 text-[#0969da] mt-1 shrink-0" />
+                <span className="text-[#656d76] text-sm leading-relaxed">
+                  567/65 หมู่ที่ 4 ต.เขาคันทรง อ.ศรีราชา จ.ชลบุรี 20110
                 </span>
               </li>
             </ul>
           </div>
         </div>
-      </div>
 
-      {/* Bottom bar */}
-      <div className="border-t border-[#C9A84C]/10">
-        <div className="container py-4 flex flex-col md:flex-row items-center justify-between gap-2">
-          <p className="text-white/30 text-xs">
-            © {new Date().getFullYear()} ห้างหุ้นส่วนจำกัด สยาม เอไอ ทูลส์. สงวนลิขสิทธิ์.
+        {/* Bottom Bar */}
+        <div className="border-t border-[#d0d7de] pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-[#656d76] text-xs">
+            © {new Date().getFullYear()} ห้างหุ้นส่วนจำกัด สยาม เอไอ ทูลส์. All rights reserved.
           </p>
-          <div className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
-            <span className="text-white/30 text-xs">พร้อมให้บริการ</span>
+          <div className="flex items-center gap-6">
+            <a href="#" className="text-[#656d76] hover:text-[#0969da] text-xs transition-colors">Terms of Service</a>
+            <a href="#" className="text-[#656d76] hover:text-[#0969da] text-xs transition-colors">Privacy Policy</a>
           </div>
         </div>
       </div>

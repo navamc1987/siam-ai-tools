@@ -1,16 +1,13 @@
 /*
- * Design: Bold Industrial + Thai Heritage Fusion
- * Full-bleed hero with dark overlay, large typography, gold accents
- * Asymmetric text placement, scroll-triggered animations
+ * Design: GitHub-Inspired Minimalist Hero
+ * - Clean white background with subtle dot pattern
+ * - Left-aligned text, high contrast, focused CTAs
  */
-import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Phone, MapPin } from "lucide-react";
-
-const HERO_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/IyYgmfAgroqsxMYA.jpg";
+import { useEffect, useState } from "react";
+import { ChevronDown, Phone, MapPin, ExternalLink } from "lucide-react";
 
 export default function HeroSection() {
   const [visible, setVisible] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setVisible(true), 100);
@@ -25,115 +22,90 @@ export default function HeroSection() {
   return (
     <section
       id="home"
-      ref={ref}
-      className="relative min-h-screen flex items-center overflow-hidden"
+      className="relative min-h-[85vh] flex items-center pt-32 pb-20 bg-white overflow-hidden"
     >
-      {/* Background image */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${HERO_IMAGE})` }}
-      />
-      {/* Dark overlay gradient */}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a18]/95 via-[#0a0a18]/80 to-[#0a0a18]/40" />
-      {/* Bottom fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#1A1A2E] to-transparent" />
+      {/* Subtle Dot Pattern Background */}
+      <div className="absolute inset-0 dot-pattern opacity-30 pointer-events-none" />
+      
+      {/* Decorative gradient blur (Minimalist touch) */}
+      <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-50 rounded-full blur-3xl opacity-50 pointer-events-none" />
 
-      {/* Decorative large background number */}
-      <div className="absolute right-8 top-1/2 -translate-y-1/2 font-display text-[20rem] text-white/[0.02] select-none pointer-events-none leading-none hidden xl:block">
-        01
-      </div>
-
-      <div className="container relative z-10 pt-24 pb-16">
-        <div className="max-w-3xl">
+      <div className="container relative z-10">
+        <div className="max-w-4xl">
           {/* Badge */}
           <div
-            className={`inline-flex items-center gap-2 bg-[#C9A84C]/15 border border-[#C9A84C]/40 rounded-sm px-4 py-1.5 mb-6 transition-all duration-700 ${
+            className={`inline-flex items-center gap-2 bg-[#f6f8fa] border border-[#d0d7de] rounded-full px-4 py-1.5 mb-8 transition-all duration-700 ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-[#C9A84C] animate-pulse" />
-            <span className="text-[#C9A84C] text-xs font-semibold tracking-widest uppercase">
-              ห้างหุ้นส่วนจำกัด
+            <span className="w-2 h-2 rounded-full bg-[#0969da]" />
+            <span className="text-[#1f2328] text-xs font-semibold tracking-wide uppercase">
+              ห้างหุ้นส่วนจำกัด สยาม เอไอ ทูลส์
             </span>
           </div>
 
           {/* Main heading */}
           <h1
-            className={`font-display text-5xl md:text-7xl lg:text-8xl text-white leading-none mb-2 transition-all duration-700 delay-100 ${
+            className={`text-5xl md:text-7xl lg:text-8xl font-bold text-[#1f2328] leading-[1.1] mb-6 transition-all duration-700 delay-100 ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             }`}
           >
-            SIAM AI TOOLS
+            สร้างอนาคตด้วยเทคโนโลยีที่ <span className="text-[#0969da]">เรียบง่าย</span>
           </h1>
-          <h2
-            className={`text-2xl md:text-3xl font-bold text-[#C9A84C] mb-6 transition-all duration-700 delay-200 ${
-              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-            }`}
-          >
-            สยาม เอไอ ทูลส์
-          </h2>
-
-          {/* Gold divider */}
-          <div
-            className={`w-24 h-0.5 bg-[#C9A84C] mb-6 transition-all duration-700 delay-300 ${
-              visible ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
-            } origin-left`}
-          />
 
           {/* Description */}
           <p
-            className={`text-white/75 text-lg md:text-xl leading-relaxed mb-8 max-w-2xl transition-all duration-700 delay-400 ${
+            className={`text-[#656d76] text-xl md:text-2xl leading-relaxed mb-10 max-w-3xl transition-all duration-700 delay-200 ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             }`}
           >
             ผู้เชี่ยวชาญด้านการออกแบบ ติดตั้ง และซ่อมบำรุง ระบบไฟฟ้า แสงสว่าง
-            ระบบควบคุมไฟฟ้าในอาคารและโรงงานอุตสาหกรรม คอมพิวเตอร์
-            กล้องวงจรปิด Fiber Optic LAN/WIFI และโปรแกรมสำเร็จรูป ERPNEXT
-            บริการในพื้นที่ บรรพตพิสัย นครสวรรค์ ชลบุรี ศรีราชา
+            ระบบควบคุมในอาคารและโรงงานอุตสาหกรรม คอมพิวเตอร์
+            กล้องวงจรปิด Fiber Optic LAN/WIFI และโปรแกรมบริหารจัดการองค์กร ERPNext
           </p>
 
           {/* CTA Buttons */}
           <div
-            className={`flex flex-wrap gap-4 mb-10 transition-all duration-700 delay-500 ${
+            className={`flex flex-wrap gap-4 mb-12 transition-all duration-700 delay-300 ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             }`}
           >
             <button
               onClick={() => {
-                const el = document.querySelector("#services");
+                const el = document.querySelector("#products");
                 if (el) el.scrollIntoView({ behavior: "smooth" });
               }}
-              className="btn-gold px-8 py-3.5 rounded-sm font-bold text-base tracking-wide"
+              className="btn-primary px-10 py-4 text-lg"
             >
-              ดูบริการของเรา
+              ดูสินค้าและบริการ
             </button>
             <button
               onClick={() => {
                 const el = document.querySelector("#contact");
                 if (el) el.scrollIntoView({ behavior: "smooth" });
               }}
-              className="px-8 py-3.5 rounded-sm font-bold text-base tracking-wide border border-white/30 text-white hover:border-[#C9A84C] hover:text-[#C9A84C] transition-all duration-300"
+              className="btn-secondary px-10 py-4 text-lg flex items-center gap-2"
             >
-              ติดต่อเรา
+              ติดต่อเรา <ExternalLink className="w-4 h-4" />
             </button>
           </div>
 
           {/* Quick info */}
           <div
-            className={`flex flex-wrap gap-6 transition-all duration-700 delay-600 ${
+            className={`flex flex-wrap items-center gap-8 border-t border-[#d0d7de] pt-10 transition-all duration-700 delay-400 ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             }`}
           >
             <a
               href="tel:0810793266"
-              className="flex items-center gap-2 text-white/60 hover:text-[#C9A84C] transition-colors text-sm"
+              className="flex items-center gap-2 text-[#1f2328] hover:text-[#0969da] font-semibold transition-colors"
             >
-              <Phone className="w-4 h-4 text-[#C9A84C]" />
+              <Phone className="w-5 h-5 text-[#0969da]" />
               081-079-3266
             </a>
-            <div className="flex items-center gap-2 text-white/60 text-sm">
-              <MapPin className="w-4 h-4 text-[#C9A84C] shrink-0" />
-              <span>บรรพตพิสัย นครสวรรค์ | ศรีราชา ชลบุรี</span>
+            <div className="flex items-center gap-2 text-[#656d76]">
+              <MapPin className="w-5 h-5 text-[#0969da] shrink-0" />
+              <span className="font-medium">นครสวรรค์ | ชลบุรี | กรุงเทพฯ</span>
             </div>
           </div>
         </div>
@@ -142,10 +114,10 @@ export default function HeroSection() {
       {/* Scroll indicator */}
       <button
         onClick={handleScroll}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/40 hover:text-[#C9A84C] transition-colors animate-bounce z-10"
+        className="absolute bottom-10 left-1/2 -translate-x-1/2 text-[#d0d7de] hover:text-[#0969da] transition-colors animate-bounce hidden md:block"
         aria-label="Scroll down"
       >
-        <ChevronDown className="w-8 h-8" />
+        <ChevronDown className="w-10 h-10" />
       </button>
     </section>
   );

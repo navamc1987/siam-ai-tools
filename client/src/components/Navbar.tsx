@@ -1,28 +1,26 @@
 /*
- * Design: Bold Industrial + Thai Heritage Fusion
- * Dark charcoal navbar with gold accents, sticky positioning
- * Sarabun font for Thai text
+ * Design: GitHub-Inspired Minimalist Navbar
+ * - Sticky top with glass effect and clean border
+ * - Minimalist brand identity, high readability
  */
 import { useState, useEffect } from "react";
-import { Menu, X, Zap } from "lucide-react";
-
-const navItems = [
-  { label: "หน้าแรก", href: "#home" },
-  { label: "เกี่ยวกับเรา", href: "#about" },
-  { label: "บริการ", href: "#services" },
-  { label: "สินค้า", href: "#products" },
-  { label: "ติดต่อเรา", href: "#contact" },
-];
+import { Zap, Menu, X, ChevronRight } from "lucide-react";
 
 export default function Navbar() {
-  const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
+    const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const navLinks = [
+    { label: "หน้าแรก", href: "#home" },
+    { label: "สินค้า", href: "#products" },
+    { label: "ติดต่อเรา", href: "#contact" },
+  ];
 
   const handleNavClick = (href: string) => {
     setIsOpen(false);
@@ -33,80 +31,72 @@ export default function Navbar() {
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? "bg-[#0f0f1e]/95 backdrop-blur-md shadow-lg shadow-black/30"
-          : "bg-transparent"
+        scrolled ? "bg-white/80 backdrop-blur-md border-b border-[#d0d7de] py-3" : "bg-white py-5"
       }`}
     >
-      <div className="container">
-        <div className="flex items-center justify-between h-16 md:h-20">
-          {/* Logo */}
-          <button
-            onClick={() => handleNavClick("#home")}
-            className="flex items-center gap-2 group"
-          >
-            <div className="w-9 h-9 rounded-sm bg-[#C9A84C] flex items-center justify-center group-hover:bg-[#e0bb5e] transition-colors">
-              <Zap className="w-5 h-5 text-[#1A1A2E]" fill="currentColor" />
-            </div>
-            <div className="flex flex-col leading-tight">
-              <span className="text-[#C9A84C] font-bold text-sm tracking-wide">
-                สยาม เอไอ ทูลส์
-              </span>
-              <span className="text-white/50 text-[10px] tracking-widest uppercase">
-                Siam AI Tools
-              </span>
-            </div>
-          </button>
-
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-8">
-            {navItems.map((item) => (
-              <button
-                key={item.href}
-                onClick={() => handleNavClick(item.href)}
-                className="nav-link text-white/80 text-sm font-medium hover:text-[#C9A84C]"
-              >
-                {item.label}
-              </button>
-            ))}
-            <button
-              onClick={() => handleNavClick("#contact")}
-              className="btn-gold px-5 py-2 rounded-sm text-sm font-bold tracking-wide"
-            >
-              ติดต่อเรา
-            </button>
+      <div className="container flex items-center justify-between">
+        {/* Brand */}
+        <button
+          onClick={() => handleNavClick("#home")}
+          className="flex items-center gap-3 group"
+        >
+          <div className="w-9 h-9 rounded-lg bg-[#1f2328] flex items-center justify-center transition-transform group-hover:scale-105">
+            <Zap className="w-5 h-5 text-white" fill="currentColor" />
           </div>
+          <div className="text-left">
+            <p className="text-[#1f2328] font-bold text-lg leading-tight">สยาม เอไอ ทูลส์</p>
+            <p className="text-[#656d76] text-[10px] font-bold tracking-widest uppercase">SIAM AI TOOLS</p>
+          </div>
+        </button>
 
-          {/* Mobile hamburger */}
-          <button
-            className="md:hidden text-white/80 hover:text-[#C9A84C] transition-colors"
-            onClick={() => setIsOpen(!isOpen)}
-            aria-label="Toggle menu"
-          >
-            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile menu */}
-      <div
-        className={`md:hidden transition-all duration-300 overflow-hidden ${
-          isOpen ? "max-h-80 opacity-100" : "max-h-0 opacity-0"
-        }`}
-      >
-        <div className="bg-[#0f0f1e]/98 backdrop-blur-md border-t border-[#C9A84C]/20 px-4 py-4 flex flex-col gap-1">
-          {navItems.map((item) => (
+        {/* Desktop Nav */}
+        <div className="hidden md:flex items-center gap-8">
+          {navLinks.map((link) => (
             <button
-              key={item.href}
-              onClick={() => handleNavClick(item.href)}
-              className="text-left text-white/80 hover:text-[#C9A84C] py-3 px-2 text-base font-medium border-b border-white/5 last:border-0 transition-colors"
+              key={link.href}
+              onClick={() => handleNavClick(link.href)}
+              className="text-[#1f2328] font-semibold text-sm hover:text-[#0969da] transition-colors"
             >
-              {item.label}
+              {link.label}
             </button>
           ))}
           <button
             onClick={() => handleNavClick("#contact")}
-            className="btn-gold mt-3 py-3 rounded-sm text-sm font-bold tracking-wide"
+            className="btn-primary px-5 py-2 text-sm"
+          >
+            เริ่มโปรเจกต์ของคุณ
+          </button>
+        </div>
+
+        {/* Mobile Toggle */}
+        <button
+          className="md:hidden text-[#1f2328]"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          {isOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
+        </button>
+      </div>
+
+      {/* Mobile Menu */}
+      <div
+        className={`fixed inset-0 top-[72px] bg-white z-40 transition-transform duration-300 md:hidden ${
+          isOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="container py-10 flex flex-col gap-6">
+          {navLinks.map((link) => (
+            <button
+              key={link.href}
+              onClick={() => handleNavClick(link.href)}
+              className="text-2xl font-bold text-[#1f2328] flex items-center justify-between group"
+            >
+              {link.label}
+              <ChevronRight className="w-6 h-6 text-[#d0d7de] group-hover:text-[#0969da] transition-colors" />
+            </button>
+          ))}
+          <button
+            onClick={() => handleNavClick("#contact")}
+            className="btn-primary w-full py-4 text-lg mt-4"
           >
             ติดต่อเรา
           </button>
