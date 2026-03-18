@@ -110,8 +110,8 @@ export default function AboutSection() {
                 </div>
                 </div>
                 <div className="flex gap-3">
-                  <span className="text-[#C9A84C] font-semibold w-28 shrink-0">Line ID</span>
-                  <span className="text-white/70">0900072977</span>
+                  <span className="text-[#C9A84C] font-semibold w-28 shrink-0">โทรเลย</span>
+                  <span className="text-white/70">081-079-3266</span>
               </div>
             </div>
 
