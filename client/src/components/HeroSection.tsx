@@ -22,16 +22,16 @@ export default function HeroSection() {
   return (
     <section
       id="home"
-      className="relative min-h-[85vh] flex items-center pt-32 pb-20 bg-white overflow-hidden"
+      className="relative min-h-[70vh] flex items-center pt-20 pb-20 bg-white overflow-hidden"
     >
       {/* Subtle Dot Pattern Background */}
       <div className="absolute inset-0 dot-pattern opacity-30 pointer-events-none" />
       
       {/* Decorative gradient blur (Minimalist touch) */}
-      <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-50 rounded-full blur-3xl opacity-50 pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-50 rounded-full blur-3xl opacity-30 pointer-events-none" />
 
       <div className="container relative z-10">
-        <div className="max-w-4xl">
+        <div className="max-w-4xl mx-auto text-center">
           {/* Badge */}
           <div
             className={`inline-flex items-center gap-2 bg-[#f6f8fa] border border-[#d0d7de] rounded-full px-4 py-1.5 mb-8 transition-all duration-700 ${
@@ -54,19 +54,21 @@ export default function HeroSection() {
           </h1>
 
           {/* Description (Reduced to standard reading size) */}
-          <p
-            className={`text-[#656d76] text-sm md:text-base leading-relaxed mb-8 max-w-xl transition-all duration-700 delay-200 ${
-              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-            }`}
-          >
-            ผู้เชี่ยวชาญด้านการออกแบบ ติดตั้ง และซ่อมบำรุง ระบบไฟฟ้า แสงสว่าง
-            ระบบควบคุมในอาคารและโรงงานอุตสาหกรรม คอมพิวเตอร์
-            กล้องวงจรปิด Fiber Optic LAN/WIFI และโปรแกรมบริหารจัดการองค์กร ERPNext
-          </p>
+          <div className="flex justify-center">
+            <p
+              className={`text-[#656d76] text-sm md:text-base leading-relaxed mb-10 max-w-2xl transition-all duration-700 delay-200 ${
+                visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+              }`}
+            >
+              ผู้เชี่ยวชาญด้านการออกแบบ ติดตั้ง และซ่อมบำรุง ระบบไฟฟ้า แสงสว่าง
+              ระบบควบคุมในอาคารและโรงงานอุตสาหกรรม คอมพิวเตอร์
+              กล้องวงจรปิด Fiber Optic LAN/WIFI และโปรแกรมบริหารจัดการองค์กร ERPNext
+            </p>
+          </div>
 
           {/* CTA Buttons */}
           <div
-            className={`flex flex-wrap gap-4 mb-12 transition-all duration-700 delay-300 ${
+            className={`flex flex-wrap justify-center gap-4 mb-12 transition-all duration-700 delay-300 ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             }`}
           >
@@ -75,7 +77,7 @@ export default function HeroSection() {
                 const el = document.querySelector("#products");
                 if (el) el.scrollIntoView({ behavior: "smooth" });
               }}
-              className="btn-primary px-10 py-4 text-lg"
+              className="btn-primary px-8 py-3 text-base"
             >
               ดูสินค้าและบริการ
             </button>
@@ -84,7 +86,7 @@ export default function HeroSection() {
                 const el = document.querySelector("#contact");
                 if (el) el.scrollIntoView({ behavior: "smooth" });
               }}
-              className="btn-secondary px-10 py-4 text-lg flex items-center gap-2"
+              className="btn-secondary px-8 py-3 text-base flex items-center gap-2"
             >
               ติดต่อเรา <ExternalLink className="w-4 h-4" />
             </button>
@@ -92,7 +94,7 @@ export default function HeroSection() {
 
           {/* Quick info */}
           <div
-            className={`flex flex-wrap items-center gap-8 border-t border-[#d0d7de] pt-10 transition-all duration-700 delay-400 ${
+            className={`flex flex-wrap items-center justify-center gap-8 border-t border-[#d0d7de] pt-10 transition-all duration-700 delay-400 ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             }`}
           >
