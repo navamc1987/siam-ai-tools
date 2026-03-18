@@ -18,8 +18,49 @@ const SERVICE_KNOCKDOWN_HOUSE_IMAGE = "/images/products/knockdown-house.jpg";
 const SERVICE_BACKUP_RANSOMWARE_IMAGE = "/images/products/backup-ransomware.png";
 const SERVICE_FIREWALL_IMAGE = "/images/products/firewall.png";
 const SERVICE_ISO_27001_IMAGE = "/images/products/iso-27001.jpg";
+const SERVICE_ERPNEXT_IMAGE = "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&q=80";
 
 const products = [
+  {
+    id: 101,
+    image: SERVICE_ERPNEXT_IMAGE,
+    badge: "จุดขายหลัก",
+    name: "Implement ERPNext (Full Option)",
+    nameEn: "ERPNext Implementation Full Option",
+    description:
+      "โซลูชันบริหารจัดการองค์กรแบบครบวงจร (ERP) ที่ปรับแต่งได้ 100% สำหรับธุรกิจขนาดกลาง-ใหญ่ ครอบคลุมทุกกระบวนการทำงานในระบบเดียว",
+    features: [
+      "Customization & Workflow 100%",
+      "ระบบบัญชี, ผลิต, จัดซื้อ, ขาย, HR",
+      "เชื่อมต่อ API กับระบบภายนอกได้ไม่จำกัด",
+      "On-site Training & Support 1 ปี",
+    ],
+    price: "1,800,000",
+    priceUnit: "บาท/โครงการ",
+    originalPrice: "2,200,000",
+    rating: 5.0,
+    reviews: 12,
+  },
+  {
+    id: 100,
+    image: SERVICE_ERPNEXT_IMAGE,
+    badge: "คุ้มค่าที่สุด",
+    name: "Implement ERPNext (Start Kit)",
+    nameEn: "ERPNext Implementation Start Kit",
+    description:
+      "เริ่มต้นระบบ ERP สำหรับ SME ด้วยฟังก์ชันมาตรฐานที่จำเป็นครบถ้วน ติดตั้งไว พร้อมใช้งานได้ทันที ช่วยจัดระเบียบธุรกิจให้เป็นระบบ",
+    features: [
+      "โมดูลพื้นฐาน: บัญชี, คลังสินค้า, ขาย",
+      "Cloud Hosting พร้อมใช้งาน",
+      "คู่มือการใช้งานภาษาไทย",
+      "Support ออนไลน์ 6 เดือน",
+    ],
+    price: "250,000",
+    priceUnit: "บาท/โครงการ",
+    originalPrice: "350,000",
+    rating: 4.9,
+    reviews: 24,
+  },
   {
     id: 9,
     image: SERVICE_FIBER_OPTIC_IMAGE,
@@ -315,182 +356,128 @@ function ImageModal({ image, onClose }: { image: string; onClose: () => void }) 
 
 export default function ProductsSection() {
   const { ref, inView } = useInView();
+  const [activeCategory, setActiveCategory] = useState("ทั้งหมด");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  return (
-    <>
-      <section id="products" className="py-20 md:py-28 bg-[#1A1A2E] relative overflow-hidden">
-        {/* Subtle background pattern */}
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, #C9A84C 1px, transparent 0)`,
-            backgroundSize: "40px 40px",
-          }}
-        />
+  const categories = ["ทั้งหมด", "ERP & AI", "ระบบรักษาความปลอดภัย", "บริการวิศวกรรม"];
 
-        <div className="container relative z-10">
-          {/* Section header */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-0.5 bg-[#C9A84C]" />
-            <span className="text-[#C9A84C] text-xs font-semibold tracking-widest uppercase">
-              สินค้าของเรา
-            </span>
-          </div>
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
-            <div>
-              <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
-                บริการและผลิตภัณฑ์
-              </h2>
-              <h3 className="text-xl md:text-2xl font-bold text-[#C9A84C] mt-1">
-                โซลูชันครบวงจรสำหรับธุรกิจและที่อยู่อาศัย
-              </h3>
+  const filteredProducts = products.filter((p) => {
+    if (activeCategory === "ทั้งหมด") return true;
+    if (activeCategory === "ERP & AI") return p.id >= 100 || p.id <= 3;
+    if (activeCategory === "ระบบรักษาความปลอดภัย") return (p.id >= 4 && p.id <= 6) || (p.id >= 10 && p.id <= 12);
+    if (activeCategory === "บริการวิศวกรรม") return p.id >= 7 && p.id <= 9;
+    return true;
+  });
+
+  return (
+    <section id="products" className="py-20 md:py-28 bg-[#0f0f1e]">
+      <div className="container">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-0.5 bg-[#C9A84C]" />
+              <span className="text-[#C9A84C] text-xs font-semibold tracking-widest uppercase">สินค้าและบริการ</span>
             </div>
-            <p className="text-white/50 text-sm max-w-sm text-right hidden md:block">
-              กล้องวงจรปิด ระบบไฟฟ้า Fiber Optic<br />
-              LAN/WIFI บ้านน็อคดาวน์ และอื่นๆ
+            <h2 className="text-3xl md:text-5xl font-bold text-white mb-2">โซลูชันที่ตอบโจทย์</h2>
+            <p className="text-white/50 max-w-xl">
+              เรานำเสนอเทคโนโลยีและบริการที่ทันสมัยที่สุด เพื่อยกระดับธุรกิจและที่อยู่อาศัยของคุณให้ก้าวไกลไปอีกขั้น
             </p>
           </div>
-
-          {/* Products grid */}
-          <div ref={ref} className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {products.map((product, i) => (
-              <div
-                key={product.id}
-                className={`group relative bg-[#0f0f1e] border border-white/10 rounded-sm overflow-hidden transition-all duration-700 hover:border-[#C9A84C]/60 hover:shadow-[0_0_30px_rgba(201,168,76,0.15)] ${
-                  inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+          <div className="flex flex-wrap gap-2">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`px-4 py-2 text-xs font-bold rounded-sm transition-all ${
+                  activeCategory === cat
+                    ? "bg-[#C9A84C] text-[#1A1A2E]"
+                    : "bg-[#1A1A2E] text-white/60 hover:text-white border border-[#C9A84C]/20"
                 }`}
-                style={{ transitionDelay: `${i * 100}ms` }}
               >
-                {/* Gold top border on hover */}
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#C9A84C] scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left z-10" />
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
 
-                {/* Product image */}
-                <div
-                  className="relative bg-white/5 cursor-pointer overflow-hidden group/image"
-                  onClick={() => setSelectedImage(product.image)}
-                >
-                  <div className="w-full h-52 flex items-center justify-center overflow-hidden">
-                  <img
-                    src={product.image}
-                    alt={`${product.name} - ${product.description.substring(0, 50)}...`}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover/image:scale-105"
-                    loading="lazy"
-                  />
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f1e] via-[#0f0f1e]/30 to-transparent pointer-events-none" />
-
-                  {/* Zoom indicator */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 bg-black/40">
-                    <div className="bg-[#C9A84C] text-[#1A1A2E] px-4 py-2 rounded-sm font-bold text-sm">
-                      คลิกเพื่อดูรูปเต็ม
-                    </div>
-                  </div>
-
-                  {/* Badge */}
-                  <div className="absolute top-4 left-4 bg-[#C9A84C] text-[#1A1A2E] text-xs font-bold px-3 py-1 rounded-sm tracking-wide">
+        <div ref={ref} className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {filteredProducts.map((product, i) => (
+            <div
+              key={product.id}
+              className={`group bg-[#1A1A2E] border border-[#C9A84C]/10 rounded-sm overflow-hidden flex flex-col transition-all duration-700 hover:border-[#C9A84C]/40 hover:shadow-2xl hover:shadow-[#C9A84C]/5 ${
+                inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
+              }`}
+              style={{ transitionDelay: `${i * 100}ms` }}
+            >
+              {/* Product Image */}
+              <div className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => setSelectedImage(product.image)}>
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A2E] via-transparent to-transparent opacity-60" />
+                <div className="absolute top-4 left-4">
+                  <span className="bg-[#C9A84C] text-[#1A1A2E] text-[10px] font-bold px-2 py-1 rounded-sm uppercase tracking-wider">
                     {product.badge}
-                  </div>
-
-                  {/* Rating */}
-                  <div className="absolute bottom-4 right-4 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-sm">
-                    <Star className="w-3.5 h-3.5 text-[#C9A84C] fill-[#C9A84C]" />
-                    <span className="text-white text-xs font-bold">{product.rating}</span>
-                    <span className="text-white/50 text-xs">({product.reviews})</span>
+                  </span>
+                </div>
+                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+                  <div className="flex items-center gap-1 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-sm">
+                    <Star className="w-3 h-3 text-[#C9A84C]" fill="currentColor" />
+                    <span className="text-white text-[10px] font-bold">{product.rating}</span>
+                    <span className="text-white/40 text-[10px]">({product.reviews})</span>
                   </div>
                 </div>
+              </div>
 
-                {/* Product content */}
-                <div className="p-6">
-                  {/* Product name */}
-                  <div className="mb-3">
-                    <h3 className="text-white font-bold text-xl leading-tight group-hover:text-[#C9A84C] transition-colors duration-300">
-                      {product.name}
-                    </h3>
-                    <p className="text-[#C9A84C]/70 text-xs tracking-wide mt-0.5">
-                      {product.nameEn}
-                    </p>
-                  </div>
-
-                  {/* Description */}
-                  <p className="text-white/55 text-sm leading-relaxed mb-4">
-                    {product.description}
+              {/* Product Content */}
+              <div className="p-6 flex flex-col flex-grow">
+                <div className="mb-4">
+                  <h3 className="text-white font-bold text-xl mb-1 group-hover:text-[#C9A84C] transition-colors">
+                    {product.name}
+                  </h3>
+                  <p className="text-white/30 text-[10px] uppercase tracking-widest font-medium">
+                    {product.nameEn}
                   </p>
+                </div>
 
-                  {/* Features */}
-                  <ul className="space-y-1.5 mb-6">
-                    {product.features.map((feat, j) => (
-                      <li key={j} className="flex items-center gap-2 text-white/60 text-xs">
-                        <CheckCircle className="w-3.5 h-3.5 text-[#C9A84C] shrink-0" />
-                        {feat}
-                      </li>
-                    ))}
-                  </ul>
+                <p className="text-white/50 text-sm leading-relaxed mb-6 line-clamp-3">
+                  {product.description}
+                </p>
 
-                  {/* Divider */}
-                  <div className="border-t border-white/10 mb-4" />
-
-                  {/* Price */}
-                  <div className="flex items-end justify-between mb-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Tag className="w-4 h-4 text-[#C9A84C]" />
-                        <span className="text-[#C9A84C] text-2xl font-bold">
-                          ฿{product.price}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-white/30 text-xs line-through">
-                          ฿{product.originalPrice}
-                        </span>
-                        <span className="text-white/50 text-xs">{product.priceUnit}</span>
-                      </div>
+                <div className="space-y-2 mb-8 flex-grow">
+                  {product.features.map((feature, idx) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-[#C9A84C] mt-0.5 shrink-0" />
+                      <span className="text-white/70 text-xs">{feature}</span>
                     </div>
-                    <div className="bg-green-500/15 border border-green-500/30 text-green-400 text-xs font-semibold px-2 py-1 rounded-sm">
-                      ประหยัด{" "}
-                      {Math.round(
-                        (((parseInt(
-                          product.originalPrice.split("-")[0].replace(",", "")
-                        ) -
-                          parseInt(product.price.split("-")[0].replace(",", "")))) /
-                          parseInt(
-                            product.originalPrice.split("-")[0].replace(",", "")
-                          )) *
-                          100
-                      )}
-                      %
+                  ))}
+                </div>
+
+                <div className="pt-6 border-t border-[#C9A84C]/10 flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Tag className="w-3 h-3 text-[#C9A84C]" />
+                      <span className="text-white/30 text-[10px] line-through">฿{product.originalPrice}</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-[#C9A84C] font-bold text-xl">฿{product.price}</span>
+                      <span className="text-white/40 text-[10px]">{product.priceUnit}</span>
                     </div>
                   </div>
-
-                  {/* CTA Button */}
-                  <button
-                    onClick={() => {
-                      const el = document.querySelector("#contact");
-                      if (el) el.scrollIntoView({ behavior: "smooth" });
-                    }}
-                    className="w-full flex items-center justify-center gap-2 bg-[#C9A84C]/15 border border-[#C9A84C]/40 text-[#C9A84C] font-bold text-sm py-3 rounded-sm hover:bg-[#C9A84C] hover:text-[#1A1A2E] transition-all duration-300 tracking-wide"
-                  >
-                    <ShoppingCart className="w-4 h-4" />
-                    สนใจสินค้า / ติดต่อสอบถาม
+                  <button className="w-10 h-10 rounded-sm bg-[#C9A84C]/10 flex items-center justify-center text-[#C9A84C] hover:bg-[#C9A84C] hover:text-[#1A1A2E] transition-all">
+                    <ShoppingCart className="w-5 h-5" />
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
-
-          {/* Bottom note */}
-          <div className="mt-10 text-center">
-            <p className="text-white/40 text-sm">
-              * ราคาดังกล่าวเป็นราคาเริ่มต้น สามารถติดต่อเพื่อรับใบเสนอราคาที่เหมาะสมกับธุรกิจของคุณ
-            </p>
-          </div>
+            </div>
+          ))}
         </div>
-      </section>
+      </div>
 
       {/* Image Modal */}
-      {selectedImage && (
-        <ImageModal image={selectedImage} onClose={() => setSelectedImage(null)} />
-      )}
-    </>
+      {selectedImage && <ImageModal image={selectedImage} onClose={() => setSelectedImage(null)} />}
+    </section>
   );
 }
