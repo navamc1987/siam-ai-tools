@@ -22,7 +22,7 @@ export default function HeroSection() {
   return (
     <section
       id="home"
-      className="relative min-h-[70vh] flex items-center pt-20 pb-20 bg-white overflow-hidden"
+      className="relative min-h-[60vh] flex items-center pt-12 pb-16 bg-white overflow-hidden"
     >
       {/* Subtle Dot Pattern Background */}
       <div className="absolute inset-0 dot-pattern opacity-30 pointer-events-none" />
@@ -34,7 +34,7 @@ export default function HeroSection() {
         <div className="max-w-4xl mx-auto text-center">
           {/* Badge */}
           <div
-            className={`inline-flex items-center gap-2 bg-[#f6f8fa] border border-[#d0d7de] rounded-full px-4 py-1.5 mb-8 transition-all duration-700 ${
+            className={`inline-flex items-center gap-2 bg-[#f6f8fa] border border-[#d0d7de] rounded-full px-4 py-1.5 mb-4 transition-all duration-700 ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             }`}
           >
