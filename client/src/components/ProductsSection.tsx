@@ -15,6 +15,9 @@ const PRODUCT_HIKVISION_9_16_IMAGE = "/images/products/hikvision-ip-9-16.png";
 const SERVICE_FIBER_OPTIC_IMAGE = "/images/products/fiber-optic.jpg";
 const SERVICE_LAN_WIFI_IMAGE = "/images/products/lan-wifi.webp";
 const SERVICE_KNOCKDOWN_HOUSE_IMAGE = "/images/products/knockdown-house.jpg";
+const SERVICE_BACKUP_RANSOMWARE_IMAGE = "/images/products/backup-ransomware.png";
+const SERVICE_FIREWALL_IMAGE = "/images/products/firewall.png";
+const SERVICE_ISO_27001_IMAGE = "/images/products/iso-27001.jpg";
 
 const products = [
   {
@@ -196,6 +199,66 @@ const products = [
     originalPrice: "29,900",
     rating: 5.0,
     reviews: 64,
+  },
+  {
+    id: 12,
+    image: SERVICE_BACKUP_RANSOMWARE_IMAGE,
+    badge: "บริการใหม่",
+    name: "บริการ Backup ป้องกัน Ransomware",
+    nameEn: "Ransomware Protection Backup Service",
+    description:
+      "บริการสำรองข้อมูล (Backup) ระบบที่ออกแบบเพื่อป้องกันการโจมตี Ransomware ด้วยเทคโนโลยี Air-gap Backup และ Immutable Backup ทำให้ข้อมูลของคุณปลอดภัยจากการเข้ารหัสข้อมูลโดยไม่ได้รับอนุญาต",
+    features: [
+      "Air-gap Backup ป้องกัน Ransomware",
+      "Immutable Backup ไม่สามารถแก้ไขได้",
+      "Automated Daily Backup",
+      "Recovery Point Objective (RPO) ต่ำ",
+    ],
+    price: "25,000 - 75,000",
+    priceUnit: "บาท/ปี",
+    originalPrice: "30,000 - 85,000",
+    rating: 5.0,
+    reviews: 18,
+  },
+  {
+    id: 11,
+    image: SERVICE_FIREWALL_IMAGE,
+    badge: "บริการใหม่",
+    name: "บริการออกแบบระบบ Firewall",
+    nameEn: "Firewall System Design Service",
+    description:
+      "บริการออกแบบและติดตั้งระบบ Firewall ขั้นสูง เพื่อป้องกันการโจมตีจากภายนอก ควบคุมการเข้าถึงเครือข่าย และตรวจสอบการเข้าถึงข้อมูลแบบเรียลไทม์ รองรับ Next-Generation Firewall (NGFW)",
+    features: [
+      "ออกแบบ Firewall ตามความต้องการ",
+      "Next-Generation Firewall (NGFW)",
+      "Intrusion Detection & Prevention",
+      "VPN & Remote Access Security",
+    ],
+    price: "50,000 - 150,000",
+    priceUnit: "บาท/โครงการ",
+    originalPrice: "60,000 - 180,000",
+    rating: 4.9,
+    reviews: 15,
+  },
+  {
+    id: 10,
+    image: SERVICE_ISO_27001_IMAGE,
+    badge: "บริการใหม่",
+    name: "เตรียมความพร้อมสำหรับ ISO 27001",
+    nameEn: "ISO 27001 Readiness Preparation",
+    description:
+      "บริการให้คำปรึกษาและเตรียมความพร้อมสำหรับการรับรอง ISO 27001 (Information Security Management System) ช่วยให้องค์กรของคุณปฏิบัติตามมาตรฐานความปลอดภัยข้อมูลระหว่างประเทศ",
+    features: [
+      "ประเมินสถานะความพร้อมปัจจุบัน",
+      "วางแผนและออกแบบ ISMS",
+      "ฝึกอบรมเจ้าหน้าที่",
+      "เตรียมเอกสารสำหรับการตรวจสอบ",
+    ],
+    price: "100,000 - 250,000",
+    priceUnit: "บาท/โครงการ",
+    originalPrice: "120,000 - 300,000",
+    rating: 4.8,
+    reviews: 12,
   },
 ];
 
