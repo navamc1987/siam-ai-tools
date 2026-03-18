@@ -115,7 +115,7 @@ export default function ContactSection() {
             <div className="rounded-lg overflow-hidden border border-[#d0d7de] h-72 grayscale-[0.2] hover:grayscale-0 transition-all">
               <iframe
                 title="แผนที่"
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3884.7!2d101.0!3d13.1!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTPCsDA2JzAwLjAiTiAxMDHCsDAwJzAwLjAiRQ!5e0!3m2!1sth!2sth!4v1234567890"
+                src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d3884.7!2d101.17518602268343!3d13.111169772068978!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sth!2sth!4v1710777600000!5m2!1sth!2sth"
                 width="100%" height="100%" style={{ border: 0 }}
                 allowFullScreen loading="lazy"
               />
