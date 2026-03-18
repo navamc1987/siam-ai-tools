@@ -12,8 +12,71 @@ const PRODUCT_3_IMAGE = "https://images.unsplash.com/photo-1558618666-fcd25c85cd
 const PRODUCT_HIKVISION_IMAGE = "/images/products/hikvision-ip-1-4.png";
 const PRODUCT_HIKVISION_5_8_IMAGE = "/images/products/hikvision-ip-5-8.png";
 const PRODUCT_HIKVISION_9_16_IMAGE = "/images/products/hikvision-ip-9-16.png";
+const SERVICE_FIBER_OPTIC_IMAGE = "/images/products/fiber-optic.jpg";
+const SERVICE_LAN_WIFI_IMAGE = "/images/products/lan-wifi.webp";
+const SERVICE_KNOCKDOWN_HOUSE_IMAGE = "/images/products/knockdown-house.jpg";
 
 const products = [
+  {
+    id: 9,
+    image: SERVICE_FIBER_OPTIC_IMAGE,
+    badge: "บริการใหม่",
+    name: "บริการติดตั้ง Fiber Optic",
+    nameEn: "Fiber Optic Installation Service",
+    description:
+      "บริการติดตั้งระบบ Fiber Optic ความเร็วสูง สำหรับอาคารและสำนักงาน ติดตั้งโดยช่างผู้เชี่ยวชาญ พร้อมการรับประกันและบริการหลังการขาย",
+    features: [
+      "ติดตั้งระบบ Fiber Optic ความเร็ว Gbps",
+      "ออกแบบระบบเฉพาะตามความต้องการ",
+      "ทดสอบและตรวจสอบคุณภาพ",
+      "บริการซ่อมบำรุง 24/7",
+    ],
+    price: "35,000 - 85,000",
+    priceUnit: "บาท/โครงการ",
+    originalPrice: "40,000 - 95,000",
+    rating: 4.9,
+    reviews: 32,
+  },
+  {
+    id: 8,
+    image: SERVICE_LAN_WIFI_IMAGE,
+    badge: "บริการใหม่",
+    name: "บริการเดินสาย LAN/WIFI",
+    nameEn: "LAN/WIFI Cabling Service",
+    description:
+      "บริการเดินสายแลน LAN และติดตั้งระบบ WIFI ความเร็วสูง สำหรับบ้าน สำนักงาน และอาคารพาณิชย์ ด้วยมาตรฐานการติดตั้งสากล",
+    features: [
+      "เดินสาย LAN Cat6/Cat6A",
+      "ติดตั้ง Access Point WIFI 6",
+      "ออกแบบระบบเครือข่ายเหมาะสม",
+      "ทดสอบและปรับแต่งสัญญาณ",
+    ],
+    price: "35,000 - 85,000",
+    priceUnit: "บาท/โครงการ",
+    originalPrice: "40,000 - 95,000",
+    rating: 4.8,
+    reviews: 28,
+  },
+  {
+    id: 7,
+    image: SERVICE_KNOCKDOWN_HOUSE_IMAGE,
+    badge: "บริการใหม่",
+    name: "บริการต่อเติมบ้าน/บ้านน็อคดาวน์",
+    nameEn: "House Extension & Knockdown Service",
+    description:
+      "บริการต่อเติมบ้าน สร้างบ้านน็อคดาวน์สมัยใหม่ ด้วยทีมวิศวกรและช่างก่อสร้างที่มีประสบการณ์ ตรวจสอบคุณภาพและปลอดภัยตามมาตรฐาน",
+    features: [
+      "ออกแบบสถาปัตยกรรมสมัยใหม่",
+      "ก่อสร้างตามมาตรฐาน DBD",
+      "ติดตั้งระบบไฟฟ้าและน้ำ",
+      "ตรวจสอบคุณภาพและส่มอบ",
+    ],
+    price: "35,000 - 85,000",
+    priceUnit: "บาท/โครงการ",
+    originalPrice: "40,000 - 95,000",
+    rating: 4.9,
+    reviews: 25,
+  },
   {
     id: 6,
     image: PRODUCT_HIKVISION_9_16_IMAGE,
