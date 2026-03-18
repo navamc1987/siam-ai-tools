@@ -97,7 +97,7 @@ export default function AboutSection() {
             <div className="bg-[#0f0f1e] border border-[#C9A84C]/20 rounded-sm p-5 mb-8">
               <div className="grid grid-cols-1 gap-3 text-sm">
                 <div className="flex gap-3">
-                  <span className="text-[#C9A84C] font-semibold w-28 shrink-0">เลขทะเบียน</span>
+                  <span className="text-[#C9A84C] font-semibold w-28 shrink-0">เลขประจำตัวผู้เสียภาษี</span>
                   <span className="text-white/70">0203568004052</span>
                 </div>
                 <div className="flex gap-3">
