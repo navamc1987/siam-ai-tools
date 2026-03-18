@@ -10,6 +10,7 @@ const SERVICE_ERPNEXT_IMAGE = "https://images.unsplash.com/photo-1460925895917-a
 const SERVICE_ELECTRICAL_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/PVRYMsfSfimLrYnG.jpg";
 const SERVICE_NETWORK_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/JtLOKyVnpQrGoTlJ.jpg";
 const SERVICE_LIGHTING_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/eycwlKfwZCScooSl.jpg";
+const SERVICE_CCTV_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/UzLtJGJVbtYofNgR.jpeg";
 
 const products = [
   {
@@ -59,6 +60,16 @@ const products = [
     name: "ระบบแสงสว่างและประหยัดพลังงาน",
     description: "ติดตั้งระบบแสงสว่างอัจฉริยะ (Smart Lighting) และระบบประหยัดพลังงานไฟฟ้าในอาคาร",
     features: ["Energy Saving", "Smart Control", "Modern Design", "ROI Optimization"],
+    price: "ตามหน้างาน",
+    category: "บริการวิศวกรรม",
+  },
+  {
+    id: 4,
+    image: SERVICE_CCTV_IMAGE,
+    badge: "Security",
+    name: "ระบบกล้องวงจรปิดและรักษาความปลอดภัย",
+    description: "ติดตั้งระบบ CCTV ความละเอียดสูง 4K, AI Analytics และระบบควบคุมการเข้า-ออก (Access Control)",
+    features: ["4K Ultra HD", "AI Face Recognition", "Mobile Remote View", "Professional Install"],
     price: "ตามหน้างาน",
     category: "บริการวิศวกรรม",
   },
