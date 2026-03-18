@@ -10,7 +10,7 @@ const SERVICE_ERPNEXT_IMAGE = "https://images.unsplash.com/photo-1460925895917-a
 const SERVICE_ELECTRICAL_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/PVRYMsfSfimLrYnG.jpg";
 const SERVICE_NETWORK_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/JtLOKyVnpQrGoTlJ.jpg";
 const SERVICE_LIGHTING_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/eycwlKfwZCScooSl.jpg";
-const SERVICE_CCTV_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/UzLtJGJVbtYofNgR.jpeg";
+const SERVICE_CCTV_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/mUnGVKmJuJxAzJmP.png";
 
 const products = [
   {
@@ -66,11 +66,16 @@ const products = [
   {
     id: 4,
     image: SERVICE_CCTV_IMAGE,
-    badge: "Security",
-    name: "ระบบกล้องวงจรปิดและรักษาความปลอดภัย",
-    description: "ติดตั้งระบบ CCTV ความละเอียดสูง 4K, AI Analytics และระบบควบคุมการเข้า-ออก (Access Control)",
-    features: ["4K Ultra HD", "AI Face Recognition", "Mobile Remote View", "Professional Install"],
-    price: "ตามหน้างาน",
+    badge: "Promotion",
+    name: "ชุดกล้องวงจรปิด Hikvision IP (1-4 ตัว)",
+    description: "กล้อง IP เสียงชัด 4MP พร้อมเครื่องบันทึก 4CH 4K P.o.E. NVR รับประกัน 2 ปี",
+    features: [
+      "1 ตัว: 7,900 - 9,500 (1TB, 20ม.)",
+      "2 ตัว: 9,900 - 12,500 (1TB, 40ม.)",
+      "3 ตัว: 12,900 - 15,500 (1TB, 60ม.)",
+      "4 ตัว: 15,900 - 18,500 (2TB, 80ม.)"
+    ],
+    price: "เริ่มต้น 7,900.-",
     category: "บริการวิศวกรรม",
   },
 ];
