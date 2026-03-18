@@ -23,7 +23,7 @@ const teamContacts = [
   },
   {
     name: "คุณปกรณ์ (ปอนด์)",
-    role: "SALES / ช่างโปรเจคเซลล์",
+    role: "เซลล์โปรเจค",
     phone: "097-083-9445",
     area: "เฉพาะพื้นที่กรุงเทพฯ",
     icon: User,
