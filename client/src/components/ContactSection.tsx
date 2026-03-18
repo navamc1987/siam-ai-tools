@@ -4,7 +4,7 @@
  * Dark background, gold accents
  */
 import { useEffect, useRef, useState } from "react";
-import { Phone, MapPin, Clock, ExternalLink } from "lucide-react";
+import { Phone, MapPin, Clock, ExternalLink, User, ShieldCheck, Briefcase } from "lucide-react";
 import emailjs from "@emailjs/browser";
 
 const SERVICE_ID = "service_82f17qc";
@@ -29,10 +29,10 @@ function useInView(threshold = 0.1) {
 const contactItems = [
   {
     icon: Phone,
-    title: "โทรศัพท์",
+    title: "โทรศัพท์กลาง",
     value: "081-079-3266",
     href: "tel:0810793266",
-    sub: "โทรหาเราได้เลย",
+    sub: "สำนักงานใหญ่",
   },
   {
     icon: MapPin,
@@ -47,6 +47,30 @@ const contactItems = [
     value: "จันทร์ – เสาร์: 08:00 – 17:00",
     href: null,
     sub: "พร้อมให้บริการ",
+  },
+];
+
+const teamContacts = [
+  {
+    name: "คุณวัชรพงศ์ (บอล)",
+    role: "เซลล์โปรเจค",
+    phone: "081-079-3266",
+    area: "กรุงเทพฯ, ปริมณฑล, ชลบุรี, ระยอง, นครสวรรค์",
+    icon: Briefcase,
+  },
+  {
+    name: "คุณวุฒิชัย (ช่างแวน)",
+    role: "ช่างติดตั้ง",
+    phone: "084-973-7099",
+    area: "เฉพาะพื้นที่กรุงเทพฯ และปริมณฑล",
+    icon: ShieldCheck,
+  },
+  {
+    name: "คุณปกรณ์ (ปอนด์)",
+    role: "SALES / ช่างโปรเจคเซลล์",
+    phone: "097-083-9445",
+    area: "เฉพาะพื้นที่กรุงเทพฯ",
+    icon: User,
   },
 ];
 
@@ -89,7 +113,41 @@ export default function ContactSection() {
           <span className="text-[#C9A84C] text-xs font-semibold tracking-widest uppercase">ติดต่อเรา</span>
         </div>
         <h2 className="text-3xl md:text-5xl font-bold text-white mb-2">พร้อมให้บริการ</h2>
-        <h3 className="text-xl md:text-2xl font-bold text-[#C9A84C] mb-12">ติดต่อเราได้เลยวันนี้</h3>
+        <h3 className="text-xl md:text-2xl font-bold text-[#C9A84C] mb-12">ติดต่อทีมงานผู้เชี่ยวชาญของเรา</h3>
+
+        {/* Team Contacts Grid */}
+        <div className="grid md:grid-cols-3 gap-6 mb-16">
+          {teamContacts.map((person, i) => (
+            <div 
+              key={i} 
+              className={`bg-[#0f0f1e] border-t-2 border-[#C9A84C] rounded-sm p-6 shadow-xl transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+              style={{ transitionDelay: `${i * 150}ms` }}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-[#C9A84C]/20 flex items-center justify-center">
+                  <person.icon className="w-5 h-5 text-[#C9A84C]" />
+                </div>
+                <div>
+                  <h4 className="text-white font-bold text-lg leading-tight">{person.name}</h4>
+                  <p className="text-[#C9A84C] text-xs font-semibold uppercase tracking-wider">{person.role}</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <a 
+                  href={`tel:${person.phone.replace(/-/g, '')}`} 
+                  className="flex items-center gap-2 text-white hover:text-[#C9A84C] transition-colors group"
+                >
+                  <Phone className="w-4 h-4 text-[#C9A84C]" />
+                  <span className="font-bold text-lg">{person.phone}</span>
+                </a>
+                <div className="flex items-start gap-2 text-white/60 text-sm">
+                  <MapPin className="w-4 h-4 text-[#C9A84C] mt-1 shrink-0" />
+                  <span>{person.area}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
 
         <div ref={ref} className="grid lg:grid-cols-2 gap-12">
           <div className={`transition-all duration-700 ${inView ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8"}`}>
