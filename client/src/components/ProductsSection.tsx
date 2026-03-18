@@ -4,7 +4,7 @@
  * Gold accent borders, dark background, Thai language
  */
 import { useEffect, useRef, useState } from "react";
-import { ShoppingCart, Star, Tag, CheckCircle } from "lucide-react";
+import { ShoppingCart, Star, Tag, CheckCircle, X } from "lucide-react";
 
 const PRODUCT_1_IMAGE = "https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=600&q=80";
 const PRODUCT_2_IMAGE = "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=600&q=80";
@@ -152,156 +152,216 @@ function useInView(threshold = 0.1) {
   return { ref, inView };
 }
 
-export default function ProductsSection() {
-  const { ref, inView } = useInView();
+// Image Modal Component
+function ImageModal({ image, onClose }: { image: string; onClose: () => void }) {
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [onClose]);
 
   return (
-    <section id="products" className="py-20 md:py-28 bg-[#1A1A2E] relative overflow-hidden">
-      {/* Subtle background pattern */}
-      <div className="absolute inset-0 opacity-10"
-        style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, #C9A84C 1px, transparent 0)`,
-          backgroundSize: "40px 40px",
-        }}
-      />
-
-      <div className="container relative z-10">
-        {/* Section header */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-8 h-0.5 bg-[#C9A84C]" />
-          <span className="text-[#C9A84C] text-xs font-semibold tracking-widest uppercase">
-            สินค้าของเรา
-          </span>
-        </div>
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
-          <div>
-            <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
-              ผลิตภัณฑ์ AI
-            </h2>
-            <h3 className="text-xl md:text-2xl font-bold text-[#C9A84C] mt-1">
-              เครื่องมือปัญญาประดิษฐ์สำหรับธุรกิจ
-            </h3>
-          </div>
-          <p className="text-white/50 text-sm max-w-sm text-right hidden md:block">
-            โซลูชัน AI ครบวงจรที่ออกแบบมาเพื่อ<br />
-            เพิ่มประสิทธิภาพธุรกิจของคุณ
-          </p>
-        </div>
-
-        {/* Products grid */}
-        <div ref={ref} className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {products.map((product, i) => (
-            <div
-              key={product.id}
-              className={`group relative bg-[#0f0f1e] border border-white/10 rounded-sm overflow-hidden transition-all duration-700 hover:border-[#C9A84C]/60 hover:shadow-[0_0_30px_rgba(201,168,76,0.15)] ${
-                inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-              }`}
-              style={{ transitionDelay: `${i * 100}ms` }}
-            >
-              {/* Gold top border on hover */}
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#C9A84C] scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left z-10" />
-
-              {/* Product image */}
-              <div className="relative h-52 overflow-hidden">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f1e] via-[#0f0f1e]/30 to-transparent" />
-
-                {/* Badge */}
-                <div className="absolute top-4 left-4 bg-[#C9A84C] text-[#1A1A2E] text-xs font-bold px-3 py-1 rounded-sm tracking-wide">
-                  {product.badge}
-                </div>
-
-                {/* Rating */}
-                <div className="absolute bottom-4 right-4 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-sm">
-                  <Star className="w-3.5 h-3.5 text-[#C9A84C] fill-[#C9A84C]" />
-                  <span className="text-white text-xs font-bold">{product.rating}</span>
-                  <span className="text-white/50 text-xs">({product.reviews})</span>
-                </div>
-              </div>
-
-              {/* Product content */}
-              <div className="p-6">
-                {/* Product name */}
-                <div className="mb-3">
-                  <h3 className="text-white font-bold text-xl leading-tight group-hover:text-[#C9A84C] transition-colors duration-300">
-                    {product.name}
-                  </h3>
-                  <p className="text-[#C9A84C]/70 text-xs tracking-wide mt-0.5">{product.nameEn}</p>
-                </div>
-
-                {/* Description */}
-                <p className="text-white/55 text-sm leading-relaxed mb-4">
-                  {product.description}
-                </p>
-
-                {/* Features */}
-                <ul className="space-y-1.5 mb-6">
-                  {product.features.map((feat, j) => (
-                    <li key={j} className="flex items-center gap-2 text-white/60 text-xs">
-                      <CheckCircle className="w-3.5 h-3.5 text-[#C9A84C] shrink-0" />
-                      {feat}
-                    </li>
-                  ))}
-                </ul>
-
-                {/* Divider */}
-                <div className="border-t border-white/10 mb-4" />
-
-                {/* Price */}
-                <div className="flex items-end justify-between mb-4">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Tag className="w-4 h-4 text-[#C9A84C]" />
-                      <span className="text-[#C9A84C] text-2xl font-bold">
-                        ฿{product.price}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-white/30 text-xs line-through">
-                        ฿{product.originalPrice}
-                      </span>
-                      <span className="text-white/50 text-xs">{product.priceUnit}</span>
-                    </div>
-                  </div>
-                  <div className="bg-green-500/15 border border-green-500/30 text-green-400 text-xs font-semibold px-2 py-1 rounded-sm">
-                    ประหยัด{" "}
-                    {Math.round(
-                      (((parseInt(product.originalPrice.split("-")[0].replace(",", "")) -
-                        parseInt(product.price.split("-")[0].replace(",", "")))) /
-                        parseInt(product.originalPrice.split("-")[0].replace(",", ""))) *
-                        100
-                    )}
-                    %
-                  </div>
-                </div>
-
-                {/* CTA Button */}
-                <button
-                  onClick={() => {
-                    const el = document.querySelector("#contact");
-                    if (el) el.scrollIntoView({ behavior: "smooth" });
-                  }}
-                  className="w-full flex items-center justify-center gap-2 bg-[#C9A84C]/15 border border-[#C9A84C]/40 text-[#C9A84C] font-bold text-sm py-3 rounded-sm hover:bg-[#C9A84C] hover:text-[#1A1A2E] transition-all duration-300 tracking-wide"
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                  สนใจสินค้า / ติดต่อสอบถาม
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Bottom note */}
-        <div className="mt-10 text-center">
-          <p className="text-white/40 text-sm">
-            * ราคาดังกล่าวเป็นราคาเริ่มต้น สามารถติดต่อเพื่อรับใบเสนอราคาที่เหมาะสมกับธุรกิจของคุณ
-          </p>
-        </div>
+    <div
+      className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="relative max-w-4xl w-full max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <img
+          src={image}
+          alt="Product Detail"
+          className="w-full h-full object-contain"
+        />
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 bg-[#C9A84C] hover:bg-[#B8942F] text-[#1A1A2E] p-2 rounded-full transition-colors"
+        >
+          <X className="w-6 h-6" />
+        </button>
       </div>
-    </section>
+    </div>
+  );
+}
+
+export default function ProductsSection() {
+  const { ref, inView } = useInView();
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  return (
+    <>
+      <section id="products" className="py-20 md:py-28 bg-[#1A1A2E] relative overflow-hidden">
+        {/* Subtle background pattern */}
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, #C9A84C 1px, transparent 0)`,
+            backgroundSize: "40px 40px",
+          }}
+        />
+
+        <div className="container relative z-10">
+          {/* Section header */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-0.5 bg-[#C9A84C]" />
+            <span className="text-[#C9A84C] text-xs font-semibold tracking-widest uppercase">
+              สินค้าของเรา
+            </span>
+          </div>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
+            <div>
+              <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
+                ผลิตภัณฑ์ AI
+              </h2>
+              <h3 className="text-xl md:text-2xl font-bold text-[#C9A84C] mt-1">
+                เครื่องมือปัญญาประดิษฐ์สำหรับธุรกิจ
+              </h3>
+            </div>
+            <p className="text-white/50 text-sm max-w-sm text-right hidden md:block">
+              โซลูชัน AI ครบวงจรที่ออกแบบมาเพื่อ<br />
+              เพิ่มประสิทธิภาพธุรกิจของคุณ
+            </p>
+          </div>
+
+          {/* Products grid */}
+          <div ref={ref} className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {products.map((product, i) => (
+              <div
+                key={product.id}
+                className={`group relative bg-[#0f0f1e] border border-white/10 rounded-sm overflow-hidden transition-all duration-700 hover:border-[#C9A84C]/60 hover:shadow-[0_0_30px_rgba(201,168,76,0.15)] ${
+                  inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+                }`}
+                style={{ transitionDelay: `${i * 100}ms` }}
+              >
+                {/* Gold top border on hover */}
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#C9A84C] scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left z-10" />
+
+                {/* Product image */}
+                <div
+                  className="relative bg-white/5 cursor-pointer overflow-hidden group/image"
+                  onClick={() => setSelectedImage(product.image)}
+                >
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="w-full h-auto object-contain p-4 transition-transform duration-700 group-hover/image:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f1e] via-[#0f0f1e]/30 to-transparent" />
+
+                  {/* Zoom indicator */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 bg-black/40">
+                    <div className="bg-[#C9A84C] text-[#1A1A2E] px-4 py-2 rounded-sm font-bold text-sm">
+                      คลิกเพื่อดูรูปเต็ม
+                    </div>
+                  </div>
+
+                  {/* Badge */}
+                  <div className="absolute top-4 left-4 bg-[#C9A84C] text-[#1A1A2E] text-xs font-bold px-3 py-1 rounded-sm tracking-wide">
+                    {product.badge}
+                  </div>
+
+                  {/* Rating */}
+                  <div className="absolute bottom-4 right-4 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-sm">
+                    <Star className="w-3.5 h-3.5 text-[#C9A84C] fill-[#C9A84C]" />
+                    <span className="text-white text-xs font-bold">{product.rating}</span>
+                    <span className="text-white/50 text-xs">({product.reviews})</span>
+                  </div>
+                </div>
+
+                {/* Product content */}
+                <div className="p-6">
+                  {/* Product name */}
+                  <div className="mb-3">
+                    <h3 className="text-white font-bold text-xl leading-tight group-hover:text-[#C9A84C] transition-colors duration-300">
+                      {product.name}
+                    </h3>
+                    <p className="text-[#C9A84C]/70 text-xs tracking-wide mt-0.5">
+                      {product.nameEn}
+                    </p>
+                  </div>
+
+                  {/* Description */}
+                  <p className="text-white/55 text-sm leading-relaxed mb-4">
+                    {product.description}
+                  </p>
+
+                  {/* Features */}
+                  <ul className="space-y-1.5 mb-6">
+                    {product.features.map((feat, j) => (
+                      <li key={j} className="flex items-center gap-2 text-white/60 text-xs">
+                        <CheckCircle className="w-3.5 h-3.5 text-[#C9A84C] shrink-0" />
+                        {feat}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* Divider */}
+                  <div className="border-t border-white/10 mb-4" />
+
+                  {/* Price */}
+                  <div className="flex items-end justify-between mb-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Tag className="w-4 h-4 text-[#C9A84C]" />
+                        <span className="text-[#C9A84C] text-2xl font-bold">
+                          ฿{product.price}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-white/30 text-xs line-through">
+                          ฿{product.originalPrice}
+                        </span>
+                        <span className="text-white/50 text-xs">{product.priceUnit}</span>
+                      </div>
+                    </div>
+                    <div className="bg-green-500/15 border border-green-500/30 text-green-400 text-xs font-semibold px-2 py-1 rounded-sm">
+                      ประหยัด{" "}
+                      {Math.round(
+                        (((parseInt(
+                          product.originalPrice.split("-")[0].replace(",", "")
+                        ) -
+                          parseInt(product.price.split("-")[0].replace(",", "")))) /
+                          parseInt(
+                            product.originalPrice.split("-")[0].replace(",", "")
+                          )) *
+                          100
+                      )}
+                      %
+                    </div>
+                  </div>
+
+                  {/* CTA Button */}
+                  <button
+                    onClick={() => {
+                      const el = document.querySelector("#contact");
+                      if (el) el.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className="w-full flex items-center justify-center gap-2 bg-[#C9A84C]/15 border border-[#C9A84C]/40 text-[#C9A84C] font-bold text-sm py-3 rounded-sm hover:bg-[#C9A84C] hover:text-[#1A1A2E] transition-all duration-300 tracking-wide"
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    สนใจสินค้า / ติดต่อสอบถาม
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom note */}
+          <div className="mt-10 text-center">
+            <p className="text-white/40 text-sm">
+              * ราคาดังกล่าวเป็นราคาเริ่มต้น สามารถติดต่อเพื่อรับใบเสนอราคาที่เหมาะสมกับธุรกิจของคุณ
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Image Modal */}
+      {selectedImage && (
+        <ImageModal image={selectedImage} onClose={() => setSelectedImage(null)} />
+      )}
+    </>
   );
 }
