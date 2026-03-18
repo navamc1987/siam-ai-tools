@@ -44,18 +44,18 @@ export default function HeroSection() {
             </span>
           </div>
 
-          {/* Main heading */}
+          {/* Main heading (Significantly reduced for Minimalist look) */}
           <h1
-            className={`text-4xl md:text-5xl lg:text-6xl font-bold text-[#1f2328] leading-[1.2] mb-6 transition-all duration-700 delay-100 ${
+            className={`text-2xl md:text-3xl lg:text-4xl font-bold text-[#1f2328] leading-tight mb-4 transition-all duration-700 delay-100 ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             }`}
           >
             สร้างอนาคตด้วยเทคโนโลยีที่ <span className="text-[#0969da]">เรียบง่าย</span>
           </h1>
 
-          {/* Description */}
+          {/* Description (Reduced to standard reading size) */}
           <p
-            className={`text-[#656d76] text-base md:text-lg leading-relaxed mb-10 max-w-2xl transition-all duration-700 delay-200 ${
+            className={`text-[#656d76] text-sm md:text-base leading-relaxed mb-8 max-w-xl transition-all duration-700 delay-200 ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             }`}
           >
