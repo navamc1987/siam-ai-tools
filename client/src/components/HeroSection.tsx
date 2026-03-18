@@ -46,7 +46,7 @@ export default function HeroSection() {
 
           {/* Main heading */}
           <h1
-            className={`text-5xl md:text-7xl lg:text-8xl font-bold text-[#1f2328] leading-[1.1] mb-6 transition-all duration-700 delay-100 ${
+            className={`text-4xl md:text-5xl lg:text-6xl font-bold text-[#1f2328] leading-[1.2] mb-6 transition-all duration-700 delay-100 ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             }`}
           >
@@ -55,7 +55,7 @@ export default function HeroSection() {
 
           {/* Description */}
           <p
-            className={`text-[#656d76] text-xl md:text-2xl leading-relaxed mb-10 max-w-3xl transition-all duration-700 delay-200 ${
+            className={`text-[#656d76] text-base md:text-lg leading-relaxed mb-10 max-w-2xl transition-all duration-700 delay-200 ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             }`}
           >
