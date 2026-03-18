@@ -10,8 +10,29 @@ const PRODUCT_1_IMAGE = "https://images.unsplash.com/photo-1677442135703-1787eea
 const PRODUCT_2_IMAGE = "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=600&q=80";
 const PRODUCT_3_IMAGE = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80";
 const PRODUCT_HIKVISION_IMAGE = "/images/products/hikvision-ip-1-4.png";
+const PRODUCT_HIKVISION_5_8_IMAGE = "/images/products/hikvision-ip-5-8.png";
 
 const products = [
+  {
+    id: 5,
+    image: PRODUCT_HIKVISION_5_8_IMAGE,
+    badge: "ยอดเยี่ยม",
+    name: "ชุดกล้องวงจรปิด IP 5-8 ตัว",
+    nameEn: "Hikvision IP Camera Set 5-8 4MP",
+    description:
+      "ชุดกล้องวงจรปิด IP Hikvision ความละเอียด 4MP เสียงชัด พร้อมเครื่องบันทึก 8CH 4K P.o.E. NVR รับประกัน 3 ปี เหมาะสำหรับสำนักงานและโรงแรม",
+    features: [
+      "กล้อง IP 4MP เสียงชัดเจน",
+      "NVR 8CH 4K P.o.E.",
+      "HDD สูงสุด 4TB (ตามจำนวนกล้อง)",
+      "สาย LAN พร้อมติดตั้ง 100-160 ม.",
+    ],
+    price: "19,500 - 34,500",
+    priceUnit: "บาท/ชุด",
+    originalPrice: "22,500 - 39,500",
+    rating: 5.0,
+    reviews: 38,
+  },
   {
     id: 4,
     image: PRODUCT_HIKVISION_IMAGE,
