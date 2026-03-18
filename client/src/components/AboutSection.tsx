@@ -105,10 +105,9 @@ export default function AboutSection() {
                   <span className="text-white/70">567/65 หมู่ที่ 4 ต.เขาคันทรง อ.ศรีราชา จ.ชลบุรี 20110</span>
                 </div>
                 <div className="flex gap-3">
-                  <span className="text-[#C9A84C] font-semibold w-28 shrink-0">โทรศัพท์</span>
-                  <a href="tel:0810793266" className="text-white/70 hover:text-[#C9A84C] transition-colors">
-                    081-079-3266
-                  </a>
+                  <span className="text-[#C9A84C] font-semibold w-28 shrink-0">Line ID</span>
+                  <a href="https://line.me/ti/p/~0900072977" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-[#C9A84C] transition-colors">0900072977</a>
+                </div>
                 </div>
                 <div className="flex gap-3">
                   <span className="text-[#C9A84C] font-semibold w-28 shrink-0">Line ID</span>
