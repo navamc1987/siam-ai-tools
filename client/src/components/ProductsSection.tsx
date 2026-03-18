@@ -11,6 +11,7 @@ const SERVICE_ELECTRICAL_IMAGE = "https://files.manuscdn.com/user_upload_by_modu
 const SERVICE_NETWORK_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/JtLOKyVnpQrGoTlJ.jpg";
 const SERVICE_LIGHTING_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/eycwlKfwZCScooSl.jpg";
 const SERVICE_CCTV_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/mUnGVKmJuJxAzJmP.png";
+const SERVICE_CCTV_8CH_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/voDgUssYOICvZKmP.png";
 
 const products = [
   {
@@ -76,6 +77,21 @@ const products = [
       "4 ตัว: 15,900 - 18,500 (2TB, 80ม.)"
     ],
     price: "เริ่มต้น 7,900.-",
+    category: "บริการวิศวกรรม",
+  },
+  {
+    id: 5,
+    image: SERVICE_CCTV_8CH_IMAGE,
+    badge: "Best Price",
+    name: "ชุดกล้องวงจรปิด Hikvision IP (5-8 ตัว)",
+    description: "กล้อง IP 4MP เสียงชัด พร้อมเครื่องบันทึก NVR 8 ช่อง 4K P.o.E. รับประกัน 3 ปี",
+    features: [
+      "5 ตัว: 19,500 - 22,500 (2TB, 100ม.)",
+      "6 ตัว: 22,900 - 26,500 (2TB, 120ม.)",
+      "7 ตัว: 25,900 - 29,500 (2TB, 140ม.)",
+      "8 ตัว: 29,900 - 34,500 (4TB, 160ม.)"
+    ],
+    price: "เริ่มต้น 19,500.-",
     category: "บริการวิศวกรรม",
   },
 ];
