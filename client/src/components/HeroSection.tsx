@@ -88,7 +88,8 @@ export default function HeroSection() {
           >
             ผู้เชี่ยวชาญด้านการออกแบบ ติดตั้ง และซ่อมบำรุง ระบบไฟฟ้า แสงสว่าง
             ระบบควบคุมไฟฟ้าในอาคารและโรงงานอุตสาหกรรม คอมพิวเตอร์
-            กล้องวงจรปิด และโปรแกรมสำเร็จรูป ERPNEXT
+            กล้องวงจรปิด Fiber Optic LAN/WIFI และโปรแกรมสำเร็จรูป ERPNEXT
+            บริการในพื้นที่ บรรพตพิสัย นครสวรรค์ ชลบุรี ศรีราชา
           </p>
 
           {/* CTA Buttons */}
@@ -132,7 +133,7 @@ export default function HeroSection() {
             </a>
             <div className="flex items-center gap-2 text-white/60 text-sm">
               <MapPin className="w-4 h-4 text-[#C9A84C] shrink-0" />
-              <span>ศรีราชา จ.ชลบุรี</span>
+              <span>บรรพตพิสัย นครสวรรค์ | ศรีราชา ชลบุรี</span>
             </div>
           </div>
         </div>

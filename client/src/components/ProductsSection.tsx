@@ -309,8 +309,9 @@ export default function ProductsSection() {
                 >
                   <img
                     src={product.image}
-                    alt={product.name}
+                    alt={`${product.name} - ${product.description.substring(0, 50)}...`}
                     className="w-full h-auto object-contain p-4 transition-transform duration-700 group-hover/image:scale-105"
+                    loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f1e] via-[#0f0f1e]/30 to-transparent" />
 
