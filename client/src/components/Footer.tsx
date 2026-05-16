@@ -24,7 +24,7 @@ export default function Footer() {
               <p className="text-[#1f2328] font-bold text-lg">สยาม เอไอ ทูลส์</p>
             </div>
             <p className="text-[#656d76] text-sm leading-relaxed mb-6">
-              มุ่งมั่นส่งมอบเทคโนโลยีที่ทันสมัยและบริการที่เรียบง่าย เพื่อขับเคลื่อนธุรกิจไทยสู่ยุคดิจิทัลอย่างยั่งยืน
+              มุ่งมั่นส่งมอบบริการต่อเติม รีโนเวท และเทคโนโลยีที่ทันสมัย เพื่อปรับปรุงคุณภาพชีวิตและธุรกิจไทยอย่างยั่งยืน
             </p>
             <div className="flex gap-4">
               <a href="#" className="text-[#656d76] hover:text-[#0969da] transition-colors"><Facebook className="w-5 h-5" /></a>
@@ -39,7 +39,7 @@ export default function Footer() {
             <ul className="space-y-4">
               {[
                 { label: "หน้าแรก", href: "#home" },
-                { label: "สินค้าและบริการ", href: "#products" },
+                { label: "บริการและสินค้า", href: "#products" },
                 { label: "ติดต่อเรา", href: "#contact" },
               ].map((item) => (
                 <li key={item.href}>
@@ -58,7 +58,7 @@ export default function Footer() {
           <div>
             <h4 className="text-[#1f2328] font-bold text-sm mb-6 uppercase tracking-wider">บริการของเรา</h4>
             <ul className="space-y-4">
-              {["ERPNext Implementation", "AI Chatbot Solutions", "Network & Fiber Optic", "CCTV & Security Systems"].map((service) => (
+              {["ต่อเติมและรีโนเวท", "ติดตั้งโซล่าเซลล์", "ระบบไฟฟ้า", "CCTV & Security"].map((service) => (
                 <li key={service}>
                   <span className="text-[#656d76] text-sm font-medium">{service}</span>
                 </li>
@@ -91,10 +91,6 @@ export default function Footer() {
           <p className="text-[#656d76] text-xs">
             © {new Date().getFullYear()} ห้างหุ้นส่วนจำกัด สยาม เอไอ ทูลส์. All rights reserved.
           </p>
-          <div className="flex items-center gap-6">
-            <a href="#" className="text-[#656d76] hover:text-[#0969da] text-xs transition-colors">Terms of Service</a>
-            <a href="#" className="text-[#656d76] hover:text-[#0969da] text-xs transition-colors">Privacy Policy</a>
-          </div>
         </div>
       </div>
     </footer>

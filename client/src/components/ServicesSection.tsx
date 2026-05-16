@@ -4,13 +4,31 @@
  * Service images, icons, and descriptions
  */
 import { useEffect, useRef, useState } from "react";
-import { Zap, Lightbulb, Settings, Monitor, Camera, Database } from "lucide-react";
+import { Zap, Lightbulb, Settings, Monitor, Camera, Database, Hammer, Sun } from "lucide-react";
 
 const ELECTRICAL_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663450220945/2xv2kDRJAu53CHYeiRqts8/electrical-service-ZKdAWD8RMhAFsoeBaEkhBf.webp";
 const CCTV_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663450220945/2xv2kDRJAu53CHYeiRqts8/cctv-service-3a6SfXtCtR6HSNqTwdAZ8R.webp";
 const ERP_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663450220945/2xv2kDRJAu53CHYeiRqts8/erp-software-YNwoN8QEA9gjn2VPLv2xVd.webp";
 
 const services = [
+  {
+    icon: Hammer,
+    title: "งานต่อเติมและรีโนเวท",
+    subtitle: "Renovation & Extension",
+    description:
+      "บริการต่อเติมและรีโนเวทห้องต่างๆ ทั้งห้องน้ำ ห้องครัว ห้องนอน โรงจอดรถ และหลังคา ด้วยการออกแบบและติดตั้งที่มีคุณภาพสูง",
+    image: null,
+    features: ["ห้องน้ำและห้องครัว", "ห้องนอนและห้องนั่งเล่น", "โรงจอดรถและหลังคา", "ออกแบบตามสไตล์"],
+  },
+  {
+    icon: Sun,
+    title: "ติดตั้งแผงโซล่าเซลล์",
+    subtitle: "Solar Panel Installation",
+    description:
+      "ติดตั้งระบบพลังงานแสงอาทิตย์ (โซล่าเซลล์) ประสิทธิภาพสูง พร้อมระบบควบคุมและเก็บพลังงาน ประหยัดค่าไฟฟ้าในระยะยาว",
+    image: null,
+    features: ["แผงโซล่าเซลล์คุณภาพ", "ระบบ Inverter ทันสมัย", "ระบบเก็บพลังงาน", "ประหยัดค่าไฟฟ้า"],
+  },
   {
     icon: Zap,
     title: "ระบบไฟฟ้า",
@@ -43,7 +61,7 @@ const services = [
     title: "คอมพิวเตอร์และเครือข่าย",
     subtitle: "Computer & Network",
     description:
-      "จำหน่าย ติดตั้ง และซ่อมบำรุงระบบคอมพิวเตอร์ เครือข่าย LAN/WAN และระบบ Server สำหรับองค์กร",
+      "จำหน่าย ติดตั้ง และซ่อมบำรุงระบบคอมพิวเตอร์ เครือข่าย LAN/Wi‑Fi และระบบ Server สำหรับองค์กร",
     image: null,
     features: ["ติดตั้งระบบเครือข่าย", "Server & Storage", "ซ่อมบำรุงคอมพิวเตอร์", "IT Support"],
   },
@@ -58,7 +76,7 @@ const services = [
   },
   {
     icon: Database,
-    title: "โปรแกรม ERPNEXT",
+    title: "โปรแกรม ERPNext",
     subtitle: "ERP Software",
     description:
       "ติดตั้ง ปรับแต่ง และฝึกอบรมการใช้งานโปรแกรม ERPNext ระบบบริหารจัดการองค์กรครบวงจร สำหรับธุรกิจทุกขนาด",
@@ -103,17 +121,17 @@ export default function ServicesSection() {
               บริการครบวงจร
             </h2>
             <h3 className="text-xl md:text-2xl font-bold text-[#C9A84C] mt-1">
-              ด้านไฟฟ้าและเทคโนโลยี
+              ต่อเติม รีโนเวท และระบบไฟฟ้า
             </h3>
           </div>
           <p className="text-white/50 text-sm max-w-sm text-right hidden md:block">
             เราให้บริการครอบคลุมทุกความต้องการ<br />
-            ด้านระบบไฟฟ้าและเทคโนโลยีสารสนเทศ
+            ด้านการต่อเติม รีโนเวท และเทคโนโลยี
           </p>
         </div>
 
         {/* Services grid */}
-        <div ref={ref} className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div ref={ref} className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {services.map((service, i) => (
             <div
               key={i}

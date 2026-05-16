@@ -50,7 +50,7 @@ export default function HeroSection() {
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             }`}
           >
-            สร้างอนาคตด้วยเทคโนโลยีที่ <span className="text-[#0969da]">เรียบง่าย</span>
+            ต่อเติม รีโนเวท และติดตั้งโซล่าเซลล์ <span className="text-[#0969da]">ที่เรียบง่าย</span>
           </h1>
 
           {/* Description (Reduced to standard reading size) */}
@@ -60,9 +60,9 @@ export default function HeroSection() {
                 visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
               }`}
             >
-              ผู้เชี่ยวชาญด้านการออกแบบ ติดตั้ง และซ่อมบำรุง ระบบไฟฟ้า แสงสว่าง
-              ระบบควบคุมในอาคารและโรงงานอุตสาหกรรม คอมพิวเตอร์
-              กล้องวงจรปิด Fiber Optic LAN/WIFI และโปรแกรมบริหารจัดการองค์กร ERPNext
+              ผู้เชี่ยวชาญด้านการออกแบบ ติดตั้ง และซ่อมบำรุง งานต่อเติมและรีโนเวทห้องต่างๆ
+              หลังคา โรงจอดรถ พร้อมบริการติดตั้งแผงโซล่าเซลล์และระบบไฟฟ้า แสงสว่าง
+              เครือข่าย CCTV และโปรแกรมบริหารจัดการองค์กร ERPNext
             </p>
           </div>
 
@@ -79,7 +79,7 @@ export default function HeroSection() {
               }}
               className="btn-primary px-8 py-3 text-base"
             >
-              ดูสินค้าและบริการ
+              ดูบริการและสินค้า
             </button>
             <button
               onClick={() => {

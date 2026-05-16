@@ -9,10 +9,10 @@ import { Award, Users, Wrench, Building2 } from "lucide-react";
 const ABOUT_IMAGE = "/images/about/team-photo.jpg";
 
 const stats = [
-  { icon: Award, value: "10+", label: "ปีประสบการณ์" },
-  { icon: Building2, value: "200+", label: "โครงการที่สำเร็จ" },
-  { icon: Users, value: "50+", label: "ลูกค้าที่ไว้วางใจ" },
-  { icon: Wrench, value: "เร็วที่สุด 1-3 วัน", label: "บริการซ่อมบำรุง" },
+  { icon: Award, value: "20+", label: "ปีประสบการณ์" },
+  { icon: Building2, value: "300+", label: "โครงการที่สำเร็จ" },
+  { icon: Users, value: "100+", label: "ลูกค้าที่ไว้วางใจ" },
+  { icon: Wrench, value: "1-3 วัน", label: "บริการซ่อมบำรุง" },
 ];
 
 function useInView(threshold = 0.2) {
@@ -84,13 +84,13 @@ export default function AboutSection() {
             <div className="w-16 h-0.5 bg-[#C9A84C] mb-6" />
 
             <p className="text-white/70 text-base leading-relaxed mb-4">
-              เราเป็นผู้เชี่ยวชาญด้านวิศวกรรมไฟฟ้าและเทคโนโลยีสารสนเทศ
-              ให้บริการครบวงจรตั้งแต่การออกแบบ ติดตั้ง ไปจนถึงการซ่อมบำรุง
+              เราเป็นผู้เชี่ยวชาญด้านการต่อเติม รีโนเวท ติดตั้งโซล่าเซลล์
+              และวิศวกรรมไฟฟ้า ให้บริการครบวงจรตั้งแต่การออกแบบ ติดตั้ง ไปจนถึงการซ่อมบำรุง
               ระบบไฟฟ้าในอาคารและโรงงานอุตสาหกรรม
             </p>
             <p className="text-white/70 text-base leading-relaxed mb-8">
               ด้วยทีมวิศวกรและช่างผู้มีประสบการณ์ เราพร้อมให้บริการลูกค้า
-              ในเขตจังหวัดชลบุรีและพื้นที่ใกล้เคียงด้วยมาตรฐานสูงสุด
+              ในเขตกรุงเทพฯ ปริมณฑล ชลบุรี ระยอง และนครสวรรค์ ด้วยมาตรฐานสูงสุด
             </p>
 
             {/* Company info */}
@@ -108,10 +108,10 @@ export default function AboutSection() {
                   <span className="text-[#C9A84C] font-semibold w-28 shrink-0">Line ID</span>
                   <a href="https://line.me/ti/p/~0900072977" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-[#C9A84C] transition-colors">0900072977</a>
                 </div>
-                </div>
                 <div className="flex gap-3">
                   <span className="text-[#C9A84C] font-semibold w-28 shrink-0">โทรเลย</span>
                   <span className="text-white/70">081-079-3266</span>
+                </div>
               </div>
             </div>
 

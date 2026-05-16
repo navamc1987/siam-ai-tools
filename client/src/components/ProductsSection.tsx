@@ -7,18 +7,38 @@ import { useEffect, useRef, useState } from "react";
 import { ShoppingCart, Star, Tag, CheckCircle, ArrowRight } from "lucide-react";
 
 const SERVICE_ERPNEXT_IMAGE = "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&q=80";
-const SERVICE_ELECTRICAL_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/PVRYMsfSfimLrYnG.jpg";
-const SERVICE_NETWORK_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/JtLOKyVnpQrGoTlJ.jpg";
+const SERVICE_RENOVATION_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/PVRYMsfSfimLrYnG.jpg";
+const SERVICE_SOLAR_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/JtLOKyVnpQrGoTlJ.jpg";
 const SERVICE_LIGHTING_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/eycwlKfwZCScooSl.jpg";
 const SERVICE_CCTV_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/mUnGVKmJuJxAzJmP.png";
 const SERVICE_CCTV_8CH_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/voDgUssYOICvZKmP.png";
 
 const products = [
   {
+    id: 201,
+    image: SERVICE_RENOVATION_IMAGE,
+    badge: "Popular",
+    name: "บริการต่อเติมและรีโนเวท",
+    description: "บริการต่อเติมและรีโนเวทห้องต่างๆ ทั้งห้องน้ำ ห้องครัว ห้องนอน โรงจอดรถ และหลังคา",
+    features: ["ออกแบบและปรึกษา", "ติดตั้งและก่อสร้าง", "ตรวจสอบคุณภาพ", "รับประกันงาน"],
+    price: "ตามหน้างาน",
+    category: "บริการต่อเติมและรีโนเวท",
+  },
+  {
+    id: 202,
+    image: SERVICE_SOLAR_IMAGE,
+    badge: "Eco-Friendly",
+    name: "ติดตั้งแผงโซล่าเซลล์",
+    description: "ระบบพลังงานแสงอาทิตย์ประสิทธิภาพสูง พร้อม Inverter และระบบเก็บพลังงาน ประหยัดค่าไฟฟ้า",
+    features: ["แผงโซล่าเซลล์คุณภาพ", "ระบบ Inverter ทันสมัย", "ระบบเก็บพลังงาน", "ประหยัดค่าไฟฟ้า"],
+    price: "ตามหน้างาน",
+    category: "บริการต่อเติมและรีโนเวท",
+  },
+  {
     id: 101,
     image: SERVICE_ERPNEXT_IMAGE,
     badge: "Enterprise",
-    name: "Implement ERPNext (Full Option)",
+    name: "ติดตั้ง ERPNext แพ็กเกจเต็ม",
     description: "โซลูชันบริหารจัดการองค์กรแบบครบวงจร ปรับแต่งได้ 100% สำหรับธุรกิจขนาดกลาง-ใหญ่",
     features: ["Customization 100%", "Accounting, HR, Buying", "Unlimited API", "Support 1 Year"],
     price: "1,800,000",
@@ -28,7 +48,7 @@ const products = [
     id: 100,
     image: SERVICE_ERPNEXT_IMAGE,
     badge: "Starter",
-    name: "Implement ERPNext (Start Kit)",
+    name: "ติดตั้ง ERPNext แพ็กเกจเริ่มต้น",
     description: "เริ่มต้นระบบ ERP สำหรับ SME ด้วยฟังก์ชันมาตรฐานที่จำเป็นครบถ้วน ติดตั้งไว พร้อมใช้งาน",
     features: ["Standard Modules", "Cloud Hosting", "Thai Manual", "Support 6 Months"],
     price: "250,000",
@@ -36,23 +56,23 @@ const products = [
   },
   {
     id: 1,
-    image: SERVICE_ELECTRICAL_IMAGE,
+    image: SERVICE_RENOVATION_IMAGE,
     badge: "Industrial",
     name: "ระบบควบคุมไฟฟ้าและตู้คอนโทรล",
     description: "ออกแบบและติดตั้งระบบควบคุมไฟฟ้า ตู้ MDB และระบบควบคุมอัตโนมัติในโรงงานอุตสาหกรรม",
     features: ["Industrial Standard", "Safe & Reliable", "Professional Design", "Maintenance 1-3 Days"],
     price: "ตามหน้างาน",
-    category: "บริการวิศวกรรม",
+    category: "ระบบไฟฟ้า",
   },
   {
     id: 2,
-    image: SERVICE_NETWORK_IMAGE,
+    image: SERVICE_SOLAR_IMAGE,
     badge: "Technology",
     name: "ระบบคอมพิวเตอร์และเครือข่าย",
-    description: "วางระบบ Server, LAN, WIFI และ Fiber Optic ความเร็วสูง สำหรับสำนักงานและโรงงาน",
+    description: "วางระบบ Server, LAN, Wi‑Fi และ Fiber Optic ความเร็วสูง สำหรับสำนักงานและโรงงาน",
     features: ["High-speed Connectivity", "Network Security", "Fiber Optic Splicing", "24/7 Monitoring"],
     price: "ตามหน้างาน",
-    category: "บริการวิศวกรรม",
+    category: "ระบบไฟฟ้า",
   },
   {
     id: 3,
@@ -62,14 +82,14 @@ const products = [
     description: "ติดตั้งระบบแสงสว่างอัจฉริยะ (Smart Lighting) และระบบประหยัดพลังงานไฟฟ้าในอาคาร",
     features: ["Energy Saving", "Smart Control", "Modern Design", "ROI Optimization"],
     price: "ตามหน้างาน",
-    category: "บริการวิศวกรรม",
+    category: "ระบบไฟฟ้า",
   },
   {
     id: 4,
     image: SERVICE_CCTV_IMAGE,
     badge: "Promotion",
     name: "ชุดกล้องวงจรปิด Hikvision IP (1-4 ตัว)",
-    description: "กล้อง IP เสียงชัด 4MP พร้อมเครื่องบันทึก 4CH 4K P.o.E. NVR รับประกัน 2 ปี",
+    description: "กล้อง IP ความชัดเจน 4MP พร้อมเครื่องบันทึก 4CH 4K PoE NVR รับประกัน 2 ปี",
     features: [
       "1 ตัว: 7,900 - 9,500 (1TB, 20ม.)",
       "2 ตัว: 9,900 - 12,500 (1TB, 40ม.)",
@@ -77,14 +97,14 @@ const products = [
       "4 ตัว: 15,900 - 18,500 (2TB, 80ม.)"
     ],
     price: "เริ่มต้น 7,900.-",
-    category: "บริการวิศวกรรม",
+    category: "ระบบไฟฟ้า",
   },
   {
     id: 5,
     image: SERVICE_CCTV_8CH_IMAGE,
     badge: "Best Price",
     name: "ชุดกล้องวงจรปิด Hikvision IP (5-8 ตัว)",
-    description: "กล้อง IP 4MP เสียงชัด พร้อมเครื่องบันทึก NVR 8 ช่อง 4K P.o.E. รับประกัน 3 ปี",
+    description: "กล้อง IP ความชัดเจน 4MP พร้อมเครื่องบันทึก NVR 8 ช่อง 4K PoE รับประกัน 3 ปี",
     features: [
       "5 ตัว: 19,500 - 22,500 (2TB, 100ม.)",
       "6 ตัว: 22,900 - 26,500 (2TB, 120ม.)",
@@ -92,13 +112,13 @@ const products = [
       "8 ตัว: 29,900 - 34,500 (4TB, 160ม.)"
     ],
     price: "เริ่มต้น 19,500.-",
-    category: "บริการวิศวกรรม",
+    category: "ระบบไฟฟ้า",
   },
 ];
 
 export default function ProductsSection() {
   const [activeCategory, setActiveCategory] = useState("ทั้งหมด");
-  const categories = ["ทั้งหมด", "ERP & AI", "บริการวิศวกรรม"];
+  const categories = ["ทั้งหมด", "บริการต่อเติมและรีโนเวท", "ERP & AI", "ระบบไฟฟ้า"];
 
   const filteredProducts = activeCategory === "ทั้งหมด" 
     ? products 
@@ -109,9 +129,9 @@ export default function ProductsSection() {
       <div className="container">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
           <div className="max-w-2xl">
-            <h2 className="text-4xl md:text-5xl font-bold text-[#1f2328] mb-4">สินค้าและบริการครบวงจร</h2>
+            <h2 className="text-4xl md:text-5xl font-bold text-[#1f2328] mb-4">บริการและสินค้าครบวงจร</h2>
             <p className="text-[#656d76] text-lg">
-              ผู้เชี่ยวชาญด้านไฟฟ้าและเทคโนโลยี ระบบแสงสว่าง ระบบควบคุมไฟฟ้า คอมพิวเตอร์และเครือข่าย
+              ผู้เชี่ยวชาญด้านการต่อเติม รีโนเวท ติดตั้งโซล่าเซลล์ ระบบไฟฟ้า แสงสว่าง เครือข่าย CCTV และ ERPNext
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
