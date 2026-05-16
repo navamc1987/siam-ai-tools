@@ -69,9 +69,6 @@
     </div>
 
     <script>
-      // Force CMS to wait for manual initialization
-      window.CMS_MANUAL_INIT = true;
-
       function doLogin() {
         const token = document.getElementById('token-input').value.trim();
         if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
@@ -79,31 +76,24 @@
           return;
         }
         
-        localStorage.setItem('gh_cms_token', token);
-        location.reload(); // Reload to start CMS with token
+        // Decap CMS uses 'decap-cms-user' in localStorage to store auth state
+        const userData = {
+          backendName: 'github',
+          token: token,
+          useWorkflow: true
+        };
+        localStorage.setItem('decap-cms-user', JSON.stringify(userData));
+        location.reload();
       }
 
-      // Check for token on load
-      const savedToken = localStorage.getItem('gh_cms_token');
-      if (savedToken) {
+      // Check if user is already "logged in"
+      const savedUser = localStorage.getItem('decap-cms-user');
+      if (savedUser) {
         document.getElementById('nc-root').innerHTML = ''; // Clear login UI
         
         // Load CMS script
         const script = document.createElement('script');
         script.src = "https://cdn.jsdelivr.net/npm/decap-cms@^3.0.0/dist/decap-cms.js";
-        script.onload = () => {
-          // Initialize CMS using the config.yml file but injecting the token
-          window.CMS.init({
-            config: {
-              backend: {
-                name: 'github',
-                repo: 'navamc1987/siam-ai-tools',
-                branch: 'main',
-                token: savedToken
-              }
-            }
-          });
-        };
         document.body.appendChild(script);
       }
     </script>
