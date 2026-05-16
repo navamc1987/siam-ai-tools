@@ -3,9 +3,8 @@ backend:
   repo: navamc1987/siam-ai-tools
   branch: main
   base_url: https://siamai.cloud
-  auth_endpoint: admin/oauth
-  # Cloudflare Pages OAuth configuration
-  # auth_endpoint points to /admin/oauth which is handled by Cloudflare Pages Function
+  auth_endpoint: /admin/oauth
+  squash_merges: true
 
 media_folder: "public/portfolio-images"
 public_folder: "/portfolio-images"
