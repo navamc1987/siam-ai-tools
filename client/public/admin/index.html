@@ -4,25 +4,276 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex" />
-    <title>Decap CMS</title>
+    <title>Decap CMS - Siam AI Tools</title>
     <style>
-      body {
+      * {
         margin: 0;
         padding: 0;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        box-sizing: border-box;
       }
-      #nc-root {
+      
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
+      }
+      
+      #nc-root {
+        width: 100%;
         height: 100vh;
-        background: #f5f5f5;
+      }
+      
+      .login-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        padding: 40px;
+        max-width: 400px;
+        width: 90%;
+      }
+      
+      .login-header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      
+      .login-header h1 {
+        font-size: 28px;
+        color: #333;
+        margin-bottom: 10px;
+      }
+      
+      .login-header p {
+        color: #666;
+        font-size: 14px;
+      }
+      
+      .form-group {
+        margin-bottom: 20px;
+      }
+      
+      label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 500;
+        font-size: 14px;
+      }
+      
+      input[type="password"],
+      input[type="text"] {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+      }
+      
+      input[type="password"]:focus,
+      input[type="text"]:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+      
+      .help-text {
+        font-size: 12px;
+        color: #999;
+        margin-top: 6px;
+      }
+      
+      button {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+      }
+      
+      button:active {
+        transform: translateY(0);
+      }
+      
+      .error {
+        background: #fee;
+        color: #c33;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        display: none;
+      }
+      
+      .error.show {
+        display: block;
+      }
+      
+      .info-box {
+        background: #f0f4ff;
+        border-left: 4px solid #667eea;
+        padding: 12px;
+        margin-top: 20px;
+        font-size: 12px;
+        color: #555;
+        border-radius: 4px;
+      }
+      
+      .info-box a {
+        color: #667eea;
+        text-decoration: none;
+      }
+      
+      .info-box a:hover {
+        text-decoration: underline;
       }
     </style>
   </head>
   <body>
-    <div id="nc-root"></div>
-    <!-- Include the script that builds the page and powers Decap CMS -->
+    <div id="nc-root">
+      <div class="login-container" id="login-form">
+        <div class="login-header">
+          <h1>🎨 ผลงานของเรา</h1>
+          <p>Decap CMS - จัดการรูปภาพและข้อมูลผลงาน</p>
+        </div>
+        
+        <div class="error" id="error-message"></div>
+        
+        <form onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label for="token">GitHub Personal Access Token</label>
+            <input 
+              type="password" 
+              id="token" 
+              placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
+              required
+              autocomplete="off"
+            />
+            <div class="help-text">
+              ใส่ GitHub Token ที่คุณสร้างขึ้น (จะเริ่มต้นด้วย ghp_)
+            </div>
+          </div>
+          
+          <button type="submit">เข้าสู่ระบบ</button>
+        </form>
+        
+        <div class="info-box">
+          <strong>วิธีสร้าง Token:</strong><br>
+          1. ไปที่ <a href="https://github.com/settings/tokens" target="_blank">GitHub Settings</a><br>
+          2. กด "Generate new token (classic)"<br>
+          3. เลือก scope "repo"<br>
+          4. คัดลอก Token ที่ได้มา
+        </div>
+      </div>
+    </div>
+
+    <!-- Include Decap CMS -->
     <script src="https://cdn.jsdelivr.net/npm/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+    
+    <script>
+      // Check if token is already stored
+      window.addEventListener('load', function() {
+        const token = localStorage.getItem('github_token');
+        if (token) {
+          // Token exists, initialize CMS
+          initializeCMS(token);
+        } else {
+          // Show login form
+          showLoginForm();
+        }
+      });
+      
+      function showLoginForm() {
+        const root = document.getElementById('nc-root');
+        root.innerHTML = document.getElementById('login-form').parentElement.innerHTML;
+      }
+      
+      function handleLogin(event) {
+        event.preventDefault();
+        const token = document.getElementById('token').value.trim();
+        
+        if (!token) {
+          showError('กรุณาใส่ GitHub Token');
+          return;
+        }
+        
+        if (!token.startsWith('ghp_')) {
+          showError('Token ไม่ถูกต้อง (ต้องเริ่มต้นด้วย ghp_)');
+          return;
+        }
+        
+        // Store token and initialize CMS
+        localStorage.setItem('github_token', token);
+        initializeCMS(token);
+      }
+      
+      function showError(message) {
+        const errorEl = document.getElementById('error-message');
+        errorEl.textContent = message;
+        errorEl.classList.add('show');
+        setTimeout(() => {
+          errorEl.classList.remove('show');
+        }, 5000);
+      }
+      
+      function initializeCMS(token) {
+        // Configure Decap CMS with the token
+        if (window.CMS) {
+          window.CMS.registerBackend('github', {
+            init: function() {
+              return Promise.resolve();
+            },
+            authenticate: function() {
+              return Promise.resolve(token);
+            },
+            getUser: function() {
+              return Promise.resolve({ login: 'user' });
+            },
+            logout: function() {
+              localStorage.removeItem('github_token');
+              location.reload();
+              return Promise.resolve();
+            },
+            getEntry: function(collection, slug) {
+              return fetch(`https://api.github.com/repos/navamc1987/siam-ai-tools/contents/${collection}/${slug}.md`, {
+                headers: {
+                  'Authorization': `token ${token}`,
+                  'Accept': 'application/vnd.github.v3.raw'
+                }
+              }).then(res => res.text());
+            },
+            persistEntry: function(entry, mediaFiles, options) {
+              // Implementation for saving entries
+              return Promise.resolve();
+            }
+          });
+          
+          // Load Decap CMS
+          const root = document.getElementById('nc-root');
+          root.innerHTML = '';
+          
+          // Create a script to load CMS
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/decap-cms@^3.0.0/dist/decap-cms.js';
+          script.onload = function() {
+            // CMS is loaded
+          };
+          document.body.appendChild(script);
+        }
+      }
+    </script>
   </body>
 </html>

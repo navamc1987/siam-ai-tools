@@ -3,6 +3,8 @@ backend:
   repo: navamc1987/siam-ai-tools
   branch: main
   squash_merges: true
+  # Force manual authentication without OAuth
+  auth_type: implicit
 
 media_folder: "public/portfolio-images"
 public_folder: "/portfolio-images"
