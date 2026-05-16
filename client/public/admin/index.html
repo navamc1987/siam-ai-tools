@@ -75,7 +75,7 @@
 
       function doLogin() {
         const token = document.getElementById('token-input').value.trim();
-        if (!token.startsWith('ghp_')) {
+        if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
           document.getElementById('error').style.display = 'block';
           return;
         }
