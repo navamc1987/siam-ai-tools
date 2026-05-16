@@ -63,8 +63,7 @@
         <div class="help">
           <strong>วิธีใช้งาน:</strong><br>
           1. สร้าง Token ที่ <a href="https://github.com/settings/tokens" target="_blank">GitHub Settings</a> (เลือกสิทธิ์ <b>repo</b>)<br>
-          2. คัดลอก Token มาวางที่นี่<br>
-          3. ระบบจะจำรหัสไว้ในเครื่องนี้เท่านั้น
+          2. คัดลอก Token มาวางที่นี่
         </div>
       </div>
     </div>
@@ -81,60 +80,31 @@
         }
         
         localStorage.setItem('gh_cms_token', token);
-        startCMS(token);
+        location.reload(); // Reload to start CMS with token
       }
 
-      function startCMS(token) {
-        // Remove login UI
-        document.getElementById('nc-root').innerHTML = '';
+      // Check for token on load
+      const savedToken = localStorage.getItem('gh_cms_token');
+      if (savedToken) {
+        document.getElementById('nc-root').innerHTML = ''; // Clear login UI
         
         // Load CMS script
         const script = document.createElement('script');
         script.src = "https://cdn.jsdelivr.net/npm/decap-cms@^3.0.0/dist/decap-cms.js";
         script.onload = () => {
+          // Initialize CMS using the config.yml file but injecting the token
           window.CMS.init({
             config: {
               backend: {
                 name: 'github',
                 repo: 'navamc1987/siam-ai-tools',
                 branch: 'main',
-                token: token
-              },
-              media_folder: "public/portfolio-images",
-              public_folder: "/portfolio-images",
-              collections: [
-                {
-                  name: "portfolio",
-                  label: "ผลงานของเรา",
-                  folder: "portfolio",
-                  create: true,
-                  slug: "{{year}}-{{month}}-{{day}}-{{slug}}",
-                  fields: [
-                    { label: "ชื่อโครงการ", name: "title", widget: "string" },
-                    { label: "หมวดหมู่", name: "category", widget: "select", options: ["ต่อเติมและรีโนเวท", "ติดตั้งโซล่าเซลล์", "ระบบไฟฟ้า", "ระบบแสงสว่าง", "ระบบ CCTV", "อื่น ๆ"] },
-                    { label: "รายละเอียด", name: "description", widget: "text" },
-                    { label: "สถานที่", name: "location", widget: "string" },
-                    { label: "วันที่", name: "date", widget: "datetime" },
-                    { label: "รูปภาพหลัก", name: "featured_image", widget: "image" },
-                    { 
-                      label: "แกลเลอรี่", 
-                      name: "gallery", 
-                      widget: "list",
-                      fields: [{ label: "รูปภาพ", name: "image", widget: "image" }]
-                    }
-                  ]
-                }
-              ]
+                token: savedToken
+              }
             }
           });
         };
         document.body.appendChild(script);
-      }
-
-      // Auto-login if token exists
-      const savedToken = localStorage.getItem('gh_cms_token');
-      if (savedToken) {
-        startCMS(savedToken);
       }
     </script>
   </body>
