@@ -19,13 +19,18 @@ export default function Navbar() {
   const navLinks = [
     { label: "หน้าแรก", href: "#home" },
     { label: "สินค้า", href: "#products" },
+    { label: "ผลงานของเรา", href: "/portfolio" },
     { label: "ติดต่อเรา", href: "#contact" },
   ];
 
   const handleNavClick = (href: string) => {
     setIsOpen(false);
-    const el = document.querySelector(href);
-    if (el) el.scrollIntoView({ behavior: "smooth" });
+    if (href.startsWith("/")) {
+      window.location.href = href;
+    } else {
+      const el = document.querySelector(href);
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
   return (

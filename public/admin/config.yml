@@ -1,0 +1,38 @@
+backend:
+  name: github
+  repo: navamc1987/siam-ai-tools
+  branch: main
+  base_url: https://siamai.cloud
+  auth_endpoint: admin/oauth
+
+media_folder: "public/portfolio-images"
+public_folder: "/portfolio-images"
+
+collections:
+  - name: "portfolio"
+    label: "ผลงานของเรา"
+    folder: "portfolio"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    fields:
+      - { label: "ชื่อโครงการ", name: "title", widget: "string", required: true }
+      - { label: "หมวดหมู่", name: "category", widget: "select", options: ["ต่อเติมและรีโนเวท", "ติดตั้งโซล่าเซลล์", "ระบบไฟฟ้า", "ระบบแสงสว่าง", "ระบบ CCTV", "อื่น ๆ"], required: true }
+      - { label: "รายละเอียดโครงการ", name: "description", widget: "text", required: false }
+      - { label: "สถานที่", name: "location", widget: "string", required: false }
+      - { label: "วันที่เสร็จสิ้น", name: "date", widget: "datetime", required: false }
+      - label: "รูปภาพหลัก"
+        name: "featured_image"
+        widget: "image"
+        required: true
+        media_library:
+          config:
+            multiple: false
+      - label: "แกลเลอรี่รูปภาพ"
+        name: "gallery"
+        widget: "list"
+        required: false
+        fields:
+          - { label: "รูปภาพ", name: "image", widget: "image" }
+          - { label: "คำบรรยาย", name: "caption", widget: "string", required: false }
+      - { label: "ลิงก์เพิ่มเติม", name: "link", widget: "string", required: false }
+      - { label: "เผยแพร่", name: "published", widget: "boolean", default: true }
