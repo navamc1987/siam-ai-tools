@@ -18,7 +18,9 @@ export const onRequest: PagesFunction = async (context) => {
   // Store state in session/cookie for verification later
   const stateUrl = new URL("https://github.com/login/oauth/authorize");
   stateUrl.searchParams.set("client_id", clientId as string);
-  stateUrl.searchParams.set("redirect_uri", `${new URL(request.url).origin}/admin/callback`);
+  // Ensure origin is strictly https://siamai.cloud for redirect_uri consistency
+  const origin = new URL(request.url).origin.replace("http://", "https://");
+  stateUrl.searchParams.set("redirect_uri", `${origin}/admin/callback`);
   stateUrl.searchParams.set("scope", scope);
   stateUrl.searchParams.set("state", state);
 
