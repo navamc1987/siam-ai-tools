@@ -184,7 +184,7 @@ const portfolioItems: PortfolioItem[] = [
     description: "ติดตั้งระบบไฟฟ้าแรงสูง 3 เฟส พร้อมตู้ MDB และระบบสายดิน",
     location: "ชลบุรี",
     date: "2024-03-10",
-    featured_image: "https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=900&auto=format&fit=crop&q=85",
+    featured_image: ""/images/portfolio/electrical/factory_featured.jpg"",
     gallery: [
       {
         image: "https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=1200&auto=format&fit=crop&q=85",
