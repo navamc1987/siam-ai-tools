@@ -215,20 +215,32 @@ const portfolioItems: PortfolioItem[] = [
   },
   // ===== หมวด: ระบบ CCTV =====
   {
-    title: "ติดตั้งกล้องวงจรปิดภายในร้านค้า",
+    title: "ระบบกล้องวงจรปิด IP Camera ร้านค้า",
     category: "ระบบ CCTV",
-    description: "ติดตั้งกล้อง IP Camera พร้อมตั้งค่าระบบบันทึกและดูภาพผ่านมือถือ",
+    description: "ติดตั้งระบบกล้อง IP Camera พร้อมระบบบันทึกและการดูภาพผ่านมือถือแบบ Real-time",
     location: "บรรพตพิสัย",
     date: "2024-05-05",
-    featured_image: "https://images.unsplash.com/photo-1557597774-9d273605dfa9?w=900&auto=format&fit=crop&q=85",
+    featured_image: "/images/portfolio/cctv/186272_0.jpg",
     gallery: [
       {
-        image: "https://images.unsplash.com/photo-1557597774-9d273605dfa9?w=1200&auto=format&fit=crop&q=85",
-        caption: "กล้องรักษาความปลอดภัย",
+        image: "/images/portfolio/cctv/186272_0.jpg",
+        caption: "กล้อง IP Camera ติดตั้งหน้าร้านค้า",
       },
       {
-        image: "https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b?w=1200&auto=format&fit=crop&q=85",
-        caption: "งานระบบและอุปกรณ์ควบคุม",
+        image: "/images/portfolio/cctv/186273_0.jpg",
+        caption: "ระบบบันทึกและการจัดการวิดีโอ",
+      },
+      {
+        image: "/images/portfolio/cctv/186274_0.jpg",
+        caption: "ระบบมอนิเตอร์และควบคุม",
+      },
+      {
+        image: "/images/portfolio/cctv/186275_0.jpg",
+        caption: "การติดตั้งสายเคเบิลและอุปกรณ์",
+      },
+      {
+        image: "/images/portfolio/cctv/186276_0.jpg",
+        caption: "ภาพรวมระบบ CCTV เสร็จสิ้น",
       },
     ],
     published: true,
