@@ -58,7 +58,7 @@ const portfolioItems: PortfolioItem[] = [
     description: "ปรับปรุงโครงสร้างและตกแต่งภายในอาคารพาณิชย์ให้ทันสมัย",
     location: "ชลบุรี",
     date: "2024-01-15",
-    featured_image: "/images/portfolio/renovate/new_featured.jpg",
+    featured_image: "/images/portfolio/renovate/commercial_new.jpg",
     gallery: [
       {
         image: "/images/portfolio/renovate/481199416_1359929375443853_2204846716806201200_n.jpg",
@@ -93,7 +93,7 @@ const portfolioItems: PortfolioItem[] = [
     description: "รีโนเวทห้องนั่งเล่นและห้องครัวสไตล์มินิมอล",
     location: "นครสวรรค์",
     date: "2024-02-10",
-    featured_image: "/images/portfolio/renovate/480317863_1359929185443872_6946517117472118898_n.jpg",
+    featured_image: "/images/portfolio/renovate/residential_featured.jpg",
     gallery: [
       {
         image: "/images/portfolio/renovate/480317863_1359929185443872_6946517117472118898_n.jpg",
