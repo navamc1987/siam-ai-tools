@@ -14,10 +14,6 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/portfolio"} component={Portfolio} />
       <Route path={"/404"} component={NotFound} />
-      {/* Skip /admin routes - handled by Cloudflare Pages static files */}
-      <Route path={/^\/admin/} nest>
-        {() => null}
-      </Route>
       {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
