@@ -58,7 +58,7 @@ const portfolioItems: PortfolioItem[] = [
     description: "ปรับปรุงโครงสร้างและตกแต่งภายในอาคารพาณิชย์ให้ทันสมัย",
     location: "ชลบุรี",
     date: "2024-01-15",
-    featured_image: "/images/portfolio/renovate/commercial_new.jpg",
+    featured_image: "/images/portfolio/renovate/commercial_featured_final.jpg",
     gallery: [
       {
         image: "/images/portfolio/renovate/481199416_1359929375443853_2204846716806201200_n.jpg",
