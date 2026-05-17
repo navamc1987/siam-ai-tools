@@ -128,7 +128,7 @@ const portfolioItems: PortfolioItem[] = [
     description: "ต่อเติมโรงจอดรถและพื้นที่ซักล้างหลังบ้าน",
     location: "ชลบุรี",
     date: "2024-03-05",
-    featured_image: "/images/portfolio/renovate/480713289_1359928382110619_9107853437693770149_n.jpg",
+    featured_image: "/images/portfolio/renovate/extension_featured.jpg",
     gallery: [
       {
         image: "/images/portfolio/renovate/480713289_1359928382110619_9107853437693770149_n.jpg",
