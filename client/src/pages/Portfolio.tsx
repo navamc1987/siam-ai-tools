@@ -51,25 +51,113 @@ const categoryBadgeStyles: Record<string, string> = {
 };
 
 const portfolioItems: PortfolioItem[] = [
+  // ===== หมวด: ต่อเติมและรีโนเวท =====
   {
-    title: "รีโนเวทห้องน้ำ โครงการ A",
+    title: "โครงการรีโนเวทอาคารพาณิชย์",
     category: "ต่อเติมและรีโนเวท",
-    description: "การรีโนเวทห้องน้ำแบบสมบูรณ์พร้อมระบบท่อน้ำและไฟฟ้าใหม่",
+    description: "ปรับปรุงโครงสร้างและตกแต่งภายในอาคารพาณิชย์ให้ทันสมัย",
     location: "ชลบุรี",
     date: "2024-01-15",
-    featured_image: "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=900&auto=format&fit=crop&q=85",
+    featured_image: "/images/portfolio/renovate/481199416_1359929375443853_2204846716806201200_n.jpg",
     gallery: [
       {
-        image: "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=1200&auto=format&fit=crop&q=85",
-        caption: "งานห้องน้ำและสุขภัณฑ์",
+        image: "/images/portfolio/renovate/481199416_1359929375443853_2204846716806201200_n.jpg",
+        caption: "งานรีโนเวทอาคารพาณิชย์ด้านหน้า",
       },
       {
-        image: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=1200&auto=format&fit=crop&q=85",
-        caption: "งานระบบน้ำและพื้นที่ใช้งาน",
+        image: "/images/portfolio/renovate/480467107_1359928205443970_6873116217130309152_n.jpg",
+        caption: "งานตกแต่งภายในอาคาร",
+      },
+      {
+        image: "/images/portfolio/renovate/480555186_1359947458775378_4041487267011488691_n.jpg",
+        caption: "งานระบบไฟฟ้าและแสงสว่าง",
+      },
+      {
+        image: "/images/portfolio/renovate/484089211_1374739840629473_1199222055835335086_n.jpg",
+        caption: "งานผนังและพื้น",
+      },
+      {
+        image: "/images/portfolio/renovate/480439796_1356245002478957_6764352336728129585_n.jpg",
+        caption: "งานประตูและหน้าต่าง",
+      },
+      {
+        image: "/images/portfolio/renovate/492574607_1409325017170955_5439319349492860166_n.jpg",
+        caption: "ภาพรวมโครงการเสร็จสิ้น",
       },
     ],
     published: true,
   },
+  {
+    title: "งานรีโนเวทบ้านพักอาศัย",
+    category: "ต่อเติมและรีโนเวท",
+    description: "รีโนเวทห้องนั่งเล่นและห้องครัวสไตล์มินิมอล",
+    location: "นครสวรรค์",
+    date: "2024-02-10",
+    featured_image: "/images/portfolio/renovate/480317863_1359929185443872_6946517117472118898_n.jpg",
+    gallery: [
+      {
+        image: "/images/portfolio/renovate/480317863_1359929185443872_6946517117472118898_n.jpg",
+        caption: "ห้องนั่งเล่นหลังรีโนเวท",
+      },
+      {
+        image: "/images/portfolio/renovate/483950596_1374739623962828_3936861051991646482_n.jpg",
+        caption: "ห้องครัวสไตล์มินิมอล",
+      },
+      {
+        image: "/images/portfolio/renovate/480460556_1359928275443963_5190369852008110952_n.jpg",
+        caption: "งานตกแต่งและเฟอร์นิเจอร์",
+      },
+      {
+        image: "/images/portfolio/renovate/488049306_1389596519143805_1606307762565975541_n.jpg",
+        caption: "งานระบบน้ำและท่อ",
+      },
+      {
+        image: "/images/portfolio/renovate/494049703_1409324237171033_4864961002848039287_n.jpg",
+        caption: "งานไฟฟ้าและแสงสว่าง",
+      },
+      {
+        image: "/images/portfolio/renovate/481066215_1359928268777297_801345504377277401_n.jpg",
+        caption: "ภาพรวมบ้านพักเสร็จสิ้น",
+      },
+    ],
+    published: true,
+  },
+  {
+    title: "งานต่อเติมพื้นที่อเนกประสงค์",
+    category: "ต่อเติมและรีโนเวท",
+    description: "ต่อเติมโรงจอดรถและพื้นที่ซักล้างหลังบ้าน",
+    location: "ชลบุรี",
+    date: "2024-03-05",
+    featured_image: "/images/portfolio/renovate/480713289_1359928382110619_9107853437693770149_n.jpg",
+    gallery: [
+      {
+        image: "/images/portfolio/renovate/480713289_1359928382110619_9107853437693770149_n.jpg",
+        caption: "โรงจอดรถต่อเติม",
+      },
+      {
+        image: "/images/portfolio/renovate/480307506_1359947492108708_8290198814217416459_n.jpg",
+        caption: "พื้นที่ซักล้างหลังบ้าน",
+      },
+      {
+        image: "/images/portfolio/renovate/480871367_1359929412110516_5353576956154485433_n.jpg",
+        caption: "งานระบบท่อและระบายน้ำ",
+      },
+      {
+        image: "/images/portfolio/renovate/481177569_1364545621648895_1933032333680324380_n.jpg",
+        caption: "งานไฟฟ้าและแสงสว่าง",
+      },
+      {
+        image: "/images/portfolio/renovate/480745872_1359928128777311_7923583716871975946_n.jpg",
+        caption: "งานผนังและพื้น",
+      },
+      {
+        image: "/images/portfolio/renovate/487802706_1389594809143976_7032018464623556443_n.jpg",
+        caption: "ภาพรวมพื้นที่ต่อเติมเสร็จสิ้น",
+      },
+    ],
+    published: true,
+  },
+  // ===== หมวด: ติดตั้งโซล่าเซลล์ =====
   {
     title: "ติดตั้งโซล่าเซลล์ บ้านพัก",
     category: "ติดตั้งโซล่าเซลล์",
@@ -89,6 +177,7 @@ const portfolioItems: PortfolioItem[] = [
     ],
     published: true,
   },
+  // ===== หมวด: ระบบไฟฟ้า =====
   {
     title: "ระบบไฟฟ้าโรงงาน",
     category: "ระบบไฟฟ้า",
@@ -108,6 +197,7 @@ const portfolioItems: PortfolioItem[] = [
     ],
     published: true,
   },
+  // ===== หมวด: ระบบแสงสว่าง =====
   {
     title: "ติดตั้งระบบแสงสว่างอาคาร",
     category: "ระบบแสงสว่าง",
@@ -123,6 +213,7 @@ const portfolioItems: PortfolioItem[] = [
     ],
     published: true,
   },
+  // ===== หมวด: ระบบ CCTV =====
   {
     title: "ติดตั้งกล้องวงจรปิดภายในร้านค้า",
     category: "ระบบ CCTV",
@@ -329,81 +420,50 @@ export default function Portfolio() {
                 <button
                   onClick={() => setSelectedItem(null)}
                   className="text-[#656d76] hover:text-[#1f2328] text-2xl font-bold"
-                  aria-label="ปิดรายละเอียด"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  {selectedItem.description && (
-                    <>
-                      <h3 className="font-bold text-[#1f2328] mb-2">รายละเอียด</h3>
-                      <p className="text-[#656d76] leading-relaxed">{selectedItem.description}</p>
-                    </>
-                  )}
-                </div>
-                <div className="space-y-4">
-                  {selectedItem.location && (
+              <p className="text-[#656d76] text-lg mb-6">{selectedItem.description}</p>
+
+              <div className="grid md:grid-cols-2 gap-4 mb-6">
+                {selectedItem.location && (
+                  <div className="flex items-center gap-3 p-3 bg-[#f6f8fa] rounded-lg">
+                    <MapPin className="w-5 h-5 text-[#0969da]" />
                     <div>
-                      <h4 className="font-bold text-[#1f2328] mb-1 flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        สถานที่
-                      </h4>
-                      <p className="text-[#656d76]">{selectedItem.location}</p>
+                      <p className="text-[#656d76] text-xs">สถานที่</p>
+                      <p className="text-[#1f2328] font-semibold">{selectedItem.location}</p>
                     </div>
-                  )}
-                  {selectedItem.date && (
+                  </div>
+                )}
+                {selectedItem.date && (
+                  <div className="flex items-center gap-3 p-3 bg-[#f6f8fa] rounded-lg">
+                    <Calendar className="w-5 h-5 text-[#0969da]" />
                     <div>
-                      <h4 className="font-bold text-[#1f2328] mb-1 flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        วันที่เสร็จสิ้น
-                      </h4>
-                      <p className="text-[#656d76]">
-                        {new Date(selectedItem.date).toLocaleDateString("th-TH", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </p>
+                      <p className="text-[#656d76] text-xs">วันที่</p>
+                      <p className="text-[#1f2328] font-semibold">{new Date(selectedItem.date).toLocaleDateString("th-TH")}</p>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
               {selectedImages.length > 1 && (
-                <div className="border-t border-[#d0d7de] pt-6">
-                  <h3 className="font-bold text-[#1f2328] mb-4">แกลเลอรี่</h3>
-                  <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
+                <div className="mb-6">
+                  <p className="text-[#656d76] text-sm font-semibold mb-3">รูปภาพเพิ่มเติม</p>
+                  <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
                     {selectedImages.map((img, idx) => (
                       <button
-                        key={`${img.image}-${idx}`}
+                        key={idx}
                         onClick={() => setCurrentImageIndex(idx)}
-                        className={`aspect-square rounded-md overflow-hidden border-2 transition-all ${
-                          currentImageIndex === idx
-                            ? "border-[#0969da]"
-                            : "border-[#d0d7de] hover:border-[#0969da]"
+                        className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                          currentImageIndex === idx ? "border-[#0969da]" : "border-[#d0d7de]"
                         }`}
                       >
-                        <img src={img.image} alt={img.caption ?? `Gallery ${idx + 1}`} className="w-full h-full object-cover" />
+                        <img src={img.image} alt={img.caption || `รูปที่ ${idx + 1}`} className="w-full h-full object-cover" />
                       </button>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {selectedItem.link && (
-                <div className="mt-6 pt-6 border-t border-[#d0d7de]">
-                  <a
-                    href={selectedItem.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 bg-[#0969da] text-white px-6 py-3 rounded-md font-semibold hover:bg-[#0860ca] transition-colors"
-                  >
-                    ดูเพิ่มเติม
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
                 </div>
               )}
             </div>
