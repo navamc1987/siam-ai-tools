@@ -5,6 +5,11 @@ type DriveFile = {
   name?: string;
 };
 
+type DriveFolder = {
+  id: string;
+  name?: string;
+};
+
 function json(data: unknown, init?: ResponseInit) {
   return new Response(JSON.stringify(data), {
     ...init,
@@ -25,18 +30,24 @@ function decodeHexAndUnicodeEscapes(input: string) {
     );
 }
 
+function sanitizeJsStringForJsonParse(input: string) {
+  return input.replace(/\\(?![\\/"bfnrtu])/g, "");
+}
+
 function extractDriveIvdJson(html: string) {
   const m = html.match(/window\['_DRIVE_ivd'\]\s*=\s*'([\s\S]*?)';/);
   if (!m) return null;
-  return decodeHexAndUnicodeEscapes(m[1]);
+  return sanitizeJsStringForJsonParse(decodeHexAndUnicodeEscapes(m[1]));
 }
 
-function collectFilesFromParsedNode(
+function collectEntriesFromParsedNode(
   node: unknown,
-  out: Map<string, DriveFile>
+  files: Map<string, DriveFile>,
+  folders: Map<string, DriveFolder>
 ) {
   if (Array.isArray(node)) {
     const id = typeof node[0] === "string" ? node[0] : undefined;
+    const mime = typeof node[3] === "string" ? node[3] : undefined;
     const name =
       typeof node[2] === "string"
         ? node[2]
@@ -44,41 +55,48 @@ function collectFilesFromParsedNode(
           ? node[1]
           : undefined;
 
-    if (id && /^[a-zA-Z0-9_-]{10,}$/.test(id) && !out.has(id)) {
-      out.set(id, { id, name });
+    const isFolder = mime === "application/vnd.google-apps.folder";
+
+    if (id && mime && /^[a-zA-Z0-9_-]{10,}$/.test(id)) {
+      if (isFolder) {
+        if (!folders.has(id)) folders.set(id, { id, name });
+      } else {
+        if (!files.has(id)) files.set(id, { id, name });
+      }
     }
 
-    for (const item of node) collectFilesFromParsedNode(item, out);
+    for (const item of node) collectEntriesFromParsedNode(item, files, folders);
     return;
   }
 
   if (node && typeof node === "object") {
     for (const value of Object.values(node as Record<string, unknown>)) {
-      collectFilesFromParsedNode(value, out);
+      collectEntriesFromParsedNode(value, files, folders);
     }
   }
 }
 
-function extractFileIdsFromHtml(html: string) {
-  const out = new Map<string, DriveFile>();
+function extractEntriesFromHtml(html: string) {
+  const files = new Map<string, DriveFile>();
+  const folders = new Map<string, DriveFolder>();
 
   const fileUrlRe = /\/file\/d\/([a-zA-Z0-9_-]{10,})/g;
   for (const m of html.matchAll(fileUrlRe)) {
     const id = m[1];
-    if (id && !out.has(id)) out.set(id, { id });
+    if (id && !files.has(id)) files.set(id, { id });
   }
 
   const ivd = extractDriveIvdJson(html);
   if (ivd) {
     try {
       const parsed = JSON.parse(ivd) as unknown;
-      collectFilesFromParsedNode(parsed, out);
+      collectEntriesFromParsedNode(parsed, files, folders);
     } catch {
       /* ignore */
     }
   }
 
-  return [...out.values()];
+  return { files: [...files.values()], folders: [...folders.values()] };
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -88,12 +106,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     Math.max(Number(url.searchParams.get("limit") ?? 0) || 0, 0),
     200
   );
+  const debug = url.searchParams.get("debug") === "1";
+  const includeFolders = url.searchParams.get("includeFolders") === "1";
 
   if (!folderId || !/^[a-zA-Z0-9_-]{10,}$/.test(folderId)) {
     return json({ error: "folderId is required" }, { status: 400 });
   }
 
-  const cacheKey = new Request(`${url.origin}${url.pathname}?folderId=${folderId}&limit=${limit}`, {
+  const cacheKey = new Request(`${url.origin}${url.pathname}?folderId=${folderId}&limit=${limit}&debug=${debug ? 1 : 0}`, {
     method: "GET",
   });
   const cache = (caches as any).default as Cache;
@@ -102,11 +122,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const driveUrl = new URL(`https://drive.google.com/drive/folders/${folderId}`);
   driveUrl.searchParams.set("hl", "en");
+  driveUrl.searchParams.set("usp", "sharing");
 
   const res = await fetch(driveUrl.toString(), {
     headers: {
       "user-agent":
         "Mozilla/5.0 (compatible; SiamAiToolsBot/1.0; +https://siamai.cloud)",
+      "accept-language": "en-US,en;q=0.9",
+      referer: "https://drive.google.com/",
       accept: "text/html",
     },
   });
@@ -120,7 +143,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   }
 
   const html = await res.text();
-  const rawFiles = extractFileIdsFromHtml(html).filter((f) => f.id !== folderId);
+  const extracted = extractEntriesFromHtml(html);
+  const rawFiles = extracted.files.filter((f) => f.id !== folderId);
+  const rawFolders = extracted.folders.filter((f) => f.id !== folderId);
   const files = limit > 0 ? rawFiles.slice(0, limit) : rawFiles;
 
   const response = json(
@@ -128,6 +153,16 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       folderId,
       files,
       total: rawFiles.length,
+      ...(includeFolders ? { folders: rawFolders, folderTotal: rawFolders.length } : {}),
+      ...(debug
+        ? {
+            debug: {
+              fetchedStatus: res.status,
+              htmlLength: html.length,
+              hasDriveIvd: /_DRIVE_ivd/.test(html),
+            },
+          }
+        : {}),
     },
     {
       status: 200,

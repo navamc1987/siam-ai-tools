@@ -7,12 +7,18 @@ type DriveFile = {
   name?: string;
 };
 
+type DriveFolder = {
+  id: string;
+  name?: string;
+};
+
 function getThumbnailUrl(fileId: string, size = 1200) {
   return `https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=w${size}`;
 }
 
 export default function FeaturedRenovationSection() {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
   const [files, setFiles] = useState<DriveFile[]>([]);
 
   useEffect(() => {
@@ -20,11 +26,41 @@ export default function FeaturedRenovationSection() {
     const run = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`/api/drive-folder?folderId=${encodeURIComponent(homeShowcaseDriveFolderId)}&limit=80`);
-        if (!res.ok) return;
-        const json = (await res.json()) as { files?: DriveFile[] };
+        setError(false);
+
+        const res = await fetch(
+          `/api/drive-folder?folderId=${encodeURIComponent(homeShowcaseDriveFolderId)}&includeFolders=1`
+        );
+        if (!res.ok) {
+          setError(true);
+          return;
+        }
+        const json = (await res.json()) as { files?: DriveFile[]; folders?: DriveFolder[] };
         if (cancelled) return;
-        setFiles(json.files ?? []);
+
+        const directFiles = json.files ?? [];
+        if (directFiles.length > 0) {
+          setFiles(directFiles);
+          return;
+        }
+
+        const folders = json.folders ?? [];
+        if (folders.length === 0) {
+          setFiles([]);
+          return;
+        }
+
+        const results = await Promise.all(
+          folders.map(async (f) => {
+            const r = await fetch(`/api/drive-folder?folderId=${encodeURIComponent(f.id)}&limit=60`);
+            if (!r.ok) return [] as DriveFile[];
+            const j = (await r.json()) as { files?: DriveFile[] };
+            return j.files ?? [];
+          })
+        );
+
+        if (cancelled) return;
+        setFiles(results.flat());
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -94,6 +130,12 @@ export default function FeaturedRenovationSection() {
               <CarouselPrevious className="hidden lg:flex" />
               <CarouselNext className="hidden lg:flex" />
             </Carousel>
+          )}
+
+          {!loading && slides.length === 0 && (
+            <div className="text-[#656d76] text-sm">
+              {error ? "โหลดรูปไม่สำเร็จ" : "ยังไม่พบรูปในอัลบั้ม Google Drive นี้"}
+            </div>
           )}
         </div>
       </div>

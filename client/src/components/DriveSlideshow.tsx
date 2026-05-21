@@ -89,7 +89,10 @@ export default function DriveSlideshow({
           <CarouselNext className="hidden lg:flex" />
         </Carousel>
       )}
+
+      {!loading && slides.length === 0 && (
+        <div className="text-[#656d76] text-sm">ยังไม่พบรูปจาก Google Drive</div>
+      )}
     </div>
   );
 }
-
