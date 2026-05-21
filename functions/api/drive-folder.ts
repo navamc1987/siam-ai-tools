@@ -84,12 +84,16 @@ function extractFileIdsFromHtml(html: string) {
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const url = new URL(context.request.url);
   const folderId = (url.searchParams.get("folderId") ?? "").trim();
+  const limit = Math.min(
+    Math.max(Number(url.searchParams.get("limit") ?? 0) || 0, 0),
+    200
+  );
 
   if (!folderId || !/^[a-zA-Z0-9_-]{10,}$/.test(folderId)) {
     return json({ error: "folderId is required" }, { status: 400 });
   }
 
-  const cacheKey = new Request(`${url.origin}${url.pathname}?folderId=${folderId}`, {
+  const cacheKey = new Request(`${url.origin}${url.pathname}?folderId=${folderId}&limit=${limit}`, {
     method: "GET",
   });
   const cache = (caches as any).default as Cache;
@@ -116,12 +120,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   }
 
   const html = await res.text();
-  const files = extractFileIdsFromHtml(html).filter((f) => f.id !== folderId);
+  const rawFiles = extractFileIdsFromHtml(html).filter((f) => f.id !== folderId);
+  const files = limit > 0 ? rawFiles.slice(0, limit) : rawFiles;
 
   const response = json(
     {
       folderId,
       files,
+      total: rawFiles.length,
     },
     {
       status: 200,
@@ -132,4 +138,3 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   context.waitUntil(cache.put(cacheKey, response.clone()));
   return response;
 };
-

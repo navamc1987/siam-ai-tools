@@ -9,23 +9,23 @@ import { Phone, MapPin, Clock, ExternalLink, User, ShieldCheck, Briefcase, Mail,
 const teamContacts = [
   {
     name: "คุณวัชรพงศ์ (บอล)",
-    role: "เซลล์โปรเจค",
-    phone: "081-079-3266",
-    area: "กรุงเทพฯ, ปริมณฑล, ชลบุรี, ระยอง, นครสวรรค์",
+    role: "สายด่วน",
+    phone: "098-592-6522",
+    area: "ต่อเติมรีโนเวท และงานระบบโครงการ",
     icon: Briefcase,
   },
   {
     name: "คุณวุฒิชัย (ช่างแวน)",
     role: "ช่างติดตั้ง",
     phone: "084-973-7099",
-    area: "เฉพาะพื้นที่กรุงเทพฯ และปริมณฑล",
+    area: "งานกล้องวงจรปิด, งานไฟฟ้า, ระบบสัญญาณกันขโมย",
     icon: ShieldCheck,
   },
   {
     name: "คุณปกรณ์ (ปอนด์)",
     role: "เซลล์โปรเจค",
     phone: "097-083-9445",
-    area: "เฉพาะพื้นที่กรุงเทพฯ",
+    area: "งานกล้องวงจรปิด, กล้อง WIFI IOT Gadget",
     icon: User,
   },
 ];

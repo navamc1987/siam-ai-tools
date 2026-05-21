@@ -4,8 +4,7 @@
  */
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { driveGalleryGroups } from "@/data/driveFolders";
-import DriveFolderCarousel from "@/components/DriveFolderCarousel";
+import DriveSlideshow from "@/components/DriveSlideshow";
 
 export default function Portfolio() {
   return (
@@ -25,21 +24,7 @@ export default function Portfolio() {
 
       <section className="py-20 bg-white">
         <div className="container">
-          {driveGalleryGroups.map((group) => (
-            <div key={group.id} className="mb-14">
-              <h2 className="text-2xl md:text-3xl font-bold text-[#1f2328] mb-6">{group.title}</h2>
-              <div className="grid gap-6">
-                {group.galleries.map((g) => (
-                  <DriveFolderCarousel
-                    key={g.id}
-                    title={g.title}
-                    folderId={g.folderId}
-                    folderUrl={g.folderUrl}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
+          <DriveSlideshow />
         </div>
       </section>
       <Footer />
