@@ -1,10 +1,11 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { calculateEstimateV2, estimateV2Config, materialPresets, type BuildingType, type WorkItem } from "@/data/estimateV2";
+import { calculateEstimateV2, estimateV2Config, getLaborPerSqm, materialPresets, type BuildingType, type WorkDifficulty, type WorkItem } from "@/data/estimateV2";
 import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 
 const buildingTypes: BuildingType[] = ["บ้านเดี่ยว/ทาวน์โฮม", "อาคารพาณิชย์", "อพาร์ตเมนท์/หอพัก", "โรงงาน/คลังสินค้า"];
+const workDifficulties: WorkDifficulty[] = ["สะดวก", "ปกติ", "ยาก", "ยากมาก"];
 
 function getPresetOptions(prefix: string) {
   return materialPresets.filter((p) => p.id.startsWith(prefix));
@@ -12,31 +13,45 @@ function getPresetOptions(prefix: string) {
 
 type FormValues = {
   buildingType: BuildingType;
+  workDifficulty: WorkDifficulty;
 
   includeRoof: boolean;
   roofAreaSqm: number;
   roofMaterialPresetId: string;
-  roofLaborPerSqm: number;
 
   includeWall: boolean;
   wallAreaSqm: number;
   wallMaterialPresetId: string;
-  wallLaborPerSqm: number;
 
   includeCeiling: boolean;
   ceilingAreaSqm: number;
   ceilingMaterialPresetId: string;
-  ceilingLaborPerSqm: number;
+
+  includePaint: boolean;
+  paintAreaSqm: number;
+  paintMaterialPresetId: string;
 
   includePlumbing: boolean;
   plumbingAreaSqm: number;
   plumbingMaterialPresetId: string;
-  plumbingLaborPerSqm: number;
 
-  includeElectrical: boolean;
-  electricalAreaSqm: number;
-  electricalMaterialPresetId: string;
-  electricalLaborPerSqm: number;
+  includeElectricalWiring: boolean;
+  electricalWiringAreaSqm: number;
+  electricalWiringMaterialPresetId: string;
+
+  includeElectricalDevices: boolean;
+  electricalDevicesAreaSqm: number;
+  electricalDevicesMaterialPresetId: string;
+
+  includeLighting: boolean;
+  lightingAreaSqm: number;
+  lightingMaterialPresetId: string;
+
+  includeDemolition: boolean;
+  demolitionAreaSqm: number;
+
+  includeWaste: boolean;
+  wasteAreaSqm: number;
 };
 
 function formatTHB(value: number) {
@@ -47,31 +62,45 @@ export default function Estimate() {
   const form = useForm<FormValues>({
     defaultValues: {
       buildingType: "บ้านเดี่ยว/ทาวน์โฮม",
+      workDifficulty: "ปกติ",
 
       includeRoof: true,
       roofAreaSqm: 40,
       roofMaterialPresetId: getPresetOptions("roof-")[0]?.id ?? "",
-      roofLaborPerSqm: 450,
 
       includeWall: true,
       wallAreaSqm: 60,
       wallMaterialPresetId: getPresetOptions("wall-")[0]?.id ?? "",
-      wallLaborPerSqm: 350,
 
       includeCeiling: true,
       ceilingAreaSqm: 30,
       ceilingMaterialPresetId: getPresetOptions("ceiling-")[0]?.id ?? "",
-      ceilingLaborPerSqm: 300,
+
+      includePaint: false,
+      paintAreaSqm: 60,
+      paintMaterialPresetId: getPresetOptions("paint-")[0]?.id ?? "paint-interior-basic",
 
       includePlumbing: true,
       plumbingAreaSqm: 8,
       plumbingMaterialPresetId: getPresetOptions("system-plumbing-")[0]?.id ?? "system-plumbing-basic",
-      plumbingLaborPerSqm: 900,
 
-      includeElectrical: true,
-      electricalAreaSqm: 30,
-      electricalMaterialPresetId: getPresetOptions("system-electrical-")[0]?.id ?? "system-electrical-basic",
-      electricalLaborPerSqm: 650,
+      includeElectricalWiring: true,
+      electricalWiringAreaSqm: 30,
+      electricalWiringMaterialPresetId: getPresetOptions("system-electrical-wiring")[0]?.id ?? "system-electrical-wiring",
+
+      includeElectricalDevices: true,
+      electricalDevicesAreaSqm: 30,
+      electricalDevicesMaterialPresetId: getPresetOptions("system-electrical-devices")[0]?.id ?? "system-electrical-devices",
+
+      includeLighting: true,
+      lightingAreaSqm: 30,
+      lightingMaterialPresetId: getPresetOptions("system-lighting-")[0]?.id ?? "system-lighting-basic",
+
+      includeDemolition: false,
+      demolitionAreaSqm: 20,
+
+      includeWaste: false,
+      wasteAreaSqm: 20,
     },
     mode: "onChange",
   });
@@ -85,9 +114,9 @@ export default function Estimate() {
       items.push({
         id: "roof",
         title: "หลังคา",
+        workType: "roof",
         qtySqm: Number(values.roofAreaSqm) || 0,
         materialPresetId: values.roofMaterialPresetId,
-        laborPerSqm: Number(values.roofLaborPerSqm) || 0,
       });
     }
 
@@ -95,9 +124,9 @@ export default function Estimate() {
       items.push({
         id: "wall",
         title: "ผนัง",
+        workType: "wall",
         qtySqm: Number(values.wallAreaSqm) || 0,
         materialPresetId: values.wallMaterialPresetId,
-        laborPerSqm: Number(values.wallLaborPerSqm) || 0,
       });
     }
 
@@ -105,9 +134,19 @@ export default function Estimate() {
       items.push({
         id: "ceiling",
         title: "ฝ้า/เพดาน",
+        workType: "ceiling",
         qtySqm: Number(values.ceilingAreaSqm) || 0,
         materialPresetId: values.ceilingMaterialPresetId,
-        laborPerSqm: Number(values.ceilingLaborPerSqm) || 0,
+      });
+    }
+
+    if (values.includePaint) {
+      items.push({
+        id: "paint",
+        title: "งานสี",
+        workType: "paint",
+        qtySqm: Number(values.paintAreaSqm) || 0,
+        materialPresetId: values.paintMaterialPresetId,
       });
     }
 
@@ -115,23 +154,63 @@ export default function Estimate() {
       items.push({
         id: "plumbing",
         title: "ประปา/ห้องน้ำ",
+        workType: "plumbing",
         qtySqm: Number(values.plumbingAreaSqm) || 0,
         materialPresetId: values.plumbingMaterialPresetId,
-        laborPerSqm: Number(values.plumbingLaborPerSqm) || 0,
       });
     }
 
-    if (values.includeElectrical) {
+    if (values.includeElectricalWiring) {
       items.push({
-        id: "electrical",
-        title: "ไฟฟ้า/แสงสว่าง",
-        qtySqm: Number(values.electricalAreaSqm) || 0,
-        materialPresetId: values.electricalMaterialPresetId,
-        laborPerSqm: Number(values.electricalLaborPerSqm) || 0,
+        id: "electrical-wiring",
+        title: "ไฟฟ้า: เดินท่อ/เดินสาย",
+        workType: "electrical-wiring",
+        qtySqm: Number(values.electricalWiringAreaSqm) || 0,
+        materialPresetId: values.electricalWiringMaterialPresetId,
       });
     }
 
-    return calculateEstimateV2({ buildingType: values.buildingType, items });
+    if (values.includeElectricalDevices) {
+      items.push({
+        id: "electrical-devices",
+        title: "ไฟฟ้า: สวิตช์/ปลั๊ก/เบรกเกอร์ย่อย",
+        workType: "electrical-devices",
+        qtySqm: Number(values.electricalDevicesAreaSqm) || 0,
+        materialPresetId: values.electricalDevicesMaterialPresetId,
+      });
+    }
+
+    if (values.includeLighting) {
+      items.push({
+        id: "lighting",
+        title: "แสงสว่าง: โคม/หลอด/อุปกรณ์",
+        workType: "lighting",
+        qtySqm: Number(values.lightingAreaSqm) || 0,
+        materialPresetId: values.lightingMaterialPresetId,
+      });
+    }
+
+    if (values.includeDemolition) {
+      items.push({
+        id: "demolition",
+        title: "รื้อถอด",
+        workType: "demolition",
+        qtySqm: Number(values.demolitionAreaSqm) || 0,
+        materialPresetId: "none",
+      });
+    }
+
+    if (values.includeWaste) {
+      items.push({
+        id: "waste",
+        title: "ขนทิ้ง",
+        workType: "waste",
+        qtySqm: Number(values.wasteAreaSqm) || 0,
+        materialPresetId: "none",
+      });
+    }
+
+    return calculateEstimateV2({ buildingType: values.buildingType, workDifficulty: values.workDifficulty, items });
   }, [values]);
 
   const handleContact = async () => {
@@ -139,6 +218,7 @@ export default function Estimate() {
     const message = [
       "ขอประเมินราคาเบื้องต้น",
       `ประเภทอาคาร: ${values.buildingType}`,
+      `ความสะดวกในการทำงาน: ${values.workDifficulty}`,
       "",
       "รายการงาน (ตร.ม.):",
       ...selectedItems.map((l) => `- ${l.title}: ${l.qtySqm} ตร.ม.`),
@@ -187,6 +267,23 @@ export default function Estimate() {
                 </select>
               </div>
 
+              <div className="grid gap-2">
+                <label className="text-[#1f2328] text-sm font-bold">ความสะดวกในการทำงาน (มีผลกับค่าแรง)</label>
+                <select
+                  className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                  {...form.register("workDifficulty")}
+                >
+                  {workDifficulties.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[#656d76] text-xs">
+                  ใช้กรณีพื้นที่สูง/นั่งร้าน/งาน safety/ต้องขนของขึ้น/ใช้โฟลกลิฟต์-กรรไกรยก (x-lift) ฯลฯ
+                </p>
+              </div>
+
               <div className="border-t border-[#d0d7de] pt-6 space-y-6">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-[#1f2328] text-sm font-bold">หลังคา</p>
@@ -196,7 +293,7 @@ export default function Estimate() {
                   </label>
                 </div>
                 {values.includeRoof && (
-                  <div className="grid md:grid-cols-3 gap-4">
+                  <div className="grid md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
                       <input
@@ -219,15 +316,11 @@ export default function Estimate() {
                         ))}
                       </select>
                     </div>
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">ค่าแรง (บาท/ตร.ม.)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("roofLaborPerSqm", { valueAsNumber: true, min: 0 })}
-                      />
-                    </div>
+                  </div>
+                )}
+                {values.includeRoof && (
+                  <div className="text-xs text-[#656d76]">
+                    ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("roof", values.workDifficulty)))} บาท/ตร.ม.
                   </div>
                 )}
               </div>
@@ -241,7 +334,7 @@ export default function Estimate() {
                   </label>
                 </div>
                 {values.includeWall && (
-                  <div className="grid md:grid-cols-3 gap-4">
+                  <div className="grid md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
                       <input
@@ -264,15 +357,11 @@ export default function Estimate() {
                         ))}
                       </select>
                     </div>
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">ค่าแรง (บาท/ตร.ม.)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("wallLaborPerSqm", { valueAsNumber: true, min: 0 })}
-                      />
-                    </div>
+                  </div>
+                )}
+                {values.includeWall && (
+                  <div className="text-xs text-[#656d76]">
+                    ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("wall", values.workDifficulty)))} บาท/ตร.ม.
                   </div>
                 )}
               </div>
@@ -286,7 +375,7 @@ export default function Estimate() {
                   </label>
                 </div>
                 {values.includeCeiling && (
-                  <div className="grid md:grid-cols-3 gap-4">
+                  <div className="grid md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
                       <input
@@ -309,15 +398,52 @@ export default function Estimate() {
                         ))}
                       </select>
                     </div>
+                  </div>
+                )}
+                {values.includeCeiling && (
+                  <div className="text-xs text-[#656d76]">
+                    ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("ceiling", values.workDifficulty)))} บาท/ตร.ม.
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-[#d0d7de] pt-6 space-y-6">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[#1f2328] text-sm font-bold">งานสี</p>
+                  <label className="flex items-center gap-2 text-sm text-[#1f2328]">
+                    <input type="checkbox" className="accent-[#0969da]" {...form.register("includePaint")} />
+                    รวม
+                  </label>
+                </div>
+                {values.includePaint && (
+                  <div className="grid md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">ค่าแรง (บาท/ตร.ม.)</label>
+                      <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
                       <input
                         type="number"
                         min={0}
                         className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("ceilingLaborPerSqm", { valueAsNumber: true, min: 0 })}
+                        {...form.register("paintAreaSqm", { valueAsNumber: true, min: 0 })}
                       />
                     </div>
+                    <div className="grid gap-2">
+                      <label className="text-[#1f2328] text-sm font-bold">วัสดุอ้างอิงราคา</label>
+                      <select
+                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                        {...form.register("paintMaterialPresetId")}
+                      >
+                        {getPresetOptions("paint-").map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+                {values.includePaint && (
+                  <div className="text-xs text-[#656d76]">
+                    ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("paint", values.workDifficulty)))} บาท/ตร.ม.
                   </div>
                 )}
               </div>
@@ -331,7 +457,7 @@ export default function Estimate() {
                   </label>
                 </div>
                 {values.includePlumbing && (
-                  <div className="grid md:grid-cols-3 gap-4">
+                  <div className="grid md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
                       <input
@@ -354,14 +480,159 @@ export default function Estimate() {
                         ))}
                       </select>
                     </div>
+                  </div>
+                )}
+                {values.includePlumbing && (
+                  <div className="text-xs text-[#656d76]">
+                    ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("plumbing", values.workDifficulty)))} บาท/ตร.ม.
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-[#d0d7de] pt-6 space-y-6">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[#1f2328] text-sm font-bold">ไฟฟ้า: เดินท่อ/เดินสาย</p>
+                  <label className="flex items-center gap-2 text-sm text-[#1f2328]">
+                    <input type="checkbox" className="accent-[#0969da]" {...form.register("includeElectricalWiring")} />
+                    รวม
+                  </label>
+                </div>
+                {values.includeElectricalWiring && (
+                  <div className="grid md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">ค่าแรง (บาท/ตร.ม.)</label>
+                      <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
                       <input
                         type="number"
                         min={0}
                         className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("plumbingLaborPerSqm", { valueAsNumber: true, min: 0 })}
+                        {...form.register("electricalWiringAreaSqm", { valueAsNumber: true, min: 0 })}
                       />
+                    </div>
+                    <div className="grid gap-2">
+                      <label className="text-[#1f2328] text-sm font-bold">วัสดุอ้างอิงราคา</label>
+                      <select
+                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                        {...form.register("electricalWiringMaterialPresetId")}
+                      >
+                        {getPresetOptions("system-electrical-wiring").map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+                {values.includeElectricalWiring && (
+                  <div className="text-xs text-[#656d76]">
+                    ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("electrical-wiring", values.workDifficulty)))} บาท/ตร.ม.
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-[#d0d7de] pt-6 space-y-6">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[#1f2328] text-sm font-bold">ไฟฟ้า: สวิตช์/ปลั๊ก/เบรกเกอร์ย่อย</p>
+                  <label className="flex items-center gap-2 text-sm text-[#1f2328]">
+                    <input type="checkbox" className="accent-[#0969da]" {...form.register("includeElectricalDevices")} />
+                    รวม
+                  </label>
+                </div>
+                {values.includeElectricalDevices && (
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                        {...form.register("electricalDevicesAreaSqm", { valueAsNumber: true, min: 0 })}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <label className="text-[#1f2328] text-sm font-bold">วัสดุอ้างอิงราคา</label>
+                      <select
+                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                        {...form.register("electricalDevicesMaterialPresetId")}
+                      >
+                        {getPresetOptions("system-electrical-devices").map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+                {values.includeElectricalDevices && (
+                  <div className="text-xs text-[#656d76]">
+                    ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("electrical-devices", values.workDifficulty)))} บาท/ตร.ม.
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-[#d0d7de] pt-6 space-y-6">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[#1f2328] text-sm font-bold">แสงสว่าง: โคม/หลอด/อุปกรณ์</p>
+                  <label className="flex items-center gap-2 text-sm text-[#1f2328]">
+                    <input type="checkbox" className="accent-[#0969da]" {...form.register("includeLighting")} />
+                    รวม
+                  </label>
+                </div>
+                {values.includeLighting && (
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                        {...form.register("lightingAreaSqm", { valueAsNumber: true, min: 0 })}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <label className="text-[#1f2328] text-sm font-bold">วัสดุอ้างอิงราคา</label>
+                      <select
+                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                        {...form.register("lightingMaterialPresetId")}
+                      >
+                        {getPresetOptions("system-lighting-").map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+                {values.includeLighting && (
+                  <div className="text-xs text-[#656d76]">
+                    ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("lighting", values.workDifficulty)))} บาท/ตร.ม.
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-[#d0d7de] pt-6 space-y-6">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[#1f2328] text-sm font-bold">งานรื้อถอด</p>
+                  <label className="flex items-center gap-2 text-sm text-[#1f2328]">
+                    <input type="checkbox" className="accent-[#0969da]" {...form.register("includeDemolition")} />
+                    รวม
+                  </label>
+                </div>
+                {values.includeDemolition && (
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                        {...form.register("demolitionAreaSqm", { valueAsNumber: true, min: 0 })}
+                      />
+                    </div>
+                    <div className="text-xs text-[#656d76] flex items-end">
+                      ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("demolition", values.workDifficulty)))} บาท/ตร.ม.
                     </div>
                   </div>
                 )}
@@ -369,44 +640,25 @@ export default function Estimate() {
 
               <div className="border-t border-[#d0d7de] pt-6 space-y-6">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-[#1f2328] text-sm font-bold">ไฟฟ้า/แสงสว่าง</p>
+                  <p className="text-[#1f2328] text-sm font-bold">งานขนทิ้ง</p>
                   <label className="flex items-center gap-2 text-sm text-[#1f2328]">
-                    <input type="checkbox" className="accent-[#0969da]" {...form.register("includeElectrical")} />
+                    <input type="checkbox" className="accent-[#0969da]" {...form.register("includeWaste")} />
                     รวม
                   </label>
                 </div>
-                {values.includeElectrical && (
-                  <div className="grid md:grid-cols-3 gap-4">
+                {values.includeWaste && (
+                  <div className="grid md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
                       <input
                         type="number"
                         min={0}
                         className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("electricalAreaSqm", { valueAsNumber: true, min: 0 })}
+                        {...form.register("wasteAreaSqm", { valueAsNumber: true, min: 0 })}
                       />
                     </div>
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">วัสดุอ้างอิงราคา</label>
-                      <select
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("electricalMaterialPresetId")}
-                      >
-                        {getPresetOptions("system-electrical-").map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.title}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">ค่าแรง (บาท/ตร.ม.)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("electricalLaborPerSqm", { valueAsNumber: true, min: 0 })}
-                      />
+                    <div className="text-xs text-[#656d76] flex items-end">
+                      ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("waste", values.workDifficulty)))} บาท/ตร.ม.
                     </div>
                   </div>
                 )}

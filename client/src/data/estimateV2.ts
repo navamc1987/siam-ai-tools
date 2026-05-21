@@ -1,5 +1,19 @@
 export type BuildingType = "บ้านเดี่ยว/ทาวน์โฮม" | "อาคารพาณิชย์" | "อพาร์ตเมนท์/หอพัก" | "โรงงาน/คลังสินค้า";
 
+export type WorkDifficulty = "สะดวก" | "ปกติ" | "ยาก" | "ยากมาก";
+
+export type WorkType =
+  | "roof"
+  | "wall"
+  | "ceiling"
+  | "paint"
+  | "plumbing"
+  | "electrical-wiring"
+  | "electrical-devices"
+  | "lighting"
+  | "demolition"
+  | "waste";
+
 export type MaterialUnit = "sqm";
 
 export type MaterialPreset = {
@@ -13,13 +27,14 @@ export type MaterialPreset = {
 export type WorkItem = {
   id: string;
   title: string;
+  workType: WorkType;
   qtySqm: number;
   materialPresetId: string;
-  laborPerSqm: number;
 };
 
 export type EstimateV2Input = {
   buildingType: BuildingType;
+  workDifficulty: WorkDifficulty;
   items: WorkItem[];
 };
 
@@ -37,9 +52,34 @@ export const estimateV2Config = {
     "อพาร์ตเมนท์/หอพัก": 1.12,
     "โรงงาน/คลังสินค้า": 1.03,
   } satisfies Record<BuildingType, number>,
+  workDifficultyMultiplier: {
+    สะดวก: 1,
+    ปกติ: 1.1,
+    ยาก: 1.25,
+    ยากมาก: 1.45,
+  } satisfies Record<WorkDifficulty, number>,
+  laborBasePerSqm: {
+    roof: 450,
+    wall: 350,
+    ceiling: 300,
+    paint: 160,
+    plumbing: 900,
+    "electrical-wiring": 550,
+    "electrical-devices": 220,
+    lighting: 180,
+    demolition: 280,
+    waste: 220,
+  } satisfies Record<WorkType, number>,
 };
 
 export const materialPresets: MaterialPreset[] = [
+  {
+    id: "none",
+    title: "ไม่คิดค่าวัสดุ (0 บาท/ตร.ม.)",
+    unit: "sqm",
+    unitPriceExVat: 0,
+    sourceUrl: "",
+  },
   {
     id: "roof-metal-sheet-035-aluzinc",
     title: "เมทัลชีท 0.35 มม. (คำนวณเป็น ตร.ม.)",
@@ -47,6 +87,30 @@ export const materialPresets: MaterialPreset[] = [
     unitPriceExVat: 99.98 / 0.76,
     sourceUrl:
       "https://www.onestockhome.com/th/products/88794114/metal-sheet-imported-760-035-mm-aluzinc-az70_metal-sheet-aluzinc?item_id=68156315",
+  },
+  {
+    id: "roof-metal-sheet-040-aluzinc",
+    title: "เมทัลชีท 0.40 มม. (คำนวณเป็น ตร.ม.)",
+    unit: "sqm",
+    unitPriceExVat: 105.41 / 0.76,
+    sourceUrl:
+      "https://www.onestockhome.com/th/products/6588808/metal-sheet-imported-760-040-mm-aluzinc-az70_metal-sheet-aluzinc?item_id=11325999",
+  },
+  {
+    id: "roof-metal-sheet-047-aluzinc",
+    title: "เมทัลชีท 0.47 มม. (คำนวณเป็น ตร.ม.)",
+    unit: "sqm",
+    unitPriceExVat: 119.54 / 0.76,
+    sourceUrl:
+      "https://www.onestockhome.com/th/products/94503462/metal-sheet-imported-760-047-mm-aluzinc-az70_metal-sheet-standard-profile?item_id=12146165",
+  },
+  {
+    id: "roof-metal-sheet-050-aluzinc",
+    title: "เมทัลชีท 0.50 มม. (คำนวณเป็น ตร.ม.)",
+    unit: "sqm",
+    unitPriceExVat: 177.57 / 0.76,
+    sourceUrl:
+      "https://www.onestockhome.com/th/products/13764186/metal-sheet-imported-760-05-mm-aluzinc-az70_metal-sheet-standard-profile?item_id=35767066",
   },
   {
     id: "system-plumbing-basic",
@@ -61,6 +125,41 @@ export const materialPresets: MaterialPreset[] = [
     unit: "sqm",
     unitPriceExVat: 650,
     sourceUrl: "https://www.onestockhome.com/th/departments/electrical-lighting-air-system",
+  },
+  {
+    id: "system-electrical-wiring",
+    title: "ไฟฟ้า: เดินท่อ/สาย/ราง (งบวัสดุเฉลี่ย/ตร.ม.)",
+    unit: "sqm",
+    unitPriceExVat: 420,
+    sourceUrl: "https://www.onestockhome.com/th/product_categories/electrical-system",
+  },
+  {
+    id: "system-electrical-devices",
+    title: "ไฟฟ้า: สวิตช์/ปลั๊ก/เบรกเกอร์ย่อย (งบวัสดุเฉลี่ย/ตร.ม.)",
+    unit: "sqm",
+    unitPriceExVat: 280,
+    sourceUrl: "https://www.onestockhome.com/th/departments/electrical-lighting-air-system",
+  },
+  {
+    id: "system-lighting-basic",
+    title: "แสงสว่าง: โคม/หลอด/อุปกรณ์ (งบวัสดุเฉลี่ย/ตร.ม.)",
+    unit: "sqm",
+    unitPriceExVat: 350,
+    sourceUrl: "https://www.onestockhome.com/th/departments/electrical-lighting-air-system",
+  },
+  {
+    id: "paint-interior-basic",
+    title: "งานสีภายใน (งบวัสดุเฉลี่ย/ตร.ม.)",
+    unit: "sqm",
+    unitPriceExVat: 95,
+    sourceUrl: "https://www.onestockhome.com/th/product_categories/paints",
+  },
+  {
+    id: "paint-exterior-basic",
+    title: "งานสีภายนอก (งบวัสดุเฉลี่ย/ตร.ม.)",
+    unit: "sqm",
+    unitPriceExVat: 135,
+    sourceUrl: "https://www.onestockhome.com/th/product_categories/paints",
   },
   {
     id: "wall-qcon-brick-10cm",
@@ -95,6 +194,12 @@ function getMaterialPreset(presetId: string) {
   return materialPresets.find((p) => p.id === presetId);
 }
 
+export function getLaborPerSqm(workType: WorkType, difficulty: WorkDifficulty) {
+  const base = estimateV2Config.laborBasePerSqm[workType];
+  const multiplier = estimateV2Config.workDifficultyMultiplier[difficulty];
+  return base * multiplier;
+}
+
 export function calculateEstimateV2(input: EstimateV2Input) {
   const buildingMultiplier = estimateV2Config.buildingTypeMultiplier[input.buildingType];
   const lines: EstimateV2Line[] = [{ kind: "buildingMultiplier", title: "ตัวคูณประเภทอาคาร", value: buildingMultiplier }];
@@ -104,7 +209,7 @@ export function calculateEstimateV2(input: EstimateV2Input) {
     .map((it) => {
       const preset = getMaterialPreset(it.materialPresetId);
       const materialPerSqm = preset?.unitPriceExVat ?? 0;
-      const laborPerSqm = Math.max(0, it.laborPerSqm || 0);
+      const laborPerSqm = getLaborPerSqm(it.workType, input.workDifficulty);
       const base = it.qtySqm * (materialPerSqm + laborPerSqm);
       const value = base * buildingMultiplier;
       lines.push({
