@@ -8,6 +8,8 @@ import { portfolioCategories, portfolioItems, type PortfolioItem } from "@/data/
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { instagramProfileUrl } from "@/data/instagramEmbeds";
+import { driveGalleryGroups } from "@/data/driveFolders";
+import DriveFolderCarousel from "@/components/DriveFolderCarousel";
 
 const categoryImageStyles: Record<string, string> = {
   "ต่อเติมและรีโนเวท": "aspect-[4/3] object-cover object-center",
@@ -185,6 +187,24 @@ export default function Portfolio() {
               <p className="text-[#656d76] text-lg">ยังไม่มีผลงานในหมวดหมู่นี้</p>
             </div>
           )}
+
+          <div className="mt-20">
+            {driveGalleryGroups.map((group) => (
+              <div key={group.id} className="mb-14">
+                <h2 className="text-2xl md:text-3xl font-bold text-[#1f2328] mb-6">{group.title}</h2>
+                <div className="grid gap-6">
+                  {group.galleries.map((g) => (
+                    <DriveFolderCarousel
+                      key={g.id}
+                      title={g.title}
+                      folderId={g.folderId}
+                      folderUrl={g.folderUrl}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
