@@ -63,10 +63,9 @@ export default function DriveFolderCarousel({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
         <div>
           <h3 className="text-[#1f2328] font-bold text-lg">{title}</h3>
-          <p className="text-[#656d76] text-xs mt-1">{folderUrl}</p>
         </div>
         <a href={folderUrl} target="_blank" rel="noreferrer" className="btn-secondary px-5 py-2 text-sm text-center">
-          เปิดอัลบั้ม Google Drive
+          ดูใน Google Drive
         </a>
       </div>
 
@@ -110,4 +109,3 @@ export default function DriveFolderCarousel({
     </div>
   );
 }
-

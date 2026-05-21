@@ -34,8 +34,8 @@ export const driveGalleryGroups: DriveGalleryGroup[] = [
         id: "steel",
         title: "งานเชื่อมเหล็กโครงสร้าง",
         folderUrl:
-          "https://drive.google.com/drive/folders/1JIjkjnK8JSVDAWyRWSCO12Xvc4f0_x3x?usp=sharing",
-        folderId: "1JIjkjnK8JSVDAWyRWSCO12Xvc4f0_x3x",
+          "https://drive.google.com/drive/folders/1z89Ap29lNZ5BdP_Qxn0BT4YNG-6elWPU?usp=drive_link",
+        folderId: "1z89Ap29lNZ5BdP_Qxn0BT4YNG-6elWPU",
       },
       {
         id: "tile",
@@ -54,14 +54,14 @@ export const driveGalleryGroups: DriveGalleryGroup[] = [
         id: "network",
         title: "ระบบ NETWORK",
         folderUrl:
-          "https://drive.google.com/drive/folders/1JIjkjnK8JSVDAWyRWSCO12Xvc4f0_x3x?usp=sharing",
-        folderId: "1JIjkjnK8JSVDAWyRWSCO12Xvc4f0_x3x",
+          "https://drive.google.com/drive/folders/17YGt1yAJDEoFH6Vu9N4a55VTaAnGtUAH?usp=drive_link",
+        folderId: "17YGt1yAJDEoFH6Vu9N4a55VTaAnGtUAH",
       },
       {
         id: "cctv",
         title: "ระบบ CCTV",
         folderUrl:
-          "https://drive.google.com/drive/folders/1JIjkjnK8JSVDAWyRWSCO12Xvc4f0_x3x?usp=sharing",
+          "https://drive.google.com/drive/folders/1JIjkjnK8JSVDAWyRWSCO12Xvc4f0_x3x?usp=drive_link",
         folderId: "1JIjkjnK8JSVDAWyRWSCO12Xvc4f0_x3x",
       },
       {
@@ -74,4 +74,3 @@ export const driveGalleryGroups: DriveGalleryGroup[] = [
     ],
   },
 ];
-

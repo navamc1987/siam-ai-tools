@@ -4,12 +4,25 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { Calendar, ChevronRight, MapPin } from "lucide-react";
-import { portfolioCategories, portfolioItems, type PortfolioItem } from "@/data/portfolio";
+import { portfolioItems, type PortfolioItem } from "@/data/portfolio";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { instagramProfileUrl } from "@/data/instagramEmbeds";
 import { driveGalleryGroups } from "@/data/driveFolders";
 import DriveFolderCarousel from "@/components/DriveFolderCarousel";
+
+type PortfolioCategory = "all" | "renovation" | "systems";
+
+const portfolioCategoryTabs: Array<{ id: PortfolioCategory; label: string }> = [
+  { id: "all", label: "ทั้งหมด" },
+  { id: "renovation", label: "ต่อเติม & รีโนเวท" },
+  { id: "systems", label: "งานระบบ" },
+];
+
+function getDisplayCategory(category: string) {
+  if (category === "ต่อเติมและรีโนเวท") return "ต่อเติม & รีโนเวท";
+  return category;
+}
 
 const categoryImageStyles: Record<string, string> = {
   "ต่อเติมและรีโนเวท": "aspect-[4/3] object-cover object-center",
@@ -38,24 +51,36 @@ function getBadgeClass(category: string) {
 }
 
 export default function Portfolio() {
-  const [selectedCategory, setSelectedCategory] = useState("ทั้งหมด");
+  const [selectedCategory, setSelectedCategory] = useState<PortfolioCategory>("all");
   const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const category = params.get("category");
-    if (category && portfolioCategories.includes(category)) {
-      setSelectedCategory(category);
+    if (!category) return;
+    if (category === "ต่อเติมและรีโนเวท" || category === "ต่อเติม & รีโนเวท") {
+      setSelectedCategory("renovation");
+      return;
+    }
+    if (category === "งานระบบ") {
+      setSelectedCategory("systems");
+      return;
+    }
+    if (category === "ทั้งหมด") {
+      setSelectedCategory("all");
     }
   }, []);
 
   const publishedItems = useMemo(() => portfolioItems.filter((item) => item.published !== false), []);
 
-  const filteredItems =
-    selectedCategory === "ทั้งหมด"
-      ? publishedItems
-      : publishedItems.filter((item) => item.category === selectedCategory);
+  const filteredItems = useMemo(() => {
+    if (selectedCategory === "all") return publishedItems;
+    if (selectedCategory === "renovation") {
+      return publishedItems.filter((item) => item.category === "ต่อเติมและรีโนเวท");
+    }
+    return publishedItems.filter((item) => item.category !== "ต่อเติมและรีโนเวท");
+  }, [publishedItems, selectedCategory]);
 
   const selectedImages = selectedItem
     ? [{ image: selectedItem.featured_image, caption: selectedItem.title }, ...(selectedItem.gallery ?? [])]
@@ -108,20 +133,20 @@ export default function Portfolio() {
           </div>
 
           <div className="flex flex-wrap gap-3 mb-12 justify-center md:justify-start">
-            {portfolioCategories.map((cat) => (
+            {portfolioCategoryTabs.map((cat) => (
               <button
-                key={cat}
+                key={cat.id}
                 onClick={() => {
-                  setSelectedCategory(cat);
+                  setSelectedCategory(cat.id);
                   setCurrentImageIndex(0);
                 }}
                 className={`px-4 py-2 text-sm font-semibold rounded-full transition-all border ${
-                  selectedCategory === cat
+                  selectedCategory === cat.id
                     ? "bg-[#0969da] text-white border-[#0969da]"
                     : "bg-white text-[#1f2328] border-[#d0d7de] hover:bg-[#f3f4f6]"
                 }`}
               >
-                {cat}
+                {cat.label}
               </button>
             ))}
           </div>
@@ -146,7 +171,7 @@ export default function Portfolio() {
                     />
                     <div className="absolute top-3 left-3">
                       <span className={`${getBadgeClass(item.category)} text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm`}>
-                        {item.category}
+                            {getDisplayCategory(item.category)}
                       </span>
                     </div>
                   </div>
