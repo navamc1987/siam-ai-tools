@@ -1,237 +1,196 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { calculateEstimateV2, estimateV2Config, getLaborPerSqm, materialPresets, type BuildingType, type WorkDifficulty, type WorkItem } from "@/data/estimateV2";
-import { useMemo } from "react";
-import { useForm } from "react-hook-form";
-
-const buildingTypes: BuildingType[] = ["บ้านเดี่ยว/ทาวน์โฮม", "อาคารพาณิชย์", "อพาร์ตเมนท์/หอพัก", "โรงงาน/คลังสินค้า"];
-const workDifficulties: WorkDifficulty[] = ["สะดวก", "ปกติ", "ยาก", "ยากมาก"];
-
-function getPresetOptions(prefix: string) {
-  return materialPresets.filter((p) => p.id.startsWith(prefix));
-}
-
-type FormValues = {
-  buildingType: BuildingType;
-  workDifficulty: WorkDifficulty;
-
-  includeRoof: boolean;
-  roofAreaSqm: number;
-  roofMaterialPresetId: string;
-
-  includeWall: boolean;
-  wallAreaSqm: number;
-  wallMaterialPresetId: string;
-
-  includeCeiling: boolean;
-  ceilingAreaSqm: number;
-  ceilingMaterialPresetId: string;
-
-  includePaint: boolean;
-  paintAreaSqm: number;
-  paintMaterialPresetId: string;
-
-  includePlumbing: boolean;
-  plumbingAreaSqm: number;
-  plumbingMaterialPresetId: string;
-
-  includeElectricalWiring: boolean;
-  electricalWiringAreaSqm: number;
-  electricalWiringMaterialPresetId: string;
-
-  includeElectricalDevices: boolean;
-  electricalDevicesAreaSqm: number;
-  electricalDevicesMaterialPresetId: string;
-
-  includeLighting: boolean;
-  lightingAreaSqm: number;
-  lightingMaterialPresetId: string;
-
-  includeDemolition: boolean;
-  demolitionAreaSqm: number;
-
-  includeWaste: boolean;
-  wasteAreaSqm: number;
-};
+import { estimateV2Config, getLaborPerUnit, type BuildingType, type WorkDifficulty, type WorkType } from "@/data/estimateV2";
+import { onestockCalculatorCards, type OnestockCalculatorId } from "@/data/onestockCalculators";
+import { useEffect, useMemo, useState } from "react";
 
 function formatTHB(value: number) {
   return new Intl.NumberFormat("th-TH").format(value);
 }
 
 export default function Estimate() {
-  const form = useForm<FormValues>({
-    defaultValues: {
-      buildingType: "บ้านเดี่ยว/ทาวน์โฮม",
-      workDifficulty: "ปกติ",
+  const buildingTypes: BuildingType[] = [
+    "บ้านเดี่ยว/ทาวน์โฮม",
+    "อาคารพาณิชย์",
+    "อพาร์ตเมนท์/หอพัก",
+    "โรงงาน/คลังสินค้า",
+  ];
+  const workDifficulties: WorkDifficulty[] = ["สะดวก", "ปกติ", "ยาก", "ยากมาก"];
 
-      includeRoof: true,
-      roofAreaSqm: 40,
-      roofMaterialPresetId: getPresetOptions("roof-")[0]?.id ?? "",
+  const [calculator, setCalculator] = useState<OnestockCalculatorId>("construction");
+  const [buildingType, setBuildingType] = useState<BuildingType>("บ้านเดี่ยว/ทาวน์โฮม");
+  const [workDifficulty, setWorkDifficulty] = useState<WorkDifficulty>("ปกติ");
 
-      includeWall: true,
-      wallAreaSqm: 60,
-      wallMaterialPresetId: getPresetOptions("wall-")[0]?.id ?? "",
+  const [areaSqm, setAreaSqm] = useState<number>(100);
+  const [constructionType, setConstructionType] = useState<string>("proline");
+  const [selections, setSelections] = useState<Record<string, string>>({});
 
-      includeCeiling: true,
-      ceilingAreaSqm: 30,
-      ceilingMaterialPresetId: getPresetOptions("ceiling-")[0]?.id ?? "",
+  const [includeDemolition, setIncludeDemolition] = useState(false);
+  const [demolitionAreaSqm, setDemolitionAreaSqm] = useState<number>(0);
+  const [includeWaste, setIncludeWaste] = useState(false);
+  const [wasteAreaSqm, setWasteAreaSqm] = useState<number>(0);
 
-      includePaint: false,
-      paintAreaSqm: 60,
-      paintMaterialPresetId: getPresetOptions("paint-")[0]?.id ?? "paint-interior-basic",
+  type ConstructionRow = {
+    key: string;
+    amountPer100Sqm: number;
+    skuOptions: string[];
+    selectedSku: string;
+    name: string | null;
+    qty: number;
+    unit: string;
+    unitPrice: number;
+    total: number;
+    url: string | null;
+  };
 
-      includePlumbing: true,
-      plumbingAreaSqm: 8,
-      plumbingMaterialPresetId: getPresetOptions("system-plumbing-")[0]?.id ?? "system-plumbing-basic",
+  type ConstructionResponse = {
+    input: { type: string; area: number; selections: Record<string, string> };
+    types: string[];
+    rows: ConstructionRow[];
+    totals: { materialSubtotal: number };
+  };
 
-      includeElectricalWiring: true,
-      electricalWiringAreaSqm: 30,
-      electricalWiringMaterialPresetId: getPresetOptions("system-electrical-wiring")[0]?.id ?? "system-electrical-wiring",
+  const [constructionData, setConstructionData] = useState<ConstructionResponse | null>(null);
+  const [constructionLoading, setConstructionLoading] = useState(false);
+  const [constructionError, setConstructionError] = useState<string | null>(null);
 
-      includeElectricalDevices: true,
-      electricalDevicesAreaSqm: 30,
-      electricalDevicesMaterialPresetId: getPresetOptions("system-electrical-devices")[0]?.id ?? "system-electrical-devices",
+  const constructionTypeLabel: Record<string, string> = {
+    proline: "ฉาบเรียบ-โปรลายน์",
+    "proline-plus": "ฉาบเรียบ-โปรลายน์ พลัส",
+    "t-bar-60x60": "ที-บาร์ 60x60",
+    "t-bar-60x120": "ที-บาร์ 60x120",
+    "gypsum-wall": "ผนังยิปซัม",
+    "wall-lining-glue": "ผนังวอลล์ไลน์นิ่งติดกาว",
+    "wall-lining-c-line": "ผนังวอลล์ไลน์นิ่งซีไลน์",
+  };
 
-      includeLighting: true,
-      lightingAreaSqm: 30,
-      lightingMaterialPresetId: getPresetOptions("system-lighting-")[0]?.id ?? "system-lighting-basic",
+  const constructionLaborWorkType: Record<string, WorkType> = {
+    proline: "ceiling",
+    "proline-plus": "ceiling",
+    "t-bar-60x60": "ceiling",
+    "t-bar-60x120": "ceiling",
+    "gypsum-wall": "wall",
+    "wall-lining-glue": "wall",
+    "wall-lining-c-line": "wall",
+  };
 
-      includeDemolition: false,
-      demolitionAreaSqm: 20,
+  useEffect(() => {
+    if (calculator !== "construction") return;
 
-      includeWaste: false,
-      wasteAreaSqm: 20,
-    },
-    mode: "onChange",
-  });
+    const controller = new AbortController();
+    const run = async () => {
+      try {
+        setConstructionLoading(true);
+        setConstructionError(null);
 
-  const values = form.watch();
+        const params = new URLSearchParams();
+        params.set("area", String(Math.max(0, areaSqm || 0)));
+        params.set("type", constructionType);
+        Object.entries(selections).forEach(([k, v]) => {
+          if (k && v) params.append("sel", `${k}:${v}`);
+        });
 
-  const estimate = useMemo(() => {
-    const items: WorkItem[] = [];
+        const res = await fetch(`/api/onestock-construction?${params.toString()}`, {
+          signal: controller.signal,
+        });
 
-    if (values.includeRoof) {
-      items.push({
-        id: "roof",
-        title: "หลังคา",
-        workType: "roof",
-        qtySqm: Number(values.roofAreaSqm) || 0,
-        materialPresetId: values.roofMaterialPresetId,
-      });
-    }
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || `HTTP ${res.status}`);
+        }
 
-    if (values.includeWall) {
-      items.push({
-        id: "wall",
-        title: "ผนัง",
-        workType: "wall",
-        qtySqm: Number(values.wallAreaSqm) || 0,
-        materialPresetId: values.wallMaterialPresetId,
-      });
-    }
+        const data = (await res.json()) as ConstructionResponse;
+        setConstructionData(data);
+        if (data.types.length && !data.types.includes(constructionType)) {
+          setConstructionType(data.types[0]);
+        }
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        setConstructionError(e instanceof Error ? e.message : "โหลดข้อมูลไม่สำเร็จ");
+        setConstructionData(null);
+      } finally {
+        setConstructionLoading(false);
+      }
+    };
 
-    if (values.includeCeiling) {
-      items.push({
-        id: "ceiling",
-        title: "ฝ้า/เพดาน",
-        workType: "ceiling",
-        qtySqm: Number(values.ceilingAreaSqm) || 0,
-        materialPresetId: values.ceilingMaterialPresetId,
-      });
-    }
+    void run();
+    return () => controller.abort();
+  }, [calculator, areaSqm, constructionType, selections]);
 
-    if (values.includePaint) {
-      items.push({
-        id: "paint",
-        title: "งานสี",
-        workType: "paint",
-        qtySqm: Number(values.paintAreaSqm) || 0,
-        materialPresetId: values.paintMaterialPresetId,
-      });
-    }
+  const totals = useMemo(() => {
+    const materialSubtotal =
+      calculator === "construction" ? constructionData?.totals.materialSubtotal ?? 0 : 0;
 
-    if (values.includePlumbing) {
-      items.push({
-        id: "plumbing",
-        title: "ประปา/ห้องน้ำ",
-        workType: "plumbing",
-        qtySqm: Number(values.plumbingAreaSqm) || 0,
-        materialPresetId: values.plumbingMaterialPresetId,
-      });
-    }
+    const workType = constructionLaborWorkType[constructionType] ?? "ceiling";
+    const laborPerSqm = getLaborPerUnit(workType, workDifficulty);
+    const laborSubtotal = Math.max(0, areaSqm || 0) * laborPerSqm;
 
-    if (values.includeElectricalWiring) {
-      items.push({
-        id: "electrical-wiring",
-        title: "ไฟฟ้า: เดินท่อ/เดินสาย",
-        workType: "electrical-wiring",
-        qtySqm: Number(values.electricalWiringAreaSqm) || 0,
-        materialPresetId: values.electricalWiringMaterialPresetId,
-      });
-    }
+    const demolitionSubtotal =
+      (includeDemolition ? Math.max(0, demolitionAreaSqm || 0) : 0) *
+      getLaborPerUnit("demolition", workDifficulty);
+    const wasteSubtotal =
+      (includeWaste ? Math.max(0, wasteAreaSqm || 0) : 0) *
+      getLaborPerUnit("waste", workDifficulty);
 
-    if (values.includeElectricalDevices) {
-      items.push({
-        id: "electrical-devices",
-        title: "ไฟฟ้า: สวิตช์/ปลั๊ก/เบรกเกอร์ย่อย",
-        workType: "electrical-devices",
-        qtySqm: Number(values.electricalDevicesAreaSqm) || 0,
-        materialPresetId: values.electricalDevicesMaterialPresetId,
-      });
-    }
+    const base = materialSubtotal + laborSubtotal + demolitionSubtotal + wasteSubtotal;
+    const buildingMultiplier = estimateV2Config.buildingTypeMultiplier[buildingType];
+    const afterBuilding = base * buildingMultiplier;
+    const overhead = afterBuilding * estimateV2Config.overheadRate;
+    const totalExVat = afterBuilding + overhead;
+    const min = Math.round(totalExVat * (1 - estimateV2Config.bufferRate));
+    const max = Math.round(totalExVat * (1 + estimateV2Config.bufferRate));
 
-    if (values.includeLighting) {
-      items.push({
-        id: "lighting",
-        title: "แสงสว่าง: โคม/หลอด/อุปกรณ์",
-        workType: "lighting",
-        qtySqm: Number(values.lightingAreaSqm) || 0,
-        materialPresetId: values.lightingMaterialPresetId,
-      });
-    }
+    return {
+      materialSubtotal,
+      laborSubtotal,
+      demolitionSubtotal,
+      wasteSubtotal,
+      buildingMultiplier,
+      overhead,
+      totalExVat,
+      min,
+      max,
+      laborPerSqm,
+      laborWorkType: workType,
+    };
+  }, [
+    calculator,
+    constructionData,
+    constructionType,
+    workDifficulty,
+    buildingType,
+    areaSqm,
+    includeDemolition,
+    demolitionAreaSqm,
+    includeWaste,
+    wasteAreaSqm,
+  ]);
 
-    if (values.includeDemolition) {
-      items.push({
-        id: "demolition",
-        title: "รื้อถอด",
-        workType: "demolition",
-        qtySqm: Number(values.demolitionAreaSqm) || 0,
-        materialPresetId: "none",
-      });
-    }
+  const activeCard = onestockCalculatorCards.find((c) => c.id === calculator) ?? onestockCalculatorCards[0];
 
-    if (values.includeWaste) {
-      items.push({
-        id: "waste",
-        title: "ขนทิ้ง",
-        workType: "waste",
-        qtySqm: Number(values.wasteAreaSqm) || 0,
-        materialPresetId: "none",
-      });
-    }
-
-    return calculateEstimateV2({ buildingType: values.buildingType, workDifficulty: values.workDifficulty, items });
-  }, [values]);
-
-  const handleContact = async () => {
-    const selectedItems = estimate.lines.filter((l) => l.kind === "item");
+  const handleContact = () => {
     const message = [
       "ขอประเมินราคาเบื้องต้น",
-      `ประเภทอาคาร: ${values.buildingType}`,
-      `ความสะดวกในการทำงาน: ${values.workDifficulty}`,
+      `ประเภทอาคาร: ${buildingType}`,
+      `ความสะดวกในการทำงาน: ${workDifficulty}`,
       "",
-      "รายการงาน (ตร.ม.):",
-      ...selectedItems.map((l) => `- ${l.title}: ${l.qtySqm} ตร.ม.`),
+      `เครื่องคิดเลข: ${activeCard.title}`,
+      calculator === "construction"
+        ? `ประเภทงาน: ${constructionTypeLabel[constructionType] ?? constructionType}`
+        : "",
+      `พื้นที่: ${formatTHB(Math.round(areaSqm || 0))} ตร.ม.`,
+      includeDemolition ? `รื้อถอด: ${formatTHB(Math.round(demolitionAreaSqm || 0))} ตร.ม.` : "",
+      includeWaste ? `ขนทิ้ง: ${formatTHB(Math.round(wasteAreaSqm || 0))} ตร.ม.` : "",
       "",
-      `รวม (ไม่รวม VAT): ${formatTHB(Math.round(estimate.totalExVat))} บาท`,
-      `ช่วงราคาโดยประมาณ: ${formatTHB(estimate.min)} – ${formatTHB(estimate.max)} บาท`,
-      `ค่าดำเนินงาน: ${estimateV2Config.overheadRate * 100}%`,
+      `รวม (ไม่รวม VAT): ${formatTHB(Math.round(totals.totalExVat))} บาท`,
+      `ช่วงราคาโดยประมาณ: ${formatTHB(totals.min)} – ${formatTHB(totals.max)} บาท`,
       "",
       "รบกวนติดต่อกลับเพื่อประเมินละเอียด/นัดสำรวจหน้างาน",
-    ].join("\n");
+    ]
+      .filter(Boolean)
+      .join("\n");
 
-    const url = `/?prefill=${encodeURIComponent(message)}#contact`;
-    window.location.href = url;
+    window.location.href = `/?prefill=${encodeURIComponent(message)}#contact`;
   };
 
   return (
@@ -241,495 +200,372 @@ export default function Estimate() {
       <section className="pt-24 pb-12 bg-white border-b border-[#d0d7de]">
         <div className="container">
           <div className="max-w-3xl">
-            <h1 className="text-4xl md:text-5xl font-bold text-[#1f2328] mb-4">ประเมินราคาเบื้องต้น</h1>
+            <h1 className="text-4xl md:text-5xl font-bold text-[#1f2328] mb-4">
+              ประเมินราคาเบื้องต้น
+            </h1>
             <p className="text-[#656d76] text-lg">
-              เลือกประเภทอาคาร + ใส่ปริมาณงานเป็น “ตร.ม.” แยกตามหมวด และเลือกวัสดุอ้างอิงราคา (ไม่รวม VAT) เพื่อให้ได้ราคาที่ละเอียดขึ้น
+              เลือกเครื่องคิดเลข → ใส่ปริมาณงาน → ระบบดึงรายการวัสดุจาก OneStockHome แล้วบวกค่าแรง (fix)
+              พร้อมค่าดำเนินงาน {estimateV2Config.overheadRate * 100}% (ไม่รวม VAT)
             </p>
           </div>
         </div>
       </section>
 
-      <section className="py-12">
-        <div className="container grid lg:grid-cols-2 gap-10 items-start">
-          <div className="bg-white border border-[#d0d7de] rounded-xl p-6 md:p-8">
-            <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-              <div className="grid gap-2">
-                <label className="text-[#1f2328] text-sm font-bold">ประเภทอาคาร</label>
-                <select
-                  className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                  {...form.register("buildingType")}
+      <section className="py-10">
+        <div className="container space-y-10">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {onestockCalculatorCards.map((card) => {
+              const isActive = card.id === calculator;
+              return (
+                <button
+                  key={card.id}
+                  type="button"
+                  onClick={() => {
+                    setCalculator(card.id);
+                    setConstructionError(null);
+                  }}
+                  className={[
+                    "group text-left bg-white border rounded-2xl overflow-hidden transition-all",
+                    isActive ? "border-[#0969da] ring-2 ring-[#0969da]/25" : "border-[#d0d7de] hover:border-[#8c959f]",
+                    !card.enabled ? "opacity-60" : "",
+                  ].join(" ")}
                 >
-                  {buildingTypes.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid gap-2">
-                <label className="text-[#1f2328] text-sm font-bold">ความสะดวกในการทำงาน (มีผลกับค่าแรง)</label>
-                <select
-                  className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                  {...form.register("workDifficulty")}
-                >
-                  {workDifficulties.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[#656d76] text-xs">
-                  ใช้กรณีพื้นที่สูง/นั่งร้าน/งาน safety/ต้องขนของขึ้น/ใช้โฟลกลิฟต์-กรรไกรยก (x-lift) ฯลฯ
-                </p>
-              </div>
-
-              <div className="border-t border-[#d0d7de] pt-6 space-y-6">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[#1f2328] text-sm font-bold">หลังคา</p>
-                  <label className="flex items-center gap-2 text-sm text-[#1f2328]">
-                    <input type="checkbox" className="accent-[#0969da]" {...form.register("includeRoof")} />
-                    รวม
-                  </label>
-                </div>
-                {values.includeRoof && (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("roofAreaSqm", { valueAsNumber: true, min: 0 })}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">วัสดุอ้างอิงราคา</label>
-                      <select
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("roofMaterialPresetId")}
-                      >
-                        {getPresetOptions("roof-").map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.title}
-                          </option>
-                        ))}
-                      </select>
+                  <div
+                    className="p-6"
+                    style={{
+                      background: `linear-gradient(135deg, ${card.gradient.from} 0%, ${card.gradient.to} 100%)`,
+                    }}
+                  >
+                    <div className="h-44 rounded-xl bg-white/20 overflow-hidden flex items-center justify-center">
+                      <img src={card.imageUrl} alt={card.title} className="h-full w-full object-cover" />
                     </div>
                   </div>
-                )}
-                {values.includeRoof && (
-                  <div className="text-xs text-[#656d76]">
-                    ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("roof", values.workDifficulty)))} บาท/ตร.ม.
+                  <div className="p-5">
+                    <div className="text-[#1f2328] font-bold text-lg">{card.title}</div>
+                    <div className="text-[#656d76] text-sm mt-1">{card.description}</div>
+                    {!card.enabled && <div className="text-xs text-[#656d76] mt-3">กำลังเชื่อมต่อสูตรจาก OneStockHome</div>}
                   </div>
-                )}
-              </div>
-
-              <div className="border-t border-[#d0d7de] pt-6 space-y-6">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[#1f2328] text-sm font-bold">ผนัง</p>
-                  <label className="flex items-center gap-2 text-sm text-[#1f2328]">
-                    <input type="checkbox" className="accent-[#0969da]" {...form.register("includeWall")} />
-                    รวม
-                  </label>
-                </div>
-                {values.includeWall && (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("wallAreaSqm", { valueAsNumber: true, min: 0 })}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">วัสดุอ้างอิงราคา</label>
-                      <select
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("wallMaterialPresetId")}
-                      >
-                        {getPresetOptions("wall-").map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.title}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                )}
-                {values.includeWall && (
-                  <div className="text-xs text-[#656d76]">
-                    ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("wall", values.workDifficulty)))} บาท/ตร.ม.
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-[#d0d7de] pt-6 space-y-6">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[#1f2328] text-sm font-bold">ฝ้า/เพดาน</p>
-                  <label className="flex items-center gap-2 text-sm text-[#1f2328]">
-                    <input type="checkbox" className="accent-[#0969da]" {...form.register("includeCeiling")} />
-                    รวม
-                  </label>
-                </div>
-                {values.includeCeiling && (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("ceilingAreaSqm", { valueAsNumber: true, min: 0 })}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">วัสดุอ้างอิงราคา</label>
-                      <select
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("ceilingMaterialPresetId")}
-                      >
-                        {getPresetOptions("ceiling-").map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.title}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                )}
-                {values.includeCeiling && (
-                  <div className="text-xs text-[#656d76]">
-                    ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("ceiling", values.workDifficulty)))} บาท/ตร.ม.
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-[#d0d7de] pt-6 space-y-6">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[#1f2328] text-sm font-bold">งานสี</p>
-                  <label className="flex items-center gap-2 text-sm text-[#1f2328]">
-                    <input type="checkbox" className="accent-[#0969da]" {...form.register("includePaint")} />
-                    รวม
-                  </label>
-                </div>
-                {values.includePaint && (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("paintAreaSqm", { valueAsNumber: true, min: 0 })}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">วัสดุอ้างอิงราคา</label>
-                      <select
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("paintMaterialPresetId")}
-                      >
-                        {getPresetOptions("paint-").map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.title}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                )}
-                {values.includePaint && (
-                  <div className="text-xs text-[#656d76]">
-                    ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("paint", values.workDifficulty)))} บาท/ตร.ม.
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-[#d0d7de] pt-6 space-y-6">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[#1f2328] text-sm font-bold">ประปา/ห้องน้ำ</p>
-                  <label className="flex items-center gap-2 text-sm text-[#1f2328]">
-                    <input type="checkbox" className="accent-[#0969da]" {...form.register("includePlumbing")} />
-                    รวม
-                  </label>
-                </div>
-                {values.includePlumbing && (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("plumbingAreaSqm", { valueAsNumber: true, min: 0 })}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">วัสดุอ้างอิงราคา</label>
-                      <select
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("plumbingMaterialPresetId")}
-                      >
-                        {getPresetOptions("system-plumbing-").map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.title}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                )}
-                {values.includePlumbing && (
-                  <div className="text-xs text-[#656d76]">
-                    ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("plumbing", values.workDifficulty)))} บาท/ตร.ม.
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-[#d0d7de] pt-6 space-y-6">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[#1f2328] text-sm font-bold">ไฟฟ้า: เดินท่อ/เดินสาย</p>
-                  <label className="flex items-center gap-2 text-sm text-[#1f2328]">
-                    <input type="checkbox" className="accent-[#0969da]" {...form.register("includeElectricalWiring")} />
-                    รวม
-                  </label>
-                </div>
-                {values.includeElectricalWiring && (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("electricalWiringAreaSqm", { valueAsNumber: true, min: 0 })}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">วัสดุอ้างอิงราคา</label>
-                      <select
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("electricalWiringMaterialPresetId")}
-                      >
-                        {getPresetOptions("system-electrical-wiring").map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.title}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                )}
-                {values.includeElectricalWiring && (
-                  <div className="text-xs text-[#656d76]">
-                    ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("electrical-wiring", values.workDifficulty)))} บาท/ตร.ม.
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-[#d0d7de] pt-6 space-y-6">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[#1f2328] text-sm font-bold">ไฟฟ้า: สวิตช์/ปลั๊ก/เบรกเกอร์ย่อย</p>
-                  <label className="flex items-center gap-2 text-sm text-[#1f2328]">
-                    <input type="checkbox" className="accent-[#0969da]" {...form.register("includeElectricalDevices")} />
-                    รวม
-                  </label>
-                </div>
-                {values.includeElectricalDevices && (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("electricalDevicesAreaSqm", { valueAsNumber: true, min: 0 })}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">วัสดุอ้างอิงราคา</label>
-                      <select
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("electricalDevicesMaterialPresetId")}
-                      >
-                        {getPresetOptions("system-electrical-devices").map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.title}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                )}
-                {values.includeElectricalDevices && (
-                  <div className="text-xs text-[#656d76]">
-                    ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("electrical-devices", values.workDifficulty)))} บาท/ตร.ม.
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-[#d0d7de] pt-6 space-y-6">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[#1f2328] text-sm font-bold">แสงสว่าง: โคม/หลอด/อุปกรณ์</p>
-                  <label className="flex items-center gap-2 text-sm text-[#1f2328]">
-                    <input type="checkbox" className="accent-[#0969da]" {...form.register("includeLighting")} />
-                    รวม
-                  </label>
-                </div>
-                {values.includeLighting && (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("lightingAreaSqm", { valueAsNumber: true, min: 0 })}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">วัสดุอ้างอิงราคา</label>
-                      <select
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("lightingMaterialPresetId")}
-                      >
-                        {getPresetOptions("system-lighting-").map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.title}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                )}
-                {values.includeLighting && (
-                  <div className="text-xs text-[#656d76]">
-                    ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("lighting", values.workDifficulty)))} บาท/ตร.ม.
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-[#d0d7de] pt-6 space-y-6">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[#1f2328] text-sm font-bold">งานรื้อถอด</p>
-                  <label className="flex items-center gap-2 text-sm text-[#1f2328]">
-                    <input type="checkbox" className="accent-[#0969da]" {...form.register("includeDemolition")} />
-                    รวม
-                  </label>
-                </div>
-                {values.includeDemolition && (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("demolitionAreaSqm", { valueAsNumber: true, min: 0 })}
-                      />
-                    </div>
-                    <div className="text-xs text-[#656d76] flex items-end">
-                      ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("demolition", values.workDifficulty)))} บาท/ตร.ม.
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-[#d0d7de] pt-6 space-y-6">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[#1f2328] text-sm font-bold">งานขนทิ้ง</p>
-                  <label className="flex items-center gap-2 text-sm text-[#1f2328]">
-                    <input type="checkbox" className="accent-[#0969da]" {...form.register("includeWaste")} />
-                    รวม
-                  </label>
-                </div>
-                {values.includeWaste && (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <label className="text-[#1f2328] text-sm font-bold">พื้นที่ (ตร.ม.)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                        {...form.register("wasteAreaSqm", { valueAsNumber: true, min: 0 })}
-                      />
-                    </div>
-                    <div className="text-xs text-[#656d76] flex items-end">
-                      ค่าแรง (fix): {formatTHB(Math.round(getLaborPerSqm("waste", values.workDifficulty)))} บาท/ตร.ม.
-                    </div>
-                  </div>
-                )}
-              </div>
-            </form>
+                </button>
+              );
+            })}
           </div>
 
-          <div className="space-y-6">
-            <div className="bg-white border border-[#d0d7de] rounded-xl p-6 md:p-8">
-              <p className="text-[#656d76] text-sm font-semibold uppercase tracking-wider">ช่วงราคาโดยประมาณ</p>
-              <div className="mt-2">
-                <p className="text-3xl md:text-4xl font-bold text-[#1f2328]">
-                  {formatTHB(estimate.min)} – {formatTHB(estimate.max)} บาท
-                </p>
-                <p className="text-[#656d76] text-sm mt-2">
-                  ราคานี้ไม่รวม VAT และคิดค่าดำเนินงาน {estimateV2Config.overheadRate * 100}% พร้อมเผื่อช่วง {estimateV2Config.bufferRate * 100}% เพื่อความสมจริง
-                </p>
+          <div className="grid lg:grid-cols-[360px_1fr] gap-8 items-start">
+            <aside
+              className="rounded-2xl overflow-hidden p-7 flex flex-col gap-4 min-h-[520px]"
+              style={{
+                background: `linear-gradient(180deg, ${activeCard.gradient.from} 0%, ${activeCard.gradient.to} 100%)`,
+              }}
+            >
+              <div className="text-white text-4xl font-bold leading-tight">{activeCard.title}</div>
+              <div className="text-white/90 text-sm leading-relaxed">{activeCard.description}</div>
+              {calculator === "construction" && (
+                <div className="text-white/90 text-sm">
+                  ฉาบเรียบ-โปรลายน์ / ฉาบเรียบ-โปรลายน์พลัส / ที-บาร์ 60x60 / ที-บาร์ 60x120 / ผนังยิปซัม /
+                  ผนังวอลล์ไลน์นิ่งติดกาว / ผนังวอลล์ไลน์นิ่งซีไลน์
+                </div>
+              )}
+              <div className="flex-1" />
+              <div className="rounded-xl bg-white/15 overflow-hidden">
+                <img src={activeCard.imageUrl} alt={activeCard.title} className="w-full h-72 object-cover" />
+              </div>
+            </aside>
+
+            <div className="space-y-6">
+              <div className="bg-white border border-[#d0d7de] rounded-2xl p-6 md:p-8">
+                <div className="grid md:grid-cols-[1fr_auto] gap-4 items-end">
+                  <div className="grid gap-2">
+                    <label className="text-[#1f2328] text-sm font-bold">จำนวนพื้นที่ก่อสร้าง (ตารางเมตร)</label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min={0}
+                        value={areaSqm}
+                        onChange={(e) => setAreaSqm(Number(e.target.value) || 0)}
+                        className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                      />
+                      <div className="text-[#656d76] text-sm min-w-[52px] text-right">ตร.ม.</div>
+                    </div>
+                  </div>
+
+                  <a
+                    href="https://www.onestockhome.com/th/construction_calculator"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-blue px-6 py-3 text-base whitespace-nowrap text-center"
+                  >
+                    เปิด OneStockHome
+                  </a>
+                </div>
+
+                <div className="mt-6 grid gap-2">
+                  <label className="text-[#1f2328] text-sm font-bold">ประเภทงาน</label>
+                  {calculator === "construction" && (
+                    <div className="flex flex-wrap gap-2">
+                      {(constructionData?.types?.length ? constructionData.types : Object.keys(constructionTypeLabel)).map(
+                        (t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => setConstructionType(t)}
+                            className={[
+                              "px-4 py-2 rounded-lg border text-sm transition-all",
+                              t === constructionType
+                                ? "bg-[#e7f0ff] border-[#0969da] text-[#0969da]"
+                                : "bg-white border-[#d0d7de] text-[#1f2328] hover:border-[#8c959f]",
+                            ].join(" ")}
+                          >
+                            {constructionTypeLabel[t] ?? t}
+                          </button>
+                        )
+                      )}
+                    </div>
+                  )}
+                  {calculator !== "construction" && (
+                    <div className="text-sm text-[#656d76]">
+                      กำลังเชื่อมต่อสูตรจาก OneStockHome สำหรับเครื่องคิดเลขนี้
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="mt-6 grid gap-2">
-                <button onClick={handleContact} className="btn-blue w-full py-3 text-base">
-                  ส่งรายละเอียดให้ทีมประเมินต่อ
-                </button>
+              <div className="bg-white border border-[#d0d7de] rounded-2xl p-6 md:p-8">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="grid gap-2">
+                    <label className="text-[#1f2328] text-sm font-bold">ประเภทอาคาร</label>
+                    <select
+                      value={buildingType}
+                      onChange={(e) => setBuildingType(e.target.value as BuildingType)}
+                      className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                    >
+                      {buildingTypes.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid gap-2">
+                    <label className="text-[#1f2328] text-sm font-bold">ความสะดวกในการทำงาน (มีผลกับค่าแรง)</label>
+                    <select
+                      value={workDifficulty}
+                      onChange={(e) => setWorkDifficulty(e.target.value as WorkDifficulty)}
+                      className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                    >
+                      {workDifficulties.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="text-xs text-[#656d76]">
+                      ใช้กรณีพื้นที่สูง/นั่งร้าน/งาน safety/ต้องขนของขึ้น/ใช้โฟลกลิฟต์-กรรไกรยก (x-lift) ฯลฯ
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid md:grid-cols-2 gap-6">
+                  <div className="border border-[#d0d7de] rounded-xl p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-[#1f2328] text-sm font-bold">งานรื้อถอด</div>
+                      <label className="flex items-center gap-2 text-sm text-[#1f2328]">
+                        <input
+                          type="checkbox"
+                          className="accent-[#0969da]"
+                          checked={includeDemolition}
+                          onChange={(e) => setIncludeDemolition(e.target.checked)}
+                        />
+                        รวม
+                      </label>
+                    </div>
+                    {includeDemolition && (
+                      <div className="mt-3 grid gap-2">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="number"
+                            min={0}
+                            value={demolitionAreaSqm}
+                            onChange={(e) => setDemolitionAreaSqm(Number(e.target.value) || 0)}
+                            className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                          />
+                          <div className="text-[#656d76] text-sm min-w-[52px] text-right">ตร.ม.</div>
+                        </div>
+                        <div className="text-xs text-[#656d76]">
+                          ค่าแรง (fix): {formatTHB(Math.round(getLaborPerUnit("demolition", workDifficulty)))} บาท/ตร.ม.
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="border border-[#d0d7de] rounded-xl p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-[#1f2328] text-sm font-bold">งานขนทิ้ง</div>
+                      <label className="flex items-center gap-2 text-sm text-[#1f2328]">
+                        <input
+                          type="checkbox"
+                          className="accent-[#0969da]"
+                          checked={includeWaste}
+                          onChange={(e) => setIncludeWaste(e.target.checked)}
+                        />
+                        รวม
+                      </label>
+                    </div>
+                    {includeWaste && (
+                      <div className="mt-3 grid gap-2">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="number"
+                            min={0}
+                            value={wasteAreaSqm}
+                            onChange={(e) => setWasteAreaSqm(Number(e.target.value) || 0)}
+                            className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                          />
+                          <div className="text-[#656d76] text-sm min-w-[52px] text-right">ตร.ม.</div>
+                        </div>
+                        <div className="text-xs text-[#656d76]">
+                          ค่าแรง (fix): {formatTHB(Math.round(getLaborPerUnit("waste", workDifficulty)))} บาท/ตร.ม.
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border border-[#d0d7de] rounded-2xl p-6 md:p-8">
+                <div className="flex items-center justify-between gap-6">
+                  <div>
+                    <div className="text-[#1f2328] font-bold">รายการสินค้า</div>
+                    <div className="text-sm text-[#656d76]">
+                      {calculator === "construction" ? `${constructionData?.rows?.length ?? 0} รายการ` : "0 รายการ"}
+                    </div>
+                  </div>
+                  <button type="button" onClick={handleContact} className="btn-blue px-6 py-3 text-base whitespace-nowrap">
+                    ส่งให้ทีมประเมิน
+                  </button>
+                </div>
+
+                {calculator === "construction" && constructionError && (
+                  <div className="mt-4 text-sm text-red-600 break-words">{constructionError}</div>
+                )}
+
+                {calculator === "construction" && (
+                  <div className="mt-5 overflow-x-auto border border-[#d0d7de] rounded-xl">
+                    <table className="min-w-[900px] w-full text-sm">
+                      <thead className="bg-[#f6f8fa] text-[#1f2328]">
+                        <tr>
+                          <th className="text-left font-bold px-4 py-3 w-[56px]">#</th>
+                          <th className="text-left font-bold px-4 py-3">รายการสินค้า</th>
+                          <th className="text-right font-bold px-4 py-3 w-[160px]">ราคา/หน่วย (บาท)</th>
+                          <th className="text-right font-bold px-4 py-3 w-[140px]">จำนวน</th>
+                          <th className="text-right font-bold px-4 py-3 w-[160px]">รวม (บาท)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#d0d7de]">
+                        {(constructionData?.rows ?? []).map((row, idx) => {
+                          const selected = selections[row.key] ?? row.selectedSku;
+                          return (
+                            <tr key={row.key} className="align-top">
+                              <td className="px-4 py-4 text-[#1f2328] font-semibold">{idx + 1})</td>
+                              <td className="px-4 py-4">
+                                <div className="text-[#0969da] font-semibold">
+                                  {row.url ? (
+                                    <a href={row.url} target="_blank" rel="noreferrer" className="hover:underline">
+                                      {row.name ?? row.key}
+                                    </a>
+                                  ) : (
+                                    row.name ?? row.key
+                                  )}
+                                </div>
+                                <div className="mt-2">
+                                  <select
+                                    value={selected}
+                                    onChange={(e) =>
+                                      setSelections((prev) => ({
+                                        ...prev,
+                                        [row.key]: e.target.value,
+                                      }))
+                                    }
+                                    className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                                  >
+                                    {row.skuOptions.map((sku) => (
+                                      <option key={sku} value={sku}>
+                                        {sku}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </td>
+                              <td className="px-4 py-4 text-right text-[#1f2328]">
+                                {formatTHB(Math.round(row.unitPrice))}
+                              </td>
+                              <td className="px-4 py-4 text-right text-[#1f2328]">
+                                {formatTHB(row.qty)} {row.unit}
+                              </td>
+                              <td className="px-4 py-4 text-right text-[#1f2328] font-semibold">
+                                {formatTHB(Math.round(row.total))}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {constructionLoading && (
+                          <tr>
+                            <td colSpan={5} className="px-4 py-6 text-center text-[#656d76]">
+                              กำลังโหลดรายการวัสดุ...
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                <div className="mt-6 grid md:grid-cols-3 gap-4">
+                  <div className="border border-[#d0d7de] rounded-xl p-4">
+                    <div className="text-xs text-[#656d76]">ค่าวัสดุ (จาก OneStockHome)</div>
+                    <div className="text-[#1f2328] font-bold text-lg mt-1">
+                      {formatTHB(Math.round(totals.materialSubtotal))}
+                    </div>
+                  </div>
+                  <div className="border border-[#d0d7de] rounded-xl p-4">
+                    <div className="text-xs text-[#656d76]">
+                      ค่าแรง (fix) {totals.laborWorkType === "wall" ? "งานผนัง" : "งานฝ้า/เพดาน"}
+                    </div>
+                    <div className="text-[#1f2328] font-bold text-lg mt-1">
+                      {formatTHB(Math.round(totals.laborSubtotal))}
+                    </div>
+                    <div className="text-xs text-[#656d76] mt-1">
+                      {formatTHB(Math.round(totals.laborPerSqm))} บาท/ตร.ม.
+                    </div>
+                  </div>
+                  <div className="border border-[#d0d7de] rounded-xl p-4">
+                    <div className="text-xs text-[#656d76]">รวม (ไม่รวม VAT)</div>
+                    <div className="text-[#1f2328] font-bold text-lg mt-1">
+                      {formatTHB(Math.round(totals.totalExVat))}
+                    </div>
+                    <div className="text-xs text-[#656d76] mt-1">
+                      รวมค่าดำเนินงาน {estimateV2Config.overheadRate * 100}% + เผื่อช่วง {estimateV2Config.bufferRate * 100}%
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 bg-[#f6f8fa] border border-[#d0d7de] rounded-xl p-5">
+                  <div className="text-[#656d76] text-sm font-semibold uppercase tracking-wider">ช่วงราคาโดยประมาณ</div>
+                  <div className="text-2xl md:text-3xl font-bold text-[#1f2328] mt-1">
+                    {formatTHB(totals.min)} – {formatTHB(totals.max)} บาท
+                  </div>
+                  <div className="text-[#656d76] text-sm mt-2">
+                    ราคานี้ไม่รวม VAT และคิดค่าดำเนินงาน {estimateV2Config.overheadRate * 100}% พร้อมเผื่อช่วง {estimateV2Config.bufferRate * 100}%
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
                 <a href="/portfolio?category=ต่อเติมและรีโนเวท" className="btn-secondary w-full py-3 text-base text-center">
                   ดูผลงานประกอบการตัดสินใจ
                 </a>
-              </div>
-            </div>
-
-            <div className="bg-white border border-[#d0d7de] rounded-xl p-6 md:p-8">
-              <h3 className="text-[#1f2328] font-bold text-lg mb-4">ใช้สูตรอะไรในการคิด</h3>
-              <div className="space-y-3 text-sm text-[#656d76]">
-                {estimate.lines.map((l) => {
-                  if (l.kind === "buildingMultiplier") {
-                    return (
-                      <div key={l.title} className="flex items-center justify-between gap-6">
-                        <span>{l.title}</span>
-                        <span className="font-semibold text-[#1f2328]">× {l.value.toFixed(2)}</span>
-                      </div>
-                    );
-                  }
-                  if (l.kind === "overhead") {
-                    return (
-                      <div key={l.title} className="flex items-center justify-between gap-6">
-                        <span>
-                          {l.title} ({l.rate * 100}%)
-                        </span>
-                        <span className="font-semibold text-[#1f2328]">+ {formatTHB(Math.round(l.value))}</span>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div key={l.title} className="flex items-start justify-between gap-6">
-                      <div className="min-w-0">
-                        <div className="text-[#1f2328] font-semibold">{l.title}</div>
-                        <div className="text-xs">
-                          {l.qtySqm} ตร.ม. × ({formatTHB(Math.round(l.materialPerSqm))} วัสดุ + {formatTHB(Math.round(l.laborPerSqm))} แรงงาน)
-                        </div>
-                        {l.sourceUrl && (
-                          <a href={l.sourceUrl} target="_blank" rel="noreferrer" className="text-xs text-[#0969da] hover:underline">
-                            อ้างอิงราคา
-                          </a>
-                        )}
-                      </div>
-                      <span className="font-semibold text-[#1f2328]">{formatTHB(Math.round(l.value))}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="mt-5 text-xs text-[#656d76]">
-                * เป็นการประเมินเบื้องต้นเท่านั้น ราคาจริงขึ้นกับสภาพหน้างาน วัสดุ โครงสร้างเดิม และเงื่อนไขการทำงาน
+                <a href="/#contact" className="btn-blue w-full py-3 text-base text-center">
+                  ปรึกษาฟรี
+                </a>
               </div>
             </div>
           </div>
