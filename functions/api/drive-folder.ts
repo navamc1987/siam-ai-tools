@@ -113,9 +113,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return json({ error: "folderId is required" }, { status: 400 });
   }
 
-  const cacheKey = new Request(`${url.origin}${url.pathname}?folderId=${folderId}&limit=${limit}&debug=${debug ? 1 : 0}`, {
+  const cacheKey = new Request(
+    `${url.origin}${url.pathname}?folderId=${folderId}&limit=${limit}&includeFolders=${includeFolders ? 1 : 0}&debug=${debug ? 1 : 0}`,
+    {
     method: "GET",
-  });
+    }
+  );
   const cache = (caches as any).default as Cache;
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
