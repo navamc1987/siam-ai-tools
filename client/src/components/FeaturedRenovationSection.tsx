@@ -22,45 +22,59 @@ export default function FeaturedRenovationSection() {
   const [files, setFiles] = useState<DriveFile[]>([]);
 
   useEffect(() => {
+    const controller = new AbortController();
     let cancelled = false;
+
+    const fetchFolder = async (folderId: string, opts?: { limit?: number; includeFolders?: boolean }) => {
+      const params = new URLSearchParams();
+      params.set("folderId", folderId);
+      if (opts?.limit) params.set("limit", String(opts.limit));
+      if (opts?.includeFolders) params.set("includeFolders", "1");
+
+      const res = await fetch(`/api/drive-folder?${params.toString()}`, { signal: controller.signal });
+      if (!res.ok) throw new Error("drive-folder");
+      return (await res.json()) as { files?: DriveFile[]; folders?: DriveFolder[] };
+    };
+
+    const collectFiles = async (
+      folderId: string,
+      depth: number,
+      maxDepth: number,
+      memo: Map<string, Promise<DriveFile[]>>
+    ): Promise<DriveFile[]> => {
+      const cached = memo.get(folderId);
+      if (cached) return cached;
+
+      const p: Promise<DriveFile[]> = (async () => {
+        const json = await fetchFolder(folderId, { limit: 60, includeFolders: true });
+        const directFiles = json.files ?? [];
+        if (directFiles.length > 0) return directFiles;
+
+        const folders = json.folders ?? [];
+        if (folders.length === 0 || depth >= maxDepth) return [];
+
+        const nested: DriveFile[][] = await Promise.all(
+          folders.map((f: DriveFolder) => collectFiles(f.id, depth + 1, maxDepth, memo))
+        );
+        return nested.flat();
+      })();
+
+      memo.set(folderId, p);
+      return p;
+    };
+
     const run = async () => {
       try {
         setLoading(true);
         setError(false);
 
-        const res = await fetch(
-          `/api/drive-folder?folderId=${encodeURIComponent(homeShowcaseDriveFolderId)}&includeFolders=1`
-        );
-        if (!res.ok) {
-          setError(true);
-          return;
-        }
-        const json = (await res.json()) as { files?: DriveFile[]; folders?: DriveFolder[] };
+        const results = await collectFiles(homeShowcaseDriveFolderId, 0, 3, new Map());
         if (cancelled) return;
-
-        const directFiles = json.files ?? [];
-        if (directFiles.length > 0) {
-          setFiles(directFiles);
-          return;
-        }
-
-        const folders = json.folders ?? [];
-        if (folders.length === 0) {
-          setFiles([]);
-          return;
-        }
-
-        const results = await Promise.all(
-          folders.map(async (f) => {
-            const r = await fetch(`/api/drive-folder?folderId=${encodeURIComponent(f.id)}&limit=60`);
-            if (!r.ok) return [] as DriveFile[];
-            const j = (await r.json()) as { files?: DriveFile[] };
-            return j.files ?? [];
-          })
-        );
-
-        if (cancelled) return;
-        setFiles(results.flat());
+        const uniqueById: Record<string, DriveFile> = {};
+        for (const f of results) uniqueById[f.id] = f;
+        setFiles(Object.keys(uniqueById).map((k) => uniqueById[k]));
+      } catch {
+        if (!cancelled) setError(true);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -68,6 +82,7 @@ export default function FeaturedRenovationSection() {
     void run();
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, []);
 
