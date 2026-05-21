@@ -3,7 +3,7 @@
  * - Pure white background with subtle gray borders
  * - Clean cards for team members, structured form
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Phone, MapPin, Clock, ExternalLink, User, ShieldCheck, Briefcase, Mail, Send } from "lucide-react";
 
 const teamContacts = [
@@ -33,6 +33,14 @@ const teamContacts = [
 export default function ContactSection() {
   const [formData, setFormData] = useState({ name: "", email: "", phone: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const prefill = params.get("prefill");
+    if (prefill) {
+      setFormData((prev) => ({ ...prev, message: prefill }));
+    }
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,20 +145,47 @@ export default function ContactSection() {
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <label className="text-[#1f2328] text-sm font-bold block mb-2">ชื่อ-นามสกุล</label>
-                  <input type="text" required placeholder="John Doe" className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="John Doe"
+                    value={formData.name}
+                    onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
+                    className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                  />
                 </div>
                 <div>
                   <label className="text-[#1f2328] text-sm font-bold block mb-2">อีเมล</label>
-                  <input type="email" required placeholder="example@email.com" className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all" />
+                  <input
+                    type="email"
+                    required
+                    placeholder="example@email.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
+                    className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                  />
                 </div>
               </div>
               <div>
                 <label className="text-[#1f2328] text-sm font-bold block mb-2">เบอร์โทรศัพท์</label>
-                <input type="tel" required placeholder="081-XXX-XXXX" className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all" />
+                <input
+                  type="tel"
+                  required
+                  placeholder="081-XXX-XXXX"
+                  value={formData.phone}
+                  onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))}
+                  className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                />
               </div>
               <div>
                 <label className="text-[#1f2328] text-sm font-bold block mb-2">ข้อความ / รายละเอียดงาน</label>
-                <textarea rows={4} placeholder="อธิบายรายละเอียดที่คุณต้องการ..." className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none" />
+                <textarea
+                  rows={4}
+                  placeholder="อธิบายรายละเอียดที่คุณต้องการ..."
+                  value={formData.message}
+                  onChange={(e) => setFormData((p) => ({ ...p, message: e.target.value }))}
+                  className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none"
+                />
               </div>
               <button type="submit" className="btn-blue w-full py-4 text-base flex items-center justify-center gap-2">
                 ส่งข้อความ <Send className="w-4 h-4" />

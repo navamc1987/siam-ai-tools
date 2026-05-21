@@ -20,6 +20,7 @@ export default function Navbar() {
     { label: "หน้าแรก", href: "#home" },
     { label: "สินค้า", href: "#products" },
     { label: "ผลงานของเรา", href: "/portfolio" },
+    { label: "ประเมินราคา", href: "/estimate" },
     { label: "ติดต่อเรา", href: "#contact" },
   ];
 
@@ -29,7 +30,11 @@ export default function Navbar() {
       window.location.href = href;
     } else {
       const el = document.querySelector(href);
-      if (el) el.scrollIntoView({ behavior: "smooth" });
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth" });
+      } else {
+        window.location.href = `/${href}`;
+      }
     }
   };
 

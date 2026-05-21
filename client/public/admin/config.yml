@@ -6,8 +6,8 @@ backend:
   # Force manual authentication without OAuth
   auth_type: implicit
 
-media_folder: "public/portfolio-images"
-public_folder: "/portfolio-images"
+media_folder: "client/public/images/portfolio/uploads"
+public_folder: "/images/portfolio/uploads"
 
 collections:
   - name: "portfolio"
@@ -36,4 +36,15 @@ collections:
           - { label: "รูปภาพ", name: "image", widget: "image" }
           - { label: "คำบรรยาย", name: "caption", widget: "string", required: false }
       - { label: "ลิงก์เพิ่มเติม", name: "link", widget: "string", required: false }
+      - { label: "เผยแพร่", name: "published", widget: "boolean", default: true }
+
+  - name: "image_assets"
+    label: "คลังรูปภาพ"
+    folder: "image-assets"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    fields:
+      - { label: "ชื่อรูป/หมายเหตุ", name: "title", widget: "string", required: true }
+      - { label: "รูปภาพ", name: "image", widget: "image", required: true }
+      - { label: "แท็ก", name: "tags", widget: "list", required: false }
       - { label: "เผยแพร่", name: "published", widget: "boolean", default: true }

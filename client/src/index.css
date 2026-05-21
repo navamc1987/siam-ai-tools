@@ -82,6 +82,10 @@
     @apply bg-[#0969da] text-white font-semibold py-2 px-4 rounded-md border border-[#0969da] shadow-sm hover:bg-[#0860ca] transition-all;
   }
 
+  .btn-gold {
+    @apply bg-[#C9A84C] text-[#1A1A2E] font-semibold py-2 px-4 rounded-md border border-[#b8953f] shadow-sm hover:bg-[#b8953f] transition-all;
+  }
+
   /* Section Styles */
   .section-white {
     @apply py-20 bg-white;

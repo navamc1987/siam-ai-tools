@@ -4,9 +4,11 @@
  */
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
+import FeaturedRenovationSection from "@/components/FeaturedRenovationSection";
 import AboutSection from "@/components/AboutSection";
 import ServicesSection from "@/components/ServicesSection";
 import ProductsSection from "@/components/ProductsSection";
+import EstimatePromoSection from "@/components/EstimatePromoSection";
 import ContactSection from "@/components/ContactSection";
 import Footer from "@/components/Footer";
 
@@ -15,9 +17,11 @@ export default function Home() {
     <div className="min-h-screen bg-[#1A1A2E]">
       <Navbar />
       <HeroSection />
+      <FeaturedRenovationSection />
       <AboutSection />
       <ServicesSection />
       <ProductsSection />
+      <EstimatePromoSection />
       <ContactSection />
       <Footer />
     </div>

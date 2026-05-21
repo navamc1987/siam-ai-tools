@@ -2,8 +2,8 @@
 
 ## 📋 ข้อมูลที่คุณมี
 
-- **Client ID**: `Ov23liJKlWtvhSSJ4sL6`
-- **Client Secret**: `131a5ddfaa02f29debf12d3bcaa2449ac7ce2c64`
+- **Client ID**: `YOUR_GITHUB_OAUTH_CLIENT_ID`
+- **Client Secret**: `YOUR_GITHUB_OAUTH_CLIENT_SECRET`
 
 ## ✅ ขั้นตอนการตั้งค่า
 
@@ -16,8 +16,8 @@
 5. ค้นหา **Environment variables** และคลิก **Add variables**
 
 **สำหรับ Production:**
-- **Variable name**: `DECAP_CMS_CLIENT_ID` | **Value**: `Ov23liJKlWtvhSSJ4sL6`
-- **Variable name**: `DECAP_CMS_CLIENT_SECRET` | **Value**: `131a5ddfaa02f29debf12d3bcaa2449ac7ce2c64`
+- **Variable name**: `DECAP_CMS_CLIENT_ID` | **Value**: `YOUR_GITHUB_OAUTH_CLIENT_ID`
+- **Variable name**: `DECAP_CMS_CLIENT_SECRET` | **Value**: `YOUR_GITHUB_OAUTH_CLIENT_SECRET`
 
 **สำหรับ Preview (ถ้าต้องการทดสอบ):**
 - ทำซ้ำขั้นตอนเดียวกัน
@@ -46,7 +46,8 @@ Cloudflare จะสร้างระบบ OAuth โดยอัตโนม�
 
 ## 🔐 ความปลอดภัย
 
-- **Client Secret** ถูกเก็บไว้ใน Cloudflare Environment Variables (ไม่เปิดเผยต่อ Frontend)
+- ห้ามใส่ Client Secret ลงในไฟล์ใน repository
+- เก็บ Client Secret ไว้ใน Cloudflare Environment Variables เท่านั้น
 - **OAuth State** ใช้เพื่อป้องกัน CSRF attacks
 - **HTTPS only** - ทั้งหมดเป็น secure connections
 
