@@ -22,7 +22,7 @@ export default function FeaturedRenovationSection() {
               <span className="text-[#1f2328] text-xs font-semibold tracking-wide uppercase">งานรับเหมาต่อเติม</span>
             </div>
             <h2 className="text-3xl md:text-4xl font-bold text-[#1f2328] leading-tight">
-              โฟกัส “ต่อเติม & รีโนเวท” ให้เห็นภาพจริง
+              “ต่อเติม & รีโนเวท”
             </h2>
             <p className="text-[#656d76] text-base md:text-lg mt-3">
               รวมภาพตัวอย่างงานจริง เพื่อช่วยตัดสินใจเร็วขึ้น ก่อนคุยรายละเอียดและนัดสำรวจหน้างาน
@@ -53,11 +53,6 @@ export default function FeaturedRenovationSection() {
                   <div className="rounded-lg overflow-hidden border border-[#d0d7de] bg-[#f6f8fa]">
                     <div className="relative">
                       <img src={slide.image} alt={slide.caption ?? slide.title} className="w-full aspect-[4/3] object-cover" loading="lazy" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-                      <div className="absolute bottom-3 left-3 right-3">
-                        <p className="text-white font-bold text-sm leading-tight line-clamp-2">{slide.title}</p>
-                        {slide.caption && <p className="text-white/80 text-xs mt-1 line-clamp-1">{slide.caption}</p>}
-                      </div>
                     </div>
                   </div>
                 </CarouselItem>
