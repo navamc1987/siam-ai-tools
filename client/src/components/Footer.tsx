@@ -3,7 +3,7 @@
  * - Pure white background with clean top border
  * - Simple text links, structured company info
  */
-import { Zap, Phone, MapPin, Clock, Github, Facebook, LineChart } from "lucide-react";
+import { Phone, MapPin, Clock, Github, Facebook, LineChart } from "lucide-react";
 
 export default function Footer() {
   const handleNavClick = (href: string) => {
@@ -18,10 +18,10 @@ export default function Footer() {
           {/* Brand & Mission */}
           <div className="col-span-1 md:col-span-1">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-8 h-8 rounded-lg bg-[#1f2328] flex items-center justify-center">
-                <Zap className="w-4 h-4 text-white" fill="currentColor" />
+              <div className="w-8 h-8 rounded-lg bg-[#0969da] flex items-center justify-center">
+                <img src="/sat-mark.svg" alt="SAT" className="w-5 h-5" />
               </div>
-              <p className="text-[#1f2328] font-bold text-lg">สยาม เอไอ ทูลส์</p>
+              <p className="text-[#1f2328] font-bold text-lg">SAT</p>
             </div>
             <p className="text-[#656d76] text-sm leading-relaxed mb-6">
               มุ่งมั่นส่งมอบบริการต่อเติม รีโนเวท และเทคโนโลยีที่ทันสมัย เพื่อปรับปรุงคุณภาพชีวิตและธุรกิจไทยอย่างยั่งยืน

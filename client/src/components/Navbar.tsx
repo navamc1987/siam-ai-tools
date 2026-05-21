@@ -4,7 +4,7 @@
  * - Minimalist brand identity, high readability
  */
 import { useState, useEffect } from "react";
-import { Zap, Menu, X, ChevronRight } from "lucide-react";
+import { Menu, X, ChevronRight } from "lucide-react";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -50,11 +50,11 @@ export default function Navbar() {
           onClick={() => handleNavClick("#home")}
           className="flex items-center gap-3 group"
         >
-          <div className="w-9 h-9 rounded-lg bg-[#1f2328] flex items-center justify-center transition-transform group-hover:scale-105">
-            <Zap className="w-5 h-5 text-white" fill="currentColor" />
+          <div className="w-9 h-9 rounded-lg bg-[#0969da] flex items-center justify-center transition-transform group-hover:scale-105">
+            <img src="/sat-mark.svg" alt="SAT" className="w-6 h-6" />
           </div>
           <div className="text-left">
-            <p className="text-[#1f2328] font-bold text-lg leading-tight">สยาม เอไอ ทูลส์</p>
+            <p className="text-[#1f2328] font-bold text-lg leading-tight">SAT</p>
             <p className="text-[#656d76] text-[10px] font-bold tracking-widest uppercase">SIAM AI TOOLS</p>
           </div>
         </button>
