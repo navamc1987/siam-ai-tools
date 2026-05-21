@@ -97,17 +97,81 @@ async function resolveConstructionAssets() {
 }
 
 function extractConstructionConfigFromHooks(hooksJs: string) {
-  const constStart = hooksJs.indexOf("const ");
+  const kStart = hooksJs.indexOf(",K=[");
+  if (kStart === -1) throw new Error("Cannot locate K");
+
   const zStart = hooksJs.indexOf(",Z={kind:\"Document\"");
-  if (constStart === -1 || zStart === -1 || zStart <= constStart) {
-    throw new Error("Cannot locate config region");
+  if (zStart === -1 || zStart <= kStart) throw new Error("Cannot locate Z");
+
+  const prefix = hooksJs.slice(0, kStart);
+  const arrays = new Map<string, unknown[]>();
+
+  const arrayAssignRe = /(?:^|,|const )([A-Za-z_$][A-Za-z0-9_$]*)=\[/g;
+  for (const m of prefix.matchAll(arrayAssignRe)) {
+    const name = m[1];
+    const open = (m.index ?? 0) + m[0].length - 1;
+
+    let depth = 0;
+    let close = -1;
+    for (let i = open; i < prefix.length; i++) {
+      const ch = prefix[i];
+      if (ch === "[") depth++;
+      else if (ch === "]") {
+        depth--;
+        if (depth === 0) {
+          close = i;
+          break;
+        }
+      }
+    }
+
+    if (close === -1) continue;
+    const arrLiteral = prefix.slice(open, close + 1);
+    const jsonLike = arrLiteral.replace(
+      /([{\[,])([A-Za-z_$][A-Za-z0-9_$]*):/g,
+      '$1"$2":'
+    );
+
+    try {
+      const parsed = JSON.parse(jsonLike) as unknown[];
+      arrays.set(name, parsed);
+    } catch {
+      /* ignore */
+    }
   }
 
-  const snippet = hooksJs.slice(constStart, zStart);
-  const getK = new Function(`${snippet}; return K;`) as () => OnestockConstructionTypeConfig[];
-  const k = getK();
-  if (!Array.isArray(k) || k.length === 0) throw new Error("Invalid config");
-  return k;
+  const kOpen = hooksJs.indexOf("[", kStart);
+  if (kOpen === -1) throw new Error("Cannot locate K open bracket");
+
+  let kDepth = 0;
+  let kClose = -1;
+  for (let i = kOpen; i < hooksJs.length; i++) {
+    const ch = hooksJs[i];
+    if (ch === "[") kDepth++;
+    else if (ch === "]") {
+      kDepth--;
+      if (kDepth === 0) {
+        kClose = i;
+        break;
+      }
+    }
+  }
+  if (kClose === -1) throw new Error("Cannot locate K close bracket");
+
+  const kLiteral = hooksJs.slice(kOpen, kClose + 1);
+  const typeMapRe =
+    /\{key:"([^"]+)",materials:([A-Za-z_$][A-Za-z0-9_$]*)\}/g;
+  const configs: OnestockConstructionTypeConfig[] = [];
+  for (const m of kLiteral.matchAll(typeMapRe)) {
+    const key = m[1];
+    const materialsVar = m[2];
+    const materials = arrays.get(materialsVar);
+    if (!materials) continue;
+    configs.push({ key, materials: materials as OnestockMaterialConfig[] });
+  }
+
+  if (configs.length === 0) throw new Error("Invalid config");
+  return configs;
 }
 
 function extractPersistedHash(hooksJs: string) {
@@ -272,4 +336,3 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return json({ error: message }, { status: 500 });
   }
 };
-
