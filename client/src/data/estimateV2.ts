@@ -7,6 +7,8 @@ export type WorkType =
   | "wall"
   | "ceiling"
   | "paint"
+  | "floor-concrete"
+  | "wall-plaster"
   | "plumbing"
   | "electrical-wiring"
   | "electrical-devices"
@@ -14,7 +16,7 @@ export type WorkType =
   | "demolition"
   | "waste";
 
-export type MaterialUnit = "sqm";
+export type MaterialUnit = "sqm" | "m" | "point" | "bulb";
 
 export type MaterialPreset = {
   id: string;
@@ -28,7 +30,8 @@ export type WorkItem = {
   id: string;
   title: string;
   workType: WorkType;
-  qtySqm: number;
+  qty: number;
+  unit: MaterialUnit;
   materialPresetId: string;
 };
 
@@ -39,7 +42,16 @@ export type EstimateV2Input = {
 };
 
 export type EstimateV2Line =
-  | { kind: "item"; title: string; qtySqm: number; materialPerSqm: number; laborPerSqm: number; value: number; sourceUrl: string }
+  | {
+      kind: "item";
+      title: string;
+      qty: number;
+      unit: MaterialUnit;
+      materialPerUnit: number;
+      laborPerUnit: number;
+      value: number;
+      sourceUrl: string;
+    }
   | { kind: "overhead"; title: string; rate: number; value: number }
   | { kind: "buildingMultiplier"; title: string; value: number };
 
@@ -58,15 +70,17 @@ export const estimateV2Config = {
     ยาก: 1.25,
     ยากมาก: 1.45,
   } satisfies Record<WorkDifficulty, number>,
-  laborBasePerSqm: {
+  laborBasePerUnit: {
     roof: 450,
     wall: 350,
     ceiling: 300,
     paint: 160,
+    "floor-concrete": 320,
+    "wall-plaster": 220,
     plumbing: 900,
-    "electrical-wiring": 550,
-    "electrical-devices": 220,
-    lighting: 180,
+    "electrical-wiring": 60,
+    "electrical-devices": 180,
+    lighting: 120,
     demolition: 280,
     waste: 220,
   } satisfies Record<WorkType, number>,
@@ -79,6 +93,20 @@ export const materialPresets: MaterialPreset[] = [
     unit: "sqm",
     unitPriceExVat: 0,
     sourceUrl: "",
+  },
+  {
+    id: "floor-concrete-basic",
+    title: "งานเทพื้นปูน (งบวัสดุเฉลี่ย/ตร.ม.)",
+    unit: "sqm",
+    unitPriceExVat: 650,
+    sourceUrl: "https://www.onestockhome.com/th/product_categories/cement",
+  },
+  {
+    id: "wall-plaster-basic",
+    title: "งานฉาบผนัง (งบวัสดุเฉลี่ย/ตร.ม.)",
+    unit: "sqm",
+    unitPriceExVat: 180,
+    sourceUrl: "https://www.onestockhome.com/th/product_categories/cement",
   },
   {
     id: "roof-metal-sheet-035-aluzinc",
@@ -128,23 +156,23 @@ export const materialPresets: MaterialPreset[] = [
   },
   {
     id: "system-electrical-wiring",
-    title: "ไฟฟ้า: เดินท่อ/สาย/ราง (งบวัสดุเฉลี่ย/ตร.ม.)",
-    unit: "sqm",
-    unitPriceExVat: 420,
+    title: "ไฟฟ้า: เดินท่อ/เดินสาย (งบวัสดุเฉลี่ย/เมตร)",
+    unit: "m",
+    unitPriceExVat: 45,
     sourceUrl: "https://www.onestockhome.com/th/product_categories/electrical-system",
   },
   {
     id: "system-electrical-devices",
-    title: "ไฟฟ้า: สวิตช์/ปลั๊ก/เบรกเกอร์ย่อย (งบวัสดุเฉลี่ย/ตร.ม.)",
-    unit: "sqm",
-    unitPriceExVat: 280,
+    title: "ไฟฟ้า: สวิตช์/ปลั๊ก/เบรกเกอร์ย่อย (งบวัสดุเฉลี่ย/จุด)",
+    unit: "point",
+    unitPriceExVat: 220,
     sourceUrl: "https://www.onestockhome.com/th/departments/electrical-lighting-air-system",
   },
   {
     id: "system-lighting-basic",
-    title: "แสงสว่าง: โคม/หลอด/อุปกรณ์ (งบวัสดุเฉลี่ย/ตร.ม.)",
-    unit: "sqm",
-    unitPriceExVat: 350,
+    title: "แสงสว่าง: โคม/หลอด/อุปกรณ์ (งบวัสดุเฉลี่ย/หลอด)",
+    unit: "bulb",
+    unitPriceExVat: 190,
     sourceUrl: "https://www.onestockhome.com/th/departments/electrical-lighting-air-system",
   },
   {
@@ -194,8 +222,8 @@ function getMaterialPreset(presetId: string) {
   return materialPresets.find((p) => p.id === presetId);
 }
 
-export function getLaborPerSqm(workType: WorkType, difficulty: WorkDifficulty) {
-  const base = estimateV2Config.laborBasePerSqm[workType];
+export function getLaborPerUnit(workType: WorkType, difficulty: WorkDifficulty) {
+  const base = estimateV2Config.laborBasePerUnit[workType];
   const multiplier = estimateV2Config.workDifficultyMultiplier[difficulty];
   return base * multiplier;
 }
@@ -205,19 +233,20 @@ export function calculateEstimateV2(input: EstimateV2Input) {
   const lines: EstimateV2Line[] = [{ kind: "buildingMultiplier", title: "ตัวคูณประเภทอาคาร", value: buildingMultiplier }];
 
   const itemTotals = input.items
-    .filter((it) => it.qtySqm > 0)
+    .filter((it) => it.qty > 0)
     .map((it) => {
       const preset = getMaterialPreset(it.materialPresetId);
-      const materialPerSqm = preset?.unitPriceExVat ?? 0;
-      const laborPerSqm = getLaborPerSqm(it.workType, input.workDifficulty);
-      const base = it.qtySqm * (materialPerSqm + laborPerSqm);
+      const materialPerUnit = preset?.unitPriceExVat ?? 0;
+      const laborPerUnit = getLaborPerUnit(it.workType, input.workDifficulty);
+      const base = it.qty * (materialPerUnit + laborPerUnit);
       const value = base * buildingMultiplier;
       lines.push({
         kind: "item",
         title: it.title,
-        qtySqm: it.qtySqm,
-        materialPerSqm,
-        laborPerSqm,
+        qty: it.qty,
+        unit: it.unit,
+        materialPerUnit,
+        laborPerUnit,
         value,
         sourceUrl: preset?.sourceUrl ?? "",
       });
