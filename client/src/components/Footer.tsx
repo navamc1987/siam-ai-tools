@@ -58,7 +58,7 @@ export default function Footer() {
           <div>
             <h4 className="text-[#1f2328] font-bold text-sm mb-6 uppercase tracking-wider">บริการของเรา</h4>
             <ul className="space-y-4">
-              {["ต่อเติมและรีโนเวท", "ติดตั้งโซล่าเซลล์", "ระบบไฟฟ้า", "CCTV & Security"].map((service) => (
+              {["ต่อเติมและรีโนเวท", "ระบบไฟฟ้า", "CCTV & Security"].map((service) => (
                 <li key={service}>
                   <span className="text-[#656d76] text-sm font-medium">{service}</span>
                 </li>

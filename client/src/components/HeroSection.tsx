@@ -50,7 +50,7 @@ export default function HeroSection() {
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             }`}
           >
-            ต่อเติม รีโนเวท และติดตั้งโซล่าเซลล์ <span className="text-[#0969da]">ที่เรียบง่าย</span>
+            ต่อเติม รีโนเวท และงานระบบ <span className="text-[#0969da]">ที่เรียบง่าย</span>
           </h1>
 
           {/* Description (Reduced to standard reading size) */}
@@ -61,8 +61,8 @@ export default function HeroSection() {
               }`}
             >
               ผู้เชี่ยวชาญด้านการออกแบบ ติดตั้ง และซ่อมบำรุง งานต่อเติมและรีโนเวทห้องต่างๆ
-              หลังคา โรงจอดรถ พร้อมบริการติดตั้งแผงโซล่าเซลล์และระบบไฟฟ้า แสงสว่าง
-              เครือข่าย CCTV และโปรแกรมบริหารจัดการองค์กร ERPNext
+              หลังคา โรงจอดรถ พร้อมบริการระบบไฟฟ้า แสงสว่าง เครือข่าย CCTV
+              และโปรแกรมบริหารจัดการองค์กร ERPNext
             </p>
           </div>
 

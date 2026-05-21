@@ -18,7 +18,6 @@ export interface PortfolioItem {
 export const portfolioCategories = [
   "ทั้งหมด",
   "ต่อเติมและรีโนเวท",
-  "ติดตั้งโซล่าเซลล์",
   "ระบบไฟฟ้า",
   "ระบบแสงสว่าง",
   "ระบบ CCTV",
@@ -127,26 +126,6 @@ export const portfolioItems: PortfolioItem[] = [
       {
         image: "/images/portfolio/renovate/487802706_1389594809143976_7032018464623556443_n.jpg",
         caption: "ภาพรวมพื้นที่ต่อเติมเสร็จสิ้น",
-      },
-    ],
-    published: true,
-  },
-  {
-    title: "ติดตั้งโซล่าเซลล์ บ้านพัก",
-    category: "ติดตั้งโซล่าเซลล์",
-    description: "ติดตั้งแผงโซล่าเซลล์ 10 kW พร้อมระบบ Inverter และแบตเตอรี่",
-    location: "นครสวรรค์",
-    date: "2024-02-20",
-    featured_image:
-      "https://images.unsplash.com/photo-1613665813446-82a78c468a1d?w=900&auto=format&fit=crop&q=85",
-    gallery: [
-      {
-        image: "https://images.unsplash.com/photo-1613665813446-82a78c468a1d?w=1200&auto=format&fit=crop&q=85",
-        caption: "แผงโซลาร์เซลล์บนหลังคา",
-      },
-      {
-        image: "https://images.unsplash.com/photo-1613665813446-82a78c468a1d?w=1200&auto=format&fit=crop&q=85",
-        caption: "ระบบพลังงานแสงอาทิตย์",
       },
     ],
     published: true,

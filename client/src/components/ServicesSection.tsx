@@ -4,7 +4,7 @@
  * Service images, icons, and descriptions
  */
 import { useEffect, useRef, useState } from "react";
-import { Zap, Lightbulb, Settings, Monitor, Camera, Database, Hammer, Sun } from "lucide-react";
+import { Zap, Lightbulb, Settings, Monitor, Camera, Database, Hammer } from "lucide-react";
 
 const ELECTRICAL_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663450220945/2xv2kDRJAu53CHYeiRqts8/electrical-service-ZKdAWD8RMhAFsoeBaEkhBf.webp";
 const CCTV_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663450220945/2xv2kDRJAu53CHYeiRqts8/cctv-service-3a6SfXtCtR6HSNqTwdAZ8R.webp";
@@ -19,15 +19,6 @@ const services = [
       "บริการต่อเติมและรีโนเวทห้องต่างๆ ทั้งห้องน้ำ ห้องครัว ห้องนอน โรงจอดรถ และหลังคา ด้วยการออกแบบและติดตั้งที่มีคุณภาพสูง",
     image: null,
     features: ["ห้องน้ำและห้องครัว", "ห้องนอนและห้องนั่งเล่น", "โรงจอดรถและหลังคา", "ออกแบบตามสไตล์"],
-  },
-  {
-    icon: Sun,
-    title: "ติดตั้งแผงโซล่าเซลล์",
-    subtitle: "Solar Panel Installation",
-    description:
-      "ติดตั้งระบบพลังงานแสงอาทิตย์ (โซล่าเซลล์) ประสิทธิภาพสูง พร้อมระบบควบคุมและเก็บพลังงาน ประหยัดค่าไฟฟ้าในระยะยาว",
-    image: null,
-    features: ["แผงโซล่าเซลล์คุณภาพ", "ระบบ Inverter ทันสมัย", "ระบบเก็บพลังงาน", "ประหยัดค่าไฟฟ้า"],
   },
   {
     icon: Zap,

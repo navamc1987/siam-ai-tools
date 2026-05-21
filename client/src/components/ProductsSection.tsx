@@ -8,7 +8,6 @@ import { ShoppingCart, Star, Tag, CheckCircle, ArrowRight } from "lucide-react";
 
 const SERVICE_ERPNEXT_IMAGE = "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&q=80";
 const SERVICE_RENOVATION_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/PVRYMsfSfimLrYnG.jpg";
-const SERVICE_SOLAR_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/JtLOKyVnpQrGoTlJ.jpg";
 const SERVICE_LIGHTING_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/eycwlKfwZCScooSl.jpg";
 const SERVICE_CCTV_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/mUnGVKmJuJxAzJmP.png";
 const SERVICE_CCTV_8CH_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663452304962/voDgUssYOICvZKmP.png";
@@ -21,16 +20,6 @@ const products = [
     name: "บริการต่อเติมและรีโนเวท",
     description: "บริการต่อเติมและรีโนเวทห้องต่างๆ ทั้งห้องน้ำ ห้องครัว ห้องนอน โรงจอดรถ และหลังคา",
     features: ["ออกแบบและปรึกษา", "ติดตั้งและก่อสร้าง", "ตรวจสอบคุณภาพ", "รับประกันงาน"],
-    price: "ตามหน้างาน",
-    category: "บริการต่อเติมและรีโนเวท",
-  },
-  {
-    id: 202,
-    image: SERVICE_SOLAR_IMAGE,
-    badge: "Eco-Friendly",
-    name: "ติดตั้งแผงโซล่าเซลล์",
-    description: "ระบบพลังงานแสงอาทิตย์ประสิทธิภาพสูง พร้อม Inverter และระบบเก็บพลังงาน ประหยัดค่าไฟฟ้า",
-    features: ["แผงโซล่าเซลล์คุณภาพ", "ระบบ Inverter ทันสมัย", "ระบบเก็บพลังงาน", "ประหยัดค่าไฟฟ้า"],
     price: "ตามหน้างาน",
     category: "บริการต่อเติมและรีโนเวท",
   },
@@ -66,7 +55,7 @@ const products = [
   },
   {
     id: 2,
-    image: SERVICE_SOLAR_IMAGE,
+    image: "/images/products/lan-wifi.webp",
     badge: "Technology",
     name: "ระบบคอมพิวเตอร์และเครือข่าย",
     description: "วางระบบ Server, LAN, Wi‑Fi และ Fiber Optic ความเร็วสูง สำหรับสำนักงานและโรงงาน",
@@ -131,7 +120,7 @@ export default function ProductsSection() {
           <div className="max-w-2xl">
             <h2 className="text-4xl md:text-5xl font-bold text-[#1f2328] mb-4">บริการและสินค้าครบวงจร</h2>
             <p className="text-[#656d76] text-lg">
-              ผู้เชี่ยวชาญด้านการต่อเติม รีโนเวท ติดตั้งโซล่าเซลล์ ระบบไฟฟ้า แสงสว่าง เครือข่าย CCTV และ ERPNext
+              ผู้เชี่ยวชาญด้านการต่อเติม รีโนเวท ระบบไฟฟ้า แสงสว่าง เครือข่าย CCTV และ ERPNext
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
