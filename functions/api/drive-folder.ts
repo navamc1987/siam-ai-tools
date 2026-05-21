@@ -127,7 +127,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const res = await fetch(driveUrl.toString(), {
     headers: {
       "user-agent":
-        "Mozilla/5.0 (compatible; SiamAiToolsBot/1.0; +https://siamai.cloud)",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
       "accept-language": "en-US,en;q=0.9",
       referer: "https://drive.google.com/",
       accept: "text/html",
