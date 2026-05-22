@@ -515,7 +515,7 @@ export default function Estimate() {
 
                 <div className="mt-6 grid md:grid-cols-3 gap-4">
                   <div className="border border-[#d0d7de] rounded-xl p-4">
-                    <div className="text-xs text-[#656d76]">ค่าวัสดุ (จาก OneStockHome)</div>
+                    <div className="text-xs text-[#656d76]">ค่าวัสดุ</div>
                     <div className="text-[#1f2328] font-bold text-lg mt-1">
                       {formatTHB(Math.round(totals.materialSubtotal))}
                     </div>
