@@ -34,6 +34,7 @@ export default function Estimate() {
     key: string;
     amountPer100Sqm: number;
     skuOptions: string[];
+    skuOptionDetails?: { sku: string; name: string | null }[];
     selectedSku: string;
     name: string | null;
     qty: number;
@@ -204,7 +205,7 @@ export default function Estimate() {
               ประเมินราคาเบื้องต้น
             </h1>
             <p className="text-[#656d76] text-lg">
-              เลือกเครื่องคิดเลข → ใส่ปริมาณงาน → ระบบดึงรายการวัสดุจาก OneStockHome แล้วบวกค่าแรง (fix)
+              เลือกเครื่องคิดเลข → ใส่ปริมาณงาน → ระบบดึงรายการวัสดุแล้วบวกค่าแรง (fix)
               พร้อมค่าดำเนินงาน {estimateV2Config.overheadRate * 100}% (ไม่รวม VAT)
             </p>
           </div>
@@ -273,7 +274,7 @@ export default function Estimate() {
 
             <div className="space-y-6">
               <div className="bg-white border border-[#d0d7de] rounded-2xl p-6 md:p-8">
-                <div className="grid md:grid-cols-[1fr_auto] gap-4 items-end">
+                <div className="grid gap-4 items-end">
                   <div className="grid gap-2">
                     <label className="text-[#1f2328] text-sm font-bold">จำนวนพื้นที่ก่อสร้าง (ตารางเมตร)</label>
                     <div className="flex items-center gap-3">
@@ -287,15 +288,6 @@ export default function Estimate() {
                       <div className="text-[#656d76] text-sm min-w-[52px] text-right">ตร.ม.</div>
                     </div>
                   </div>
-
-                  <a
-                    href="https://www.onestockhome.com/th/construction_calculator"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn-blue px-6 py-3 text-base whitespace-nowrap text-center"
-                  >
-                    เปิด OneStockHome
-                  </a>
                 </div>
 
                 <div className="mt-6 grid gap-2">
@@ -487,11 +479,13 @@ export default function Estimate() {
                                     }
                                     className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
                                   >
-                                    {row.skuOptions.map((sku) => (
-                                      <option key={sku} value={sku}>
-                                        {sku}
-                                      </option>
-                                    ))}
+                                    {(row.skuOptionDetails?.length ? row.skuOptionDetails : row.skuOptions.map((sku) => ({ sku, name: null }))).map(
+                                      (opt) => (
+                                        <option key={opt.sku} value={opt.sku}>
+                                          {opt.name ? `${opt.sku} — ${opt.name}` : opt.sku}
+                                        </option>
+                                      )
+                                    )}
                                   </select>
                                 </div>
                               </td>

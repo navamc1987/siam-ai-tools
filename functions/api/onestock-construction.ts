@@ -245,19 +245,19 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     }
 
     const selectedSkuByKey: Record<string, string> = {};
-    const skuList: string[] = [];
     for (const material of typeConfig.materials) {
       const chosen = selections[material.key] ?? material.sku[0];
       if (chosen && material.sku.includes(chosen)) {
         selectedSkuByKey[material.key] = chosen;
-        skuList.push(chosen);
       } else if (material.sku[0]) {
         selectedSkuByKey[material.key] = material.sku[0];
-        skuList.push(material.sku[0]);
       }
     }
 
-    const items = await fetchItemsBySku([...new Set(skuList)]);
+    const allSkus = Array.from(
+      new Set(typeConfig.materials.flatMap((m) => m.sku).filter(Boolean))
+    );
+    const items = await fetchItemsBySku(allSkus);
     const itemBySku = new Map(items.map((it) => [it.sku, it] as const));
 
     const rows = typeConfig.materials.map((material) => {
@@ -281,6 +281,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         key: material.key,
         amountPer100Sqm: material.amount,
         skuOptions: material.sku,
+        skuOptionDetails: material.sku.map((sku) => ({
+          sku,
+          name: itemBySku.get(sku)?.name ?? null,
+        })),
         selectedSku,
         name: item?.name ?? null,
         qty,
