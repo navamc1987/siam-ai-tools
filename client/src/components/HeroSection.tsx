@@ -99,15 +99,15 @@ export default function HeroSection() {
             }`}
           >
             <a
-              href="tel:0810793266"
+              href="tel:0985926522"
               className="flex items-center gap-2 text-[#1f2328] hover:text-[#0969da] font-semibold transition-colors"
             >
               <Phone className="w-5 h-5 text-[#0969da]" />
-              081-079-3266
+              098-592-6522
             </a>
             <div className="flex items-center gap-2 text-[#656d76]">
               <MapPin className="w-5 h-5 text-[#0969da] shrink-0" />
-              <span className="font-medium">นครสวรรค์ | ชลบุรี | กรุงเทพฯ</span>
+              <span className="font-medium">กรุงเทพฯ | สมุทรปราการ | ชลบุรี | ระยอง | กลางเหนือตอนล่าง</span>
             </div>
           </div>
         </div>
