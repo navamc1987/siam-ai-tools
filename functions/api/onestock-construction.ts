@@ -175,10 +175,18 @@ function extractConstructionConfigFromHooks(hooksJs: string) {
 }
 
 function extractPersistedHash(hooksJs: string) {
-  const m = hooksJs.match(
-    /ConstructionCalculatorResultHooks[\\s\\S]*?sha256Hash:\"([a-f0-9]{64})\"/
+  const byOperation = hooksJs.match(
+    /ConstructionCalculatorResultHooks[\s\S]*?sha256Hash:"([a-f0-9]{64})"/
   );
-  return m?.[1] ?? null;
+  if (byOperation?.[1]) return byOperation[1];
+
+  const anyHashes = Array.from(
+    hooksJs.matchAll(/sha256Hash:"([a-f0-9]{64})"/g),
+    (m) => m[1]
+  );
+  const unique = Array.from(new Set(anyHashes));
+  if (unique.length === 1) return unique[0];
+  return null;
 }
 
 async function fetchItemsBySku(sku: string[], persistedHash: string) {
@@ -241,8 +249,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const { res: hooksRes, text: hooksJs } = await fetchText(hooksJsUrl);
     if (!hooksRes.ok) throw new Error(`Fetch hooks failed (${hooksRes.status})`);
 
-    const persistedHash = extractPersistedHash(hooksJs);
-    if (!persistedHash) throw new Error("Cannot locate persisted hash");
+    const fallbackPersistedHash =
+      "ce1a2a013e58773f80a1651362bd2d4d3ce5a3b23430b6d139850acdc44d5fc8";
+    const extractedPersistedHash = extractPersistedHash(hooksJs);
+    const persistedHash = extractedPersistedHash ?? fallbackPersistedHash;
 
     const config = extractConstructionConfigFromHooks(hooksJs);
     const types = config.map((c) => c.key);
@@ -320,6 +330,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       debug: debug
         ? {
             hooksBytes: hooksJs.length,
+            persistedHashExtracted: Boolean(extractedPersistedHash),
           }
         : undefined,
     };
