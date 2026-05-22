@@ -174,29 +174,12 @@ function extractConstructionConfigFromHooks(hooksJs: string) {
   return configs;
 }
 
-function extractPersistedHash(hooksJs: string) {
-  const byOperation = hooksJs.match(
-    /ConstructionCalculatorResultHooks[\s\S]*?sha256Hash:"([a-f0-9]{64})"/
-  );
-  if (byOperation?.[1]) return byOperation[1];
-
-  const anyHashes = Array.from(
-    hooksJs.matchAll(/sha256Hash:"([a-f0-9]{64})"/g),
-    (m) => m[1]
-  );
-  const unique = Array.from(new Set(anyHashes));
-  if (unique.length === 1) return unique[0];
-  return null;
-}
-
-async function fetchItemsBySku(sku: string[], persistedHash: string) {
+async function fetchItemsBySku(sku: string[]) {
   const payload = {
     operationName: "ConstructionCalculatorResultHooks",
+    query:
+      "query ConstructionCalculatorResultHooks($sku:[String!]!){findItemsBySku(sku:$sku){id sku name piecePerPack piecePerPackUnit unit url priceSummary{priceAfterDiscount}}}",
     variables: { sku },
-    extensions: {
-      clientLibrary: { name: "@apollo/client", version: "4.0.7" },
-      persistedQuery: { version: 1, sha256Hash: persistedHash },
-    },
   };
 
   const res = await fetch("https://www.onestockhome.com/th/graph_api/v1/graphql", {
@@ -215,10 +198,10 @@ async function fetchItemsBySku(sku: string[], persistedHash: string) {
   if (!res.ok) throw new Error(`GraphQL failed (${res.status})`);
   const body = (await res.json()) as {
     data?: { findItemsBySku?: OnestockItem[] };
-    errors?: unknown;
+    errors?: Array<{ message?: string }>;
   };
 
-  if (body.errors) throw new Error("GraphQL errors");
+  if (body.errors?.length) throw new Error(body.errors[0]?.message || "GraphQL errors");
   return body.data?.findItemsBySku ?? [];
 }
 
@@ -249,11 +232,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     const { res: hooksRes, text: hooksJs } = await fetchText(hooksJsUrl);
     if (!hooksRes.ok) throw new Error(`Fetch hooks failed (${hooksRes.status})`);
 
-    const fallbackPersistedHash =
-      "ce1a2a013e58773f80a1651362bd2d4d3ce5a3b23430b6d139850acdc44d5fc8";
-    const extractedPersistedHash = extractPersistedHash(hooksJs);
-    const persistedHash = extractedPersistedHash ?? fallbackPersistedHash;
-
     const config = extractConstructionConfigFromHooks(hooksJs);
     const types = config.map((c) => c.key);
     const currentType = type || types[0] || "";
@@ -279,7 +257,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }
     }
 
-    const items = await fetchItemsBySku([...new Set(skuList)], persistedHash);
+    const items = await fetchItemsBySku([...new Set(skuList)]);
     const itemBySku = new Map(items.map((it) => [it.sku, it] as const));
 
     const rows = typeConfig.materials.map((material) => {
@@ -321,7 +299,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         desktopJsUrl,
         showJsUrl,
         hooksJsUrl,
-        persistedHash,
       },
       input: { type: currentType, area, selections: selectedSkuByKey },
       types,
@@ -330,7 +307,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       debug: debug
         ? {
             hooksBytes: hooksJs.length,
-            persistedHashExtracted: Boolean(extractedPersistedHash),
           }
         : undefined,
     };
