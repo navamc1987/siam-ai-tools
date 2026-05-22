@@ -7,6 +7,7 @@ export type WorkType =
   | "wall"
   | "ceiling"
   | "paint"
+  | "concrete"
   | "floor-concrete"
   | "wall-plaster"
   | "plumbing"
@@ -16,7 +17,7 @@ export type WorkType =
   | "demolition"
   | "waste";
 
-export type MaterialUnit = "sqm" | "m" | "point" | "bulb";
+export type MaterialUnit = "sqm" | "m3" | "m" | "point" | "bulb";
 
 export type MaterialPreset = {
   id: string;
@@ -75,6 +76,7 @@ export const estimateV2Config = {
     wall: 350,
     ceiling: 300,
     paint: 160,
+    concrete: 420,
     "floor-concrete": 320,
     "wall-plaster": 220,
     plumbing: 900,
@@ -188,6 +190,34 @@ export const materialPresets: MaterialPreset[] = [
     unit: "sqm",
     unitPriceExVat: 135,
     sourceUrl: "https://www.onestockhome.com/th/product_categories/paints",
+  },
+  {
+    id: "concrete-ready-mix-180",
+    title: "คอนกรีตผสมเสร็จ 180 KSC (บาท/คิว)",
+    unit: "m3",
+    unitPriceExVat: 2150,
+    sourceUrl: "https://www.onestockhome.com/th/product_categories/cement",
+  },
+  {
+    id: "concrete-ready-mix-210",
+    title: "คอนกรีตผสมเสร็จ 210 KSC (บาท/คิว)",
+    unit: "m3",
+    unitPriceExVat: 2250,
+    sourceUrl: "https://www.onestockhome.com/th/product_categories/cement",
+  },
+  {
+    id: "concrete-ready-mix-240",
+    title: "คอนกรีตผสมเสร็จ 240 KSC (บาท/คิว)",
+    unit: "m3",
+    unitPriceExVat: 2350,
+    sourceUrl: "https://www.onestockhome.com/th/product_categories/cement",
+  },
+  {
+    id: "concrete-ready-mix-280",
+    title: "คอนกรีตผสมเสร็จ 280 KSC (บาท/คิว)",
+    unit: "m3",
+    unitPriceExVat: 2550,
+    sourceUrl: "https://www.onestockhome.com/th/product_categories/cement",
   },
   {
     id: "wall-qcon-brick-10cm",

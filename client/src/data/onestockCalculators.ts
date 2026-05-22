@@ -52,7 +52,7 @@ export const onestockCalculatorCards: OnestockCalculatorCard[] = [
       "Photorealistic product photo of a white cement mixer truck in studio lighting, clean background, soft shadow, high detail",
       "landscape_4_3"
     ),
-    enabled: false,
+    enabled: true,
   },
   {
     id: "brick",

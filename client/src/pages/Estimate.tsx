@@ -37,6 +37,29 @@ export default function Estimate() {
   const [paintCoverageSqmPerLiter, setPaintCoverageSqmPerLiter] = useState<number>(10);
   const [paintWasteRate, setPaintWasteRate] = useState<number>(10);
 
+  const [concreteElement, setConcreteElement] = useState<"slab" | "footing" | "column" | "beam">("slab");
+  const [concreteStrength, setConcreteStrength] = useState<"180" | "210" | "240" | "280">("210");
+  const [concreteWasteRate, setConcreteWasteRate] = useState<number>(5);
+
+  const [slabLengthM, setSlabLengthM] = useState<number>(10);
+  const [slabWidthM, setSlabWidthM] = useState<number>(10);
+  const [slabThicknessCm, setSlabThicknessCm] = useState<number>(10);
+
+  const [footingLengthM, setFootingLengthM] = useState<number>(1);
+  const [footingWidthM, setFootingWidthM] = useState<number>(1);
+  const [footingHeightM, setFootingHeightM] = useState<number>(0.5);
+  const [footingCount, setFootingCount] = useState<number>(1);
+
+  const [columnWidthCm, setColumnWidthCm] = useState<number>(20);
+  const [columnDepthCm, setColumnDepthCm] = useState<number>(20);
+  const [columnHeightM, setColumnHeightM] = useState<number>(3);
+  const [columnCount, setColumnCount] = useState<number>(1);
+
+  const [beamWidthCm, setBeamWidthCm] = useState<number>(20);
+  const [beamDepthCm, setBeamDepthCm] = useState<number>(30);
+  const [beamLengthM, setBeamLengthM] = useState<number>(4);
+  const [beamCount, setBeamCount] = useState<number>(1);
+
   const [includeDemolition, setIncludeDemolition] = useState(false);
   const [demolitionAreaSqm, setDemolitionAreaSqm] = useState<number>(0);
   const [includeWaste, setIncludeWaste] = useState(false);
@@ -143,6 +166,79 @@ export default function Estimate() {
     };
   }, [calculator, areaSqm, paintCoats, paintCoverageSqmPerLiter, paintWasteRate, paintMode]);
 
+  const concrete = useMemo(() => {
+    if (calculator !== "concrete") return null;
+
+    const wasteRate = Math.max(0, concreteWasteRate || 0) / 100;
+    const countClamp = (value: number) => Math.max(0, Math.round(value || 0));
+
+    let volume = 0;
+    let label = "";
+
+    if (concreteElement === "slab") {
+      const length = Math.max(0, slabLengthM || 0);
+      const width = Math.max(0, slabWidthM || 0);
+      const thicknessM = Math.max(0, slabThicknessCm || 0) / 100;
+      volume = length * width * thicknessM;
+      label = `พื้น/สแลบ ${length}×${width}×${slabThicknessCm}ซม.`;
+    } else if (concreteElement === "footing") {
+      const length = Math.max(0, footingLengthM || 0);
+      const width = Math.max(0, footingWidthM || 0);
+      const height = Math.max(0, footingHeightM || 0);
+      const count = countClamp(footingCount);
+      volume = length * width * height * count;
+      label = `ฐานราก/ตอม่อ ${length}×${width}×${height}ม. ×${count}`;
+    } else if (concreteElement === "column") {
+      const widthM = Math.max(0, columnWidthCm || 0) / 100;
+      const depthM = Math.max(0, columnDepthCm || 0) / 100;
+      const height = Math.max(0, columnHeightM || 0);
+      const count = countClamp(columnCount);
+      volume = widthM * depthM * height * count;
+      label = `เสา ${columnWidthCm}×${columnDepthCm}ซม. สูง ${height}ม. ×${count}`;
+    } else if (concreteElement === "beam") {
+      const widthM = Math.max(0, beamWidthCm || 0) / 100;
+      const depthM = Math.max(0, beamDepthCm || 0) / 100;
+      const length = Math.max(0, beamLengthM || 0);
+      const count = countClamp(beamCount);
+      volume = widthM * depthM * length * count;
+      label = `คาน ${beamWidthCm}×${beamDepthCm}ซม. ยาว ${length}ม. ×${count}`;
+    }
+
+    const volumeWithWaste = volume * (1 + wasteRate);
+    const presetId = `concrete-ready-mix-${concreteStrength}` as const;
+    const preset = materialPresets.find((p) => p.id === presetId) ?? null;
+
+    return {
+      element: concreteElement,
+      strength: concreteStrength,
+      label,
+      wasteRate,
+      volume,
+      volumeWithWaste,
+      preset,
+    };
+  }, [
+    calculator,
+    concreteElement,
+    concreteStrength,
+    concreteWasteRate,
+    slabLengthM,
+    slabWidthM,
+    slabThicknessCm,
+    footingLengthM,
+    footingWidthM,
+    footingHeightM,
+    footingCount,
+    columnWidthCm,
+    columnDepthCm,
+    columnHeightM,
+    columnCount,
+    beamWidthCm,
+    beamDepthCm,
+    beamLengthM,
+    beamCount,
+  ]);
+
   useEffect(() => {
     if (calculator !== "construction") return;
 
@@ -187,11 +283,17 @@ export default function Estimate() {
   }, [calculator, areaSqm, constructionType, selections]);
 
   const totals = useMemo(() => {
+    const safeArea = Math.max(0, areaSqm || 0);
+    const concreteQty = calculator === "concrete" ? Math.max(0, concrete?.volumeWithWaste ?? 0) : 0;
+    const laborQty = calculator === "concrete" ? concreteQty : safeArea;
+
     const materialSubtotal =
       calculator === "construction"
         ? constructionData?.totals.materialSubtotal ?? 0
         : calculator === "paint"
-          ? (paint?.preset?.unitPriceExVat ?? 0) * Math.max(0, areaSqm || 0)
+          ? (paint?.preset?.unitPriceExVat ?? 0) * safeArea
+          : calculator === "concrete"
+            ? (concrete?.preset?.unitPriceExVat ?? 0) * concreteQty
           : 0;
 
     const workType: WorkType =
@@ -199,9 +301,11 @@ export default function Estimate() {
         ? constructionLaborWorkType[constructionType] ?? "ceiling"
         : calculator === "paint"
           ? "paint"
+          : calculator === "concrete"
+            ? "concrete"
           : "ceiling";
     const laborPerSqm = getLaborPerUnit(workType, workDifficulty);
-    const laborSubtotal = Math.max(0, areaSqm || 0) * laborPerSqm;
+    const laborSubtotal = laborQty * laborPerSqm;
 
     const demolitionSubtotal =
       (includeDemolition ? Math.max(0, demolitionAreaSqm || 0) : 0) *
@@ -229,6 +333,8 @@ export default function Estimate() {
       min,
       max,
       laborPerSqm,
+      laborQty,
+      laborUnitLabel: calculator === "concrete" ? "คิว" : "ตร.ม.",
       laborWorkType: workType,
     };
   }, [
@@ -239,6 +345,8 @@ export default function Estimate() {
     buildingType,
     areaSqm,
     paint?.preset?.unitPriceExVat,
+    concrete?.preset?.unitPriceExVat,
+    concrete?.volumeWithWaste,
     includeDemolition,
     demolitionAreaSqm,
     includeWaste,
@@ -272,6 +380,14 @@ export default function Estimate() {
                   .join(", ")}`
               : "",
           ].filter(Boolean).join("\n")
+        : "",
+      calculator === "concrete" && concrete
+        ? [
+            `รายการ: ${concrete.label}`,
+            `กำลังอัด: ${concrete.strength} KSC`,
+            `เผื่อสูญเสีย: ${Math.round(concrete.wasteRate * 100)}%`,
+            `ปริมาตรคอนกรีต: ${concrete.volumeWithWaste.toFixed(2)} คิว (ม³)`,
+          ].join("\n")
         : "",
       `พื้นที่: ${formatTHB(Math.round(areaSqm || 0))} ตร.ม.`,
       includeDemolition ? `รื้อถอด: ${formatTHB(Math.round(demolitionAreaSqm || 0))} ตร.ม.` : "",
@@ -371,18 +487,273 @@ export default function Estimate() {
                 <div className="grid gap-4 items-end">
                   <div className="grid gap-2">
                     <label className="text-[#1f2328] text-sm font-bold">
-                      {calculator === "paint" ? "พื้นที่ทาสี (ตารางเมตร)" : "จำนวนพื้นที่ก่อสร้าง (ตารางเมตร)"}
+                      {calculator === "paint"
+                        ? "พื้นที่ทาสี (ตารางเมตร)"
+                        : calculator === "concrete"
+                          ? "ขนาดชิ้นงานคอนกรีต"
+                          : "จำนวนพื้นที่ก่อสร้าง (ตารางเมตร)"}
                     </label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="number"
-                        min={0}
-                        value={areaSqm}
-                        onChange={(e) => setAreaSqm(Number(e.target.value) || 0)}
-                        className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
-                      />
-                      <div className="text-[#656d76] text-sm min-w-[52px] text-right">ตร.ม.</div>
-                    </div>
+                    {calculator !== "concrete" && (
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          min={0}
+                          value={areaSqm}
+                          onChange={(e) => setAreaSqm(Number(e.target.value) || 0)}
+                          className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                        />
+                        <div className="text-[#656d76] text-sm min-w-[52px] text-right">ตร.ม.</div>
+                      </div>
+                    )}
+                    {calculator === "concrete" && (
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">ประเภทชิ้นงาน</label>
+                          <select
+                            value={concreteElement}
+                            onChange={(e) =>
+                              setConcreteElement(e.target.value as "slab" | "footing" | "column" | "beam")
+                            }
+                            className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                          >
+                            <option value="slab">พื้น/สแลบ</option>
+                            <option value="footing">ฐานราก/ตอม่อ</option>
+                            <option value="column">เสา</option>
+                            <option value="beam">คาน</option>
+                          </select>
+                        </div>
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">กำลังอัดคอนกรีต</label>
+                          <select
+                            value={concreteStrength}
+                            onChange={(e) => setConcreteStrength(e.target.value as "180" | "210" | "240" | "280")}
+                            className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                          >
+                            <option value="180">180 KSC</option>
+                            <option value="210">210 KSC</option>
+                            <option value="240">240 KSC</option>
+                            <option value="280">280 KSC</option>
+                          </select>
+                        </div>
+
+                        {concreteElement === "slab" && (
+                          <>
+                            <div className="grid gap-2">
+                              <label className="text-xs text-[#656d76]">ยาว (เมตร)</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={slabLengthM}
+                                onChange={(e) => setSlabLengthM(Number(e.target.value) || 0)}
+                                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <label className="text-xs text-[#656d76]">กว้าง (เมตร)</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={slabWidthM}
+                                onChange={(e) => setSlabWidthM(Number(e.target.value) || 0)}
+                                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <label className="text-xs text-[#656d76]">หนา (ซม.)</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={slabThicknessCm}
+                                onChange={(e) => setSlabThicknessCm(Number(e.target.value) || 0)}
+                                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <label className="text-xs text-[#656d76]">เผื่อสูญเสีย (%)</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={concreteWasteRate}
+                                onChange={(e) => setConcreteWasteRate(Number(e.target.value) || 0)}
+                                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        {concreteElement === "footing" && (
+                          <>
+                            <div className="grid gap-2">
+                              <label className="text-xs text-[#656d76]">ยาว (เมตร)</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={footingLengthM}
+                                onChange={(e) => setFootingLengthM(Number(e.target.value) || 0)}
+                                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <label className="text-xs text-[#656d76]">กว้าง (เมตร)</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={footingWidthM}
+                                onChange={(e) => setFootingWidthM(Number(e.target.value) || 0)}
+                                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <label className="text-xs text-[#656d76]">สูง (เมตร)</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={footingHeightM}
+                                onChange={(e) => setFootingHeightM(Number(e.target.value) || 0)}
+                                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <label className="text-xs text-[#656d76]">จำนวนชิ้น</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={footingCount}
+                                onChange={(e) => setFootingCount(Number(e.target.value) || 0)}
+                                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                              />
+                            </div>
+                            <div className="grid gap-2 md:col-span-2">
+                              <label className="text-xs text-[#656d76]">เผื่อสูญเสีย (%)</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={concreteWasteRate}
+                                onChange={(e) => setConcreteWasteRate(Number(e.target.value) || 0)}
+                                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        {concreteElement === "column" && (
+                          <>
+                            <div className="grid gap-2">
+                              <label className="text-xs text-[#656d76]">กว้าง (ซม.)</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={columnWidthCm}
+                                onChange={(e) => setColumnWidthCm(Number(e.target.value) || 0)}
+                                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <label className="text-xs text-[#656d76]">ลึก (ซม.)</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={columnDepthCm}
+                                onChange={(e) => setColumnDepthCm(Number(e.target.value) || 0)}
+                                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <label className="text-xs text-[#656d76]">สูง (เมตร)</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={columnHeightM}
+                                onChange={(e) => setColumnHeightM(Number(e.target.value) || 0)}
+                                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <label className="text-xs text-[#656d76]">จำนวนต้น</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={columnCount}
+                                onChange={(e) => setColumnCount(Number(e.target.value) || 0)}
+                                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                              />
+                            </div>
+                            <div className="grid gap-2 md:col-span-2">
+                              <label className="text-xs text-[#656d76]">เผื่อสูญเสีย (%)</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={concreteWasteRate}
+                                onChange={(e) => setConcreteWasteRate(Number(e.target.value) || 0)}
+                                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        {concreteElement === "beam" && (
+                          <>
+                            <div className="grid gap-2">
+                              <label className="text-xs text-[#656d76]">กว้าง (ซม.)</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={beamWidthCm}
+                                onChange={(e) => setBeamWidthCm(Number(e.target.value) || 0)}
+                                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <label className="text-xs text-[#656d76]">ลึก (ซม.)</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={beamDepthCm}
+                                onChange={(e) => setBeamDepthCm(Number(e.target.value) || 0)}
+                                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <label className="text-xs text-[#656d76]">ยาว (เมตร)</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={beamLengthM}
+                                onChange={(e) => setBeamLengthM(Number(e.target.value) || 0)}
+                                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <label className="text-xs text-[#656d76]">จำนวนเส้น</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={beamCount}
+                                onChange={(e) => setBeamCount(Number(e.target.value) || 0)}
+                                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                              />
+                            </div>
+                            <div className="grid gap-2 md:col-span-2">
+                              <label className="text-xs text-[#656d76]">เผื่อสูญเสีย (%)</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={concreteWasteRate}
+                                onChange={(e) => setConcreteWasteRate(Number(e.target.value) || 0)}
+                                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        <div className="md:col-span-2 border border-[#d0d7de] rounded-xl p-4 bg-[#f6f8fa]">
+                          <div className="text-xs text-[#656d76]">ปริมาตรคอนกรีต (รวมเผื่อ)</div>
+                          <div className="text-[#1f2328] font-bold text-lg mt-1">
+                            {concrete ? `${concrete.volumeWithWaste.toFixed(2)} คิว (ม³)` : "0.00 คิว (ม³)"}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -457,7 +828,14 @@ export default function Estimate() {
                       </div>
                     </div>
                   )}
-                  {calculator !== "construction" && calculator !== "paint" && (
+                  {calculator === "concrete" && (
+                    <div className="text-sm text-[#656d76]">
+                      {concrete
+                        ? `คำนวณปริมาตร: ${concrete.label} • ${concrete.volumeWithWaste.toFixed(2)} คิว (ม³)`
+                        : "ใส่ขนาดชิ้นงานเพื่อคำนวณปริมาตร"}
+                    </div>
+                  )}
+                  {calculator !== "construction" && calculator !== "paint" && calculator !== "concrete" && (
                     <div className="text-sm text-[#656d76]">
                       กำลังเชื่อมต่อสูตรจาก OneStockHome สำหรับเครื่องคิดเลขนี้
                     </div>
@@ -576,6 +954,8 @@ export default function Estimate() {
                         ? `${constructionData?.rows?.length ?? 0} รายการ`
                         : calculator === "paint"
                           ? `${paint?.plan?.length ?? 0} รายการ`
+                          : calculator === "concrete"
+                            ? "1 รายการ"
                           : "0 รายการ"}
                     </div>
                   </div>
@@ -713,6 +1093,48 @@ export default function Estimate() {
                   </div>
                 )}
 
+                {calculator === "concrete" && concrete && (
+                  <div className="mt-5 overflow-x-auto border border-[#d0d7de] rounded-xl">
+                    <table className="min-w-[700px] w-full text-sm">
+                      <thead className="bg-[#f6f8fa] text-[#1f2328]">
+                        <tr>
+                          <th className="text-left font-bold px-4 py-3 w-[56px]">#</th>
+                          <th className="text-left font-bold px-4 py-3">รายการ</th>
+                          <th className="text-right font-bold px-4 py-3 w-[160px]">ราคา/หน่วย (บาท)</th>
+                          <th className="text-right font-bold px-4 py-3 w-[140px]">จำนวน</th>
+                          <th className="text-right font-bold px-4 py-3 w-[160px]">รวม (บาท)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#d0d7de]">
+                        <tr className="align-top">
+                          <td className="px-4 py-4 text-[#1f2328] font-semibold">1)</td>
+                          <td className="px-4 py-4">
+                            <div className="text-[#0969da] font-semibold">
+                              {concrete.preset?.sourceUrl ? (
+                                <a href={concrete.preset.sourceUrl} target="_blank" rel="noreferrer" className="hover:underline">
+                                  {concrete.preset.title}
+                                </a>
+                              ) : (
+                                concrete.preset?.title ?? "คอนกรีตผสมเสร็จ"
+                              )}
+                            </div>
+                            <div className="text-xs text-[#656d76] mt-1">{concrete.label}</div>
+                          </td>
+                          <td className="px-4 py-4 text-right text-[#1f2328]">
+                            {formatTHB(Math.round(concrete.preset?.unitPriceExVat ?? 0))}
+                          </td>
+                          <td className="px-4 py-4 text-right text-[#1f2328]">
+                            {concrete.volumeWithWaste.toFixed(2)} คิว
+                          </td>
+                          <td className="px-4 py-4 text-right text-[#1f2328] font-semibold">
+                            {formatTHB(Math.round((concrete.preset?.unitPriceExVat ?? 0) * concrete.volumeWithWaste))}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
                 <div className="mt-6 grid md:grid-cols-3 gap-4">
                   <div className="border border-[#d0d7de] rounded-xl p-4">
                     <div className="text-xs text-[#656d76]">ค่าวัสดุ</div>
@@ -725,6 +1147,8 @@ export default function Estimate() {
                       ค่าแรง (fix){" "}
                       {totals.laborWorkType === "wall"
                         ? "งานผนัง"
+                        : totals.laborWorkType === "concrete"
+                          ? "งานคอนกรีต"
                         : totals.laborWorkType === "paint"
                           ? "งานสี"
                           : "งานฝ้า/เพดาน"}
@@ -733,7 +1157,7 @@ export default function Estimate() {
                       {formatTHB(Math.round(totals.laborSubtotal))}
                     </div>
                     <div className="text-xs text-[#656d76] mt-1">
-                      {formatTHB(Math.round(totals.laborPerSqm))} บาท/ตร.ม.
+                      {formatTHB(Math.round(totals.laborPerSqm))} บาท/{totals.laborUnitLabel}
                     </div>
                   </div>
                   <div className="border border-[#d0d7de] rounded-xl p-4">
