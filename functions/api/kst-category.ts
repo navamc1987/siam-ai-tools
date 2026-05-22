@@ -42,10 +42,40 @@ function toAbsUrl(pathOrUrl: string) {
 
 function parseProductsFromHtml(html: string) {
   const products: KstProduct[] = [];
-  const re =
+
+  const cardBlockRe = /<li[^>]*class="product-card"[\s\S]*?<\/li>/g;
+  for (const blockMatch of html.matchAll(cardBlockRe)) {
+    const block = blockMatch[0] ?? "";
+
+    const hrefMatch =
+      block.match(/href="([^"]*\/product\/[^"]+)"/) ?? block.match(/href="([^"]+)"/);
+    const href = decodeHtml(hrefMatch?.[1] ?? "").trim();
+    if (!href || !href.includes("/product/")) continue;
+
+    const url = toAbsUrl(href);
+
+    const nameMatch =
+      block.match(/class="product-name"[\s\S]*?<span[^>]*>\s*([\s\S]*?)\s*<\/span>/) ??
+      block.match(/class="product-name"[\s\S]*?>\s*([\s\S]*?)\s*<\/div>/);
+    const nameRaw = decodeHtml(nameMatch?.[1] ?? "").replace(/\s+/g, " ").trim();
+    if (!nameRaw) continue;
+
+    const priceMatch =
+      block.match(/product-price-special[\s\S]*?<span[^>]*>\s*([\s\S]*?)\s*<\/span>/) ??
+      block.match(/product-price-original[\s\S]*?>\s*([\s\S]*?)\s*<\/span>/);
+    const price = parsePrice(decodeHtml(priceMatch?.[1] ?? ""));
+
+    const imgMatch = block.match(/(?:data-src|src)="([^"]+)"/);
+    const imageUrl = imgMatch?.[1] ? toAbsUrl(decodeHtml(imgMatch[1]).trim()) : null;
+
+    const id = url.split("/").pop() || url;
+    products.push({ id, url, name: nameRaw, price, imageUrl });
+  }
+
+  const legacyRe =
     /<div[^>]*class="product-img"[\s\S]*?<a[^>]*href="([^"]+)"[\s\S]*?(?:data-src|src)="([^"]+)"[\s\S]*?<div[^>]*class="product-name"[\s\S]*?<span>\s*([\s\S]*?)\s*<\/span>[\s\S]*?<div[^>]*class="product-price"[\s\S]*?(?:product-price-special[\s\S]*?<span[^>]*>\s*([\s\S]*?)\s*<\/span>|product-price-original[\s\S]*?>\s*([\s\S]*?)\s*<\/span>)/g;
 
-  for (const m of html.matchAll(re)) {
+  for (const m of html.matchAll(legacyRe)) {
     const href = decodeHtml(m[1] ?? "").trim();
     const imageRaw = decodeHtml(m[2] ?? "").trim();
     const nameRaw = decodeHtml(m[3] ?? "").replace(/\s+/g, " ").trim();
@@ -67,9 +97,7 @@ function parseProductsFromHtml(html: string) {
   }
 
   const unique = new Map<string, KstProduct>();
-  for (const p of products) {
-    if (!unique.has(p.url)) unique.set(p.url, p);
-  }
+  for (const p of products) if (!unique.has(p.url)) unique.set(p.url, p);
   return [...unique.values()];
 }
 
@@ -133,4 +161,3 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   return body;
 };
-
