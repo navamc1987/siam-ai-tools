@@ -63,7 +63,7 @@ export const onestockCalculatorCards: OnestockCalculatorCard[] = [
       "Photorealistic product photo of an orange clay brick and a masonry trowel on clean studio background, soft shadow, high detail",
       "landscape_4_3"
     ),
-    enabled: false,
+    enabled: true,
   },
   {
     id: "metal-sheet",
@@ -74,6 +74,6 @@ export const onestockCalculatorCards: OnestockCalculatorCard[] = [
       "Photorealistic close-up product photo of stacked metal roofing sheets, studio lighting, clean background, soft shadow, high detail",
       "landscape_4_3"
     ),
-    enabled: false,
+    enabled: true,
   },
 ];

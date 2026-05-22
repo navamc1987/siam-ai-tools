@@ -60,6 +60,19 @@ export default function Estimate() {
   const [beamLengthM, setBeamLengthM] = useState<number>(4);
   const [beamCount, setBeamCount] = useState<number>(1);
 
+  const [brickWallLengthM, setBrickWallLengthM] = useState<number>(10);
+  const [brickWallHeightM, setBrickWallHeightM] = useState<number>(3);
+  const [brickOpeningsSqm, setBrickOpeningsSqm] = useState<number>(0);
+  const [brickWasteRate, setBrickWasteRate] = useState<number>(5);
+
+  const [metalRoofStyle, setMetalRoofStyle] = useState<"single" | "gable">("gable");
+  const [metalLengthM, setMetalLengthM] = useState<number>(10);
+  const [metalWidthM, setMetalWidthM] = useState<number>(6);
+  const [metalPitchDeg, setMetalPitchDeg] = useState<number>(15);
+  const [metalOverhangM, setMetalOverhangM] = useState<number>(0.3);
+  const [metalWasteRate, setMetalWasteRate] = useState<number>(5);
+  const [metalThickness, setMetalThickness] = useState<"035" | "040" | "047" | "050">("047");
+
   const [includeDemolition, setIncludeDemolition] = useState(false);
   const [demolitionAreaSqm, setDemolitionAreaSqm] = useState<number>(0);
   const [includeWaste, setIncludeWaste] = useState(false);
@@ -239,6 +252,84 @@ export default function Estimate() {
     beamCount,
   ]);
 
+  const brick = useMemo(() => {
+    if (calculator !== "brick") return null;
+
+    const length = Math.max(0, brickWallLengthM || 0);
+    const height = Math.max(0, brickWallHeightM || 0);
+    const openings = Math.max(0, brickOpeningsSqm || 0);
+    const wasteRate = Math.max(0, brickWasteRate || 0) / 100;
+
+    const area = Math.max(0, length * height - openings);
+    const areaWithWaste = area * (1 + wasteRate);
+    const piecesPerSqm = 8.33;
+    const pieces = areaWithWaste * piecesPerSqm;
+
+    const preset = materialPresets.find((p) => p.id === "wall-qcon-brick-10cm") ?? null;
+    return {
+      length,
+      height,
+      openings,
+      wasteRate,
+      area,
+      areaWithWaste,
+      piecesPerSqm,
+      pieces,
+      preset,
+    };
+  }, [calculator, brickWallLengthM, brickWallHeightM, brickOpeningsSqm, brickWasteRate]);
+
+  const metal = useMemo(() => {
+    if (calculator !== "metal-sheet") return null;
+
+    const length = Math.max(0, metalLengthM || 0);
+    const width = Math.max(0, metalWidthM || 0);
+    const overhang = Math.max(0, metalOverhangM || 0);
+    const pitchDeg = Math.min(85, Math.max(0, metalPitchDeg || 0));
+    const pitchRad = (pitchDeg * Math.PI) / 180;
+    const slopeFactor = 1 / Math.max(0.1, Math.cos(pitchRad));
+    const wasteRate = Math.max(0, metalWasteRate || 0) / 100;
+
+    const eaveLength = length + 2 * overhang;
+    const span = (width + 2 * overhang) * (metalRoofStyle === "gable" ? 0.5 : 1);
+    const slopeLength = span * slopeFactor;
+    const sides = metalRoofStyle === "gable" ? 2 : 1;
+
+    const area = eaveLength * slopeLength * sides;
+    const areaWithWaste = area * (1 + wasteRate);
+
+    const coverWidth = 0.76;
+    const sheetsPerSide = Math.ceil(eaveLength / coverWidth);
+    const totalSheets = sheetsPerSide * sides;
+    const totalSheetsWithWaste = Math.ceil(totalSheets * (1 + wasteRate));
+    const totalLinearM = totalSheetsWithWaste * slopeLength;
+
+    const presetId = `roof-metal-sheet-${metalThickness}-aluzinc`;
+    const preset = materialPresets.find((p) => p.id === presetId) ?? null;
+
+    return {
+      roofStyle: metalRoofStyle,
+      thickness: metalThickness,
+      length,
+      width,
+      overhang,
+      pitchDeg,
+      slopeFactor,
+      eaveLength,
+      slopeLength,
+      sides,
+      wasteRate,
+      area,
+      areaWithWaste,
+      coverWidth,
+      sheetsPerSide,
+      totalSheets,
+      totalSheetsWithWaste,
+      totalLinearM,
+      preset,
+    };
+  }, [calculator, metalRoofStyle, metalThickness, metalLengthM, metalWidthM, metalOverhangM, metalPitchDeg, metalWasteRate]);
+
   useEffect(() => {
     if (calculator !== "construction") return;
 
@@ -285,7 +376,17 @@ export default function Estimate() {
   const totals = useMemo(() => {
     const safeArea = Math.max(0, areaSqm || 0);
     const concreteQty = calculator === "concrete" ? Math.max(0, concrete?.volumeWithWaste ?? 0) : 0;
-    const laborQty = calculator === "concrete" ? concreteQty : safeArea;
+    const brickQty = calculator === "brick" ? Math.max(0, brick?.areaWithWaste ?? 0) : 0;
+    const metalQty = calculator === "metal-sheet" ? Math.max(0, metal?.areaWithWaste ?? 0) : 0;
+
+    const laborQty =
+      calculator === "concrete"
+        ? concreteQty
+        : calculator === "brick"
+          ? brickQty
+          : calculator === "metal-sheet"
+            ? metalQty
+            : safeArea;
 
     const materialSubtotal =
       calculator === "construction"
@@ -294,6 +395,10 @@ export default function Estimate() {
           ? (paint?.preset?.unitPriceExVat ?? 0) * safeArea
           : calculator === "concrete"
             ? (concrete?.preset?.unitPriceExVat ?? 0) * concreteQty
+        : calculator === "brick"
+          ? (brick?.preset?.unitPriceExVat ?? 0) * brickQty
+        : calculator === "metal-sheet"
+          ? (metal?.preset?.unitPriceExVat ?? 0) * metalQty
           : 0;
 
     const workType: WorkType =
@@ -303,6 +408,10 @@ export default function Estimate() {
           ? "paint"
           : calculator === "concrete"
             ? "concrete"
+      : calculator === "brick"
+        ? "wall"
+      : calculator === "metal-sheet"
+        ? "roof"
           : "ceiling";
     const laborPerSqm = getLaborPerUnit(workType, workDifficulty);
     const laborSubtotal = laborQty * laborPerSqm;
@@ -347,6 +456,10 @@ export default function Estimate() {
     paint?.preset?.unitPriceExVat,
     concrete?.preset?.unitPriceExVat,
     concrete?.volumeWithWaste,
+    brick?.preset?.unitPriceExVat,
+    brick?.areaWithWaste,
+    metal?.preset?.unitPriceExVat,
+    metal?.areaWithWaste,
     includeDemolition,
     demolitionAreaSqm,
     includeWaste,
@@ -389,7 +502,28 @@ export default function Estimate() {
             `ปริมาตรคอนกรีต: ${concrete.volumeWithWaste.toFixed(2)} คิว (ม³)`,
           ].join("\n")
         : "",
-      `พื้นที่: ${formatTHB(Math.round(areaSqm || 0))} ตร.ม.`,
+      calculator === "brick" && brick
+        ? [
+            `ผนัง: ${brick.length}×${brick.height} ม.`,
+            `ช่องเปิด: ${brick.openings} ตร.ม.`,
+            `เผื่อสูญเสีย: ${Math.round(brick.wasteRate * 100)}%`,
+            `พื้นที่ผนัง: ${brick.areaWithWaste.toFixed(2)} ตร.ม.`,
+            `จำนวนอิฐประมาณ: ${Math.round(brick.pieces)} ก้อน`,
+          ].join("\n")
+        : "",
+      calculator === "metal-sheet" && metal
+        ? [
+            `ทรงหลังคา: ${metal.roofStyle === "gable" ? "หน้าจั่ว" : "เพิงหมาแหงน"}`,
+            `ความหนา: ${metal.thickness} มม.`,
+            `pitch: ${metal.pitchDeg}°`,
+            `กันสาด: ${metal.overhang} ม.`,
+            `พื้นที่หลังคา: ${metal.areaWithWaste.toFixed(2)} ตร.ม.`,
+            `จำนวนแผ่นประมาณ: ${metal.totalSheetsWithWaste} แผ่น`,
+          ].join("\n")
+        : "",
+      calculator === "construction" || calculator === "paint"
+        ? `พื้นที่: ${formatTHB(Math.round(areaSqm || 0))} ตร.ม.`
+        : "",
       includeDemolition ? `รื้อถอด: ${formatTHB(Math.round(demolitionAreaSqm || 0))} ตร.ม.` : "",
       includeWaste ? `ขนทิ้ง: ${formatTHB(Math.round(wasteAreaSqm || 0))} ตร.ม.` : "",
       "",
@@ -491,9 +625,13 @@ export default function Estimate() {
                         ? "พื้นที่ทาสี (ตารางเมตร)"
                         : calculator === "concrete"
                           ? "ขนาดชิ้นงานคอนกรีต"
+                          : calculator === "brick"
+                            ? "ขนาดผนัง (เมตร)"
+                            : calculator === "metal-sheet"
+                              ? "ขนาดหลังคา (เมตร)"
                           : "จำนวนพื้นที่ก่อสร้าง (ตารางเมตร)"}
                     </label>
-                    {calculator !== "concrete" && (
+                    {(calculator === "construction" || calculator === "paint") && (
                       <div className="flex items-center gap-3">
                         <input
                           type="number"
@@ -754,6 +892,149 @@ export default function Estimate() {
                         </div>
                       </div>
                     )}
+                    {calculator === "brick" && (
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">ยาว (เมตร)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={brickWallLengthM}
+                            onChange={(e) => setBrickWallLengthM(Number(e.target.value) || 0)}
+                            className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">สูง (เมตร)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={brickWallHeightM}
+                            onChange={(e) => setBrickWallHeightM(Number(e.target.value) || 0)}
+                            className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">พื้นที่ช่องเปิด (ตร.ม.)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={brickOpeningsSqm}
+                            onChange={(e) => setBrickOpeningsSqm(Number(e.target.value) || 0)}
+                            className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">เผื่อสูญเสีย (%)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={brickWasteRate}
+                            onChange={(e) => setBrickWasteRate(Number(e.target.value) || 0)}
+                            className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                          />
+                        </div>
+
+                        <div className="md:col-span-2 border border-[#d0d7de] rounded-xl p-4 bg-[#f6f8fa]">
+                          <div className="text-xs text-[#656d76]">พื้นที่ผนัง (รวมเผื่อ)</div>
+                          <div className="text-[#1f2328] font-bold text-lg mt-1">
+                            {brick ? `${brick.areaWithWaste.toFixed(2)} ตร.ม.` : "0.00 ตร.ม."}
+                          </div>
+                          <div className="text-xs text-[#656d76] mt-1">
+                            จำนวนอิฐประมาณ {brick ? formatTHB(Math.round(brick.pieces)) : "0"} ก้อน (อัตรา {brick?.piecesPerSqm ?? 8.33} ก้อน/ตร.ม.)
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {calculator === "metal-sheet" && (
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">ทรงหลังคา</label>
+                          <select
+                            value={metalRoofStyle}
+                            onChange={(e) => setMetalRoofStyle(e.target.value as "single" | "gable")}
+                            className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                          >
+                            <option value="gable">หน้าจั่ว</option>
+                            <option value="single">เพิงหมาแหงน</option>
+                          </select>
+                        </div>
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">ความหนาเมทัลชีท</label>
+                          <select
+                            value={metalThickness}
+                            onChange={(e) => setMetalThickness(e.target.value as "035" | "040" | "047" | "050")}
+                            className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                          >
+                            <option value="035">0.35 มม.</option>
+                            <option value="040">0.40 มม.</option>
+                            <option value="047">0.47 มม.</option>
+                            <option value="050">0.50 มม.</option>
+                          </select>
+                        </div>
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">ยาว (เมตร)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={metalLengthM}
+                            onChange={(e) => setMetalLengthM(Number(e.target.value) || 0)}
+                            className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">กว้าง (เมตร)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={metalWidthM}
+                            onChange={(e) => setMetalWidthM(Number(e.target.value) || 0)}
+                            className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">pitch (องศา)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={metalPitchDeg}
+                            onChange={(e) => setMetalPitchDeg(Number(e.target.value) || 0)}
+                            className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">กันสาด (เมตร)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={metalOverhangM}
+                            onChange={(e) => setMetalOverhangM(Number(e.target.value) || 0)}
+                            className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                          />
+                        </div>
+                        <div className="grid gap-2 md:col-span-2">
+                          <label className="text-xs text-[#656d76]">เผื่อสูญเสีย (%)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={metalWasteRate}
+                            onChange={(e) => setMetalWasteRate(Number(e.target.value) || 0)}
+                            className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                          />
+                        </div>
+
+                        <div className="md:col-span-2 border border-[#d0d7de] rounded-xl p-4 bg-[#f6f8fa]">
+                          <div className="text-xs text-[#656d76]">พื้นที่หลังคาเมทัลชีท (รวมเผื่อ)</div>
+                          <div className="text-[#1f2328] font-bold text-lg mt-1">
+                            {metal ? `${metal.areaWithWaste.toFixed(2)} ตร.ม.` : "0.00 ตร.ม."}
+                          </div>
+                          <div className="text-xs text-[#656d76] mt-1">
+                            แผ่นประมาณ {metal ? formatTHB(metal.totalSheetsWithWaste) : "0"} แผ่น • ยาวแผ่น {metal ? metal.slopeLength.toFixed(2) : "0.00"} ม. •
+                            แผ่น/ด้าน {metal ? metal.sheetsPerSide : 0}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -835,7 +1116,25 @@ export default function Estimate() {
                         : "ใส่ขนาดชิ้นงานเพื่อคำนวณปริมาตร"}
                     </div>
                   )}
-                  {calculator !== "construction" && calculator !== "paint" && calculator !== "concrete" && (
+                  {calculator === "brick" && (
+                    <div className="text-sm text-[#656d76]">
+                      {brick
+                        ? `คำนวณผนัง: ${brick.areaWithWaste.toFixed(2)} ตร.ม. • อิฐประมาณ ${formatTHB(Math.round(brick.pieces))} ก้อน`
+                        : "ใส่ขนาดผนังเพื่อคำนวณพื้นที่"}
+                    </div>
+                  )}
+                  {calculator === "metal-sheet" && (
+                    <div className="text-sm text-[#656d76]">
+                      {metal
+                        ? `คำนวณหลังคา: ${metal.areaWithWaste.toFixed(2)} ตร.ม. • แผ่นประมาณ ${formatTHB(metal.totalSheetsWithWaste)} แผ่น`
+                        : "ใส่ขนาดหลังคาเพื่อคำนวณพื้นที่"}
+                    </div>
+                  )}
+                  {calculator !== "construction" &&
+                    calculator !== "paint" &&
+                    calculator !== "concrete" &&
+                    calculator !== "brick" &&
+                    calculator !== "metal-sheet" && (
                     <div className="text-sm text-[#656d76]">
                       กำลังเชื่อมต่อสูตรจาก OneStockHome สำหรับเครื่องคิดเลขนี้
                     </div>
@@ -956,6 +1255,10 @@ export default function Estimate() {
                           ? `${paint?.plan?.length ?? 0} รายการ`
                           : calculator === "concrete"
                             ? "1 รายการ"
+                            : calculator === "brick"
+                              ? "1 รายการ"
+                              : calculator === "metal-sheet"
+                                ? "1 รายการ"
                           : "0 รายการ"}
                     </div>
                   </div>
@@ -1135,6 +1438,101 @@ export default function Estimate() {
                   </div>
                 )}
 
+                {calculator === "brick" && brick && (
+                  <div className="mt-5 overflow-x-auto border border-[#d0d7de] rounded-xl">
+                    <table className="min-w-[820px] w-full text-sm">
+                      <thead className="bg-[#f6f8fa] text-[#1f2328]">
+                        <tr>
+                          <th className="text-left font-bold px-4 py-3 w-[56px]">#</th>
+                          <th className="text-left font-bold px-4 py-3">รายการ</th>
+                          <th className="text-right font-bold px-4 py-3 w-[160px]">ราคา/หน่วย (บาท)</th>
+                          <th className="text-right font-bold px-4 py-3 w-[140px]">จำนวน</th>
+                          <th className="text-right font-bold px-4 py-3 w-[160px]">รวม (บาท)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#d0d7de]">
+                        <tr className="align-top">
+                          <td className="px-4 py-4 text-[#1f2328] font-semibold">1)</td>
+                          <td className="px-4 py-4">
+                            <div className="text-[#0969da] font-semibold">
+                              {brick.preset?.sourceUrl ? (
+                                <a href={brick.preset.sourceUrl} target="_blank" rel="noreferrer" className="hover:underline">
+                                  {brick.preset.title}
+                                </a>
+                              ) : (
+                                brick.preset?.title ?? "อิฐก่อผนัง"
+                              )}
+                            </div>
+                            <div className="text-xs text-[#656d76] mt-1">
+                              ผนัง {brick.length}×{brick.height} ม. • ช่องเปิด {brick.openings} ตร.ม. • เผื่อ {Math.round(brick.wasteRate * 100)}%
+                            </div>
+                            <div className="text-xs text-[#656d76] mt-1">
+                              จำนวนอิฐประมาณ {formatTHB(Math.round(brick.pieces))} ก้อน
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-right text-[#1f2328]">
+                            {formatTHB(Math.round(brick.preset?.unitPriceExVat ?? 0))}
+                          </td>
+                          <td className="px-4 py-4 text-right text-[#1f2328]">
+                            {brick.areaWithWaste.toFixed(2)} ตร.ม.
+                          </td>
+                          <td className="px-4 py-4 text-right text-[#1f2328] font-semibold">
+                            {formatTHB(Math.round((brick.preset?.unitPriceExVat ?? 0) * brick.areaWithWaste))}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {calculator === "metal-sheet" && metal && (
+                  <div className="mt-5 overflow-x-auto border border-[#d0d7de] rounded-xl">
+                    <table className="min-w-[860px] w-full text-sm">
+                      <thead className="bg-[#f6f8fa] text-[#1f2328]">
+                        <tr>
+                          <th className="text-left font-bold px-4 py-3 w-[56px]">#</th>
+                          <th className="text-left font-bold px-4 py-3">รายการ</th>
+                          <th className="text-right font-bold px-4 py-3 w-[160px]">ราคา/หน่วย (บาท)</th>
+                          <th className="text-right font-bold px-4 py-3 w-[140px]">จำนวน</th>
+                          <th className="text-right font-bold px-4 py-3 w-[160px]">รวม (บาท)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#d0d7de]">
+                        <tr className="align-top">
+                          <td className="px-4 py-4 text-[#1f2328] font-semibold">1)</td>
+                          <td className="px-4 py-4">
+                            <div className="text-[#0969da] font-semibold">
+                              {metal.preset?.sourceUrl ? (
+                                <a href={metal.preset.sourceUrl} target="_blank" rel="noreferrer" className="hover:underline">
+                                  {metal.preset.title}
+                                </a>
+                              ) : (
+                                metal.preset?.title ?? "เมทัลชีท"
+                              )}
+                            </div>
+                            <div className="text-xs text-[#656d76] mt-1">
+                              {metal.roofStyle === "gable" ? "หน้าจั่ว" : "เพิงหมาแหงน"} • {metal.length}×{metal.width} ม. • pitch {metal.pitchDeg}° • กันสาด {metal.overhang} ม. •
+                              เผื่อ {Math.round(metal.wasteRate * 100)}%
+                            </div>
+                            <div className="text-xs text-[#656d76] mt-1">
+                              แผ่นประมาณ {formatTHB(metal.totalSheetsWithWaste)} แผ่น • ยาวแผ่น {metal.slopeLength.toFixed(2)} ม. • แผ่น/ด้าน {metal.sheetsPerSide}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-right text-[#1f2328]">
+                            {formatTHB(Math.round(metal.preset?.unitPriceExVat ?? 0))}
+                          </td>
+                          <td className="px-4 py-4 text-right text-[#1f2328]">
+                            {metal.areaWithWaste.toFixed(2)} ตร.ม.
+                          </td>
+                          <td className="px-4 py-4 text-right text-[#1f2328] font-semibold">
+                            {formatTHB(Math.round((metal.preset?.unitPriceExVat ?? 0) * metal.areaWithWaste))}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
                 <div className="mt-6 grid md:grid-cols-3 gap-4">
                   <div className="border border-[#d0d7de] rounded-xl p-4">
                     <div className="text-xs text-[#656d76]">ค่าวัสดุ</div>
@@ -1147,6 +1545,8 @@ export default function Estimate() {
                       ค่าแรง (fix){" "}
                       {totals.laborWorkType === "wall"
                         ? "งานผนัง"
+                        : totals.laborWorkType === "roof"
+                          ? "งานหลังคา"
                         : totals.laborWorkType === "concrete"
                           ? "งานคอนกรีต"
                         : totals.laborWorkType === "paint"
@@ -1199,4 +1599,3 @@ export default function Estimate() {
     </div>
   );
 }
-
