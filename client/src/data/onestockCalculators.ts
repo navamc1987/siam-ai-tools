@@ -41,7 +41,7 @@ export const onestockCalculatorCards: OnestockCalculatorCard[] = [
       "Photorealistic product photo of a paint tray with yellow paint roller, clean studio background, soft shadow, high detail, e-commerce style",
       "landscape_4_3"
     ),
-    enabled: false,
+    enabled: true,
   },
   {
     id: "concrete",
@@ -77,4 +77,3 @@ export const onestockCalculatorCards: OnestockCalculatorCard[] = [
     enabled: false,
   },
 ];
-

@@ -1,6 +1,13 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { estimateV2Config, getLaborPerUnit, type BuildingType, type WorkDifficulty, type WorkType } from "@/data/estimateV2";
+import {
+  estimateV2Config,
+  getLaborPerUnit,
+  materialPresets,
+  type BuildingType,
+  type WorkDifficulty,
+  type WorkType,
+} from "@/data/estimateV2";
 import { onestockCalculatorCards, type OnestockCalculatorId } from "@/data/onestockCalculators";
 import { useEffect, useMemo, useState } from "react";
 
@@ -24,6 +31,11 @@ export default function Estimate() {
   const [areaSqm, setAreaSqm] = useState<number>(100);
   const [constructionType, setConstructionType] = useState<string>("proline");
   const [selections, setSelections] = useState<Record<string, string>>({});
+
+  const [paintMode, setPaintMode] = useState<"interior" | "exterior">("interior");
+  const [paintCoats, setPaintCoats] = useState<number>(2);
+  const [paintCoverageSqmPerLiter, setPaintCoverageSqmPerLiter] = useState<number>(10);
+  const [paintWasteRate, setPaintWasteRate] = useState<number>(10);
 
   const [includeDemolition, setIncludeDemolition] = useState(false);
   const [demolitionAreaSqm, setDemolitionAreaSqm] = useState<number>(0);
@@ -75,6 +87,62 @@ export default function Estimate() {
     "wall-lining-c-line": "wall",
   };
 
+  const paint = useMemo(() => {
+    if (calculator !== "paint") return null;
+
+    const area = Math.max(0, areaSqm || 0);
+    const coats = Math.max(1, Math.round(paintCoats || 0));
+    const coverage = Math.max(1, paintCoverageSqmPerLiter || 0);
+    const wasteRate = Math.max(0, paintWasteRate || 0) / 100;
+
+    const liters = (area * coats) / coverage;
+    const litersWithWaste = liters * (1 + wasteRate);
+
+    const sizes = [18, 9, 3.785, 1];
+    let remaining = litersWithWaste;
+    const plan = sizes
+      .map((size) => {
+        const count = Math.floor((remaining + 1e-9) / size);
+        remaining -= count * size;
+        return { size, count };
+      })
+      .filter((x) => x.count > 0);
+
+    if (remaining > 0.01) {
+      const fillSize = sizes
+        .slice()
+        .sort((a, b) => a - b)
+        .find((s) => s >= remaining) ?? 1;
+      const idx = plan.findIndex((p) => p.size === fillSize);
+      if (idx >= 0) {
+        plan[idx] = { ...plan[idx], count: plan[idx].count + 1 };
+      } else {
+        plan.push({ size: fillSize, count: 1 });
+      }
+    }
+
+    const totalProvided = plan.reduce((sum, p) => sum + p.size * p.count, 0);
+    const excess = Math.max(0, totalProvided - litersWithWaste);
+
+    const modeLabel = paintMode === "interior" ? "สีทาภายใน" : "สีทาภายนอก";
+    const presetId = paintMode === "interior" ? "paint-interior-basic" : "paint-exterior-basic";
+    const preset = materialPresets.find((p) => p.id === presetId) ?? null;
+
+    return {
+      area,
+      coats,
+      coverage,
+      wasteRate,
+      liters,
+      litersWithWaste,
+      plan,
+      totalProvided,
+      excess,
+      modeLabel,
+      preset,
+    };
+  }, [calculator, areaSqm, paintCoats, paintCoverageSqmPerLiter, paintWasteRate, paintMode]);
+
   useEffect(() => {
     if (calculator !== "construction") return;
 
@@ -120,9 +188,18 @@ export default function Estimate() {
 
   const totals = useMemo(() => {
     const materialSubtotal =
-      calculator === "construction" ? constructionData?.totals.materialSubtotal ?? 0 : 0;
+      calculator === "construction"
+        ? constructionData?.totals.materialSubtotal ?? 0
+        : calculator === "paint"
+          ? (paint?.preset?.unitPriceExVat ?? 0) * Math.max(0, areaSqm || 0)
+          : 0;
 
-    const workType = constructionLaborWorkType[constructionType] ?? "ceiling";
+    const workType: WorkType =
+      calculator === "construction"
+        ? constructionLaborWorkType[constructionType] ?? "ceiling"
+        : calculator === "paint"
+          ? "paint"
+          : "ceiling";
     const laborPerSqm = getLaborPerUnit(workType, workDifficulty);
     const laborSubtotal = Math.max(0, areaSqm || 0) * laborPerSqm;
 
@@ -161,6 +238,7 @@ export default function Estimate() {
     workDifficulty,
     buildingType,
     areaSqm,
+    paint?.preset?.unitPriceExVat,
     includeDemolition,
     demolitionAreaSqm,
     includeWaste,
@@ -178,6 +256,22 @@ export default function Estimate() {
       `เครื่องคิดเลข: ${activeCard.title}`,
       calculator === "construction"
         ? `ประเภทงาน: ${constructionTypeLabel[constructionType] ?? constructionType}`
+        : "",
+      calculator === "paint" && paint
+        ? [
+            `ประเภทสี: ${paint.modeLabel}`,
+            `เที่ยวทา: ${paint.coats}`,
+            `อัตราการปกคลุม: ${paint.coverage} ตร.ม./ลิตร/เที่ยวทา`,
+            `เผื่อสูญเสีย: ${Math.round(paint.wasteRate * 100)}%`,
+            `ปริมาณสีรวม: ${paint.litersWithWaste.toFixed(2)} ลิตร`,
+            paint.plan.length
+              ? `แนะนำขนาดถัง: ${paint.plan
+                  .slice()
+                  .sort((a, b) => b.size - a.size)
+                  .map((p) => `${p.size}L x ${p.count}`)
+                  .join(", ")}`
+              : "",
+          ].filter(Boolean).join("\n")
         : "",
       `พื้นที่: ${formatTHB(Math.round(areaSqm || 0))} ตร.ม.`,
       includeDemolition ? `รื้อถอด: ${formatTHB(Math.round(demolitionAreaSqm || 0))} ตร.ม.` : "",
@@ -276,7 +370,9 @@ export default function Estimate() {
               <div className="bg-white border border-[#d0d7de] rounded-2xl p-6 md:p-8">
                 <div className="grid gap-4 items-end">
                   <div className="grid gap-2">
-                    <label className="text-[#1f2328] text-sm font-bold">จำนวนพื้นที่ก่อสร้าง (ตารางเมตร)</label>
+                    <label className="text-[#1f2328] text-sm font-bold">
+                      {calculator === "paint" ? "พื้นที่ทาสี (ตารางเมตร)" : "จำนวนพื้นที่ก่อสร้าง (ตารางเมตร)"}
+                    </label>
                     <div className="flex items-center gap-3">
                       <input
                         type="number"
@@ -313,7 +409,55 @@ export default function Estimate() {
                       )}
                     </div>
                   )}
-                  {calculator !== "construction" && (
+                  {calculator === "paint" && (
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <label className="text-xs text-[#656d76]">ประเภทสี</label>
+                        <select
+                          value={paintMode}
+                          onChange={(e) => setPaintMode(e.target.value as "interior" | "exterior")}
+                          className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                        >
+                          <option value="interior">สีทาภายใน</option>
+                          <option value="exterior">สีทาภายนอก</option>
+                        </select>
+                      </div>
+                      <div className="grid gap-2">
+                        <label className="text-xs text-[#656d76]">จำนวนเที่ยวทา</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={paintCoats}
+                          onChange={(e) => setPaintCoats(Number(e.target.value) || 1)}
+                          className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <label className="text-xs text-[#656d76]">อัตราการปกคลุม (ตร.ม./ลิตร/เที่ยวทา)</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={paintCoverageSqmPerLiter}
+                          onChange={(e) => setPaintCoverageSqmPerLiter(Number(e.target.value) || 10)}
+                          className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <label className="text-xs text-[#656d76]">เผื่อสูญเสีย (%)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={paintWasteRate}
+                          onChange={(e) => setPaintWasteRate(Number(e.target.value) || 0)}
+                          className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                        />
+                      </div>
+                      <div className="md:col-span-2 text-xs text-[#656d76]">
+                        ระบบจะคำนวณปริมาณสีรวมจาก พื้นที่ × เที่ยวทา ÷ อัตราการปกคลุม และเผื่อสูญเสียตามที่กำหนด
+                      </div>
+                    </div>
+                  )}
+                  {calculator !== "construction" && calculator !== "paint" && (
                     <div className="text-sm text-[#656d76]">
                       กำลังเชื่อมต่อสูตรจาก OneStockHome สำหรับเครื่องคิดเลขนี้
                     </div>
@@ -428,7 +572,11 @@ export default function Estimate() {
                   <div>
                     <div className="text-[#1f2328] font-bold">รายการสินค้า</div>
                     <div className="text-sm text-[#656d76]">
-                      {calculator === "construction" ? `${constructionData?.rows?.length ?? 0} รายการ` : "0 รายการ"}
+                      {calculator === "construction"
+                        ? `${constructionData?.rows?.length ?? 0} รายการ`
+                        : calculator === "paint"
+                          ? `${paint?.plan?.length ?? 0} รายการ`
+                          : "0 รายการ"}
                     </div>
                   </div>
                   <button type="button" onClick={handleContact} className="btn-blue px-6 py-3 text-base whitespace-nowrap">
@@ -513,6 +661,58 @@ export default function Estimate() {
                   </div>
                 )}
 
+                {calculator === "paint" && paint && (
+                  <div className="mt-5 space-y-4">
+                    <div className="border border-[#d0d7de] rounded-xl p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="text-[#1f2328] font-bold">{paint.modeLabel}</div>
+                        <div className="text-sm text-[#656d76]">
+                          {paint.area} ตร.ม. • {paint.coats} เที่ยวทา • เผื่อ {Math.round(paint.wasteRate * 100)}%
+                        </div>
+                      </div>
+                      <div className="mt-2 text-[#1f2328] text-lg font-bold">
+                        ปริมาณสีรวม: {paint.litersWithWaste.toFixed(2)} ลิตร
+                      </div>
+                      <div className="text-xs text-[#656d76] mt-1">
+                        ไม่รวมเผื่อ: {paint.liters.toFixed(2)} ลิตร • เกินจากที่ต้องใช้ประมาณ {paint.excess.toFixed(2)} ลิตร (จากการจัดขนาดถัง)
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto border border-[#d0d7de] rounded-xl">
+                      <table className="min-w-[520px] w-full text-sm">
+                        <thead className="bg-[#f6f8fa] text-[#1f2328]">
+                          <tr>
+                            <th className="text-left font-bold px-4 py-3">ขนาดถัง (ลิตร)</th>
+                            <th className="text-right font-bold px-4 py-3">จำนวน (ถัง)</th>
+                            <th className="text-right font-bold px-4 py-3">ปริมาณรวม (ลิตร)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#d0d7de]">
+                          {paint.plan
+                            .slice()
+                            .sort((a, b) => b.size - a.size)
+                            .map((p) => (
+                              <tr key={p.size}>
+                                <td className="px-4 py-3 text-[#1f2328] font-semibold">{p.size}</td>
+                                <td className="px-4 py-3 text-right text-[#1f2328]">{p.count}</td>
+                                <td className="px-4 py-3 text-right text-[#1f2328] font-semibold">
+                                  {Number((p.size * p.count).toFixed(2))}
+                                </td>
+                              </tr>
+                            ))}
+                          {!paint.plan.length && (
+                            <tr>
+                              <td colSpan={3} className="px-4 py-6 text-center text-[#656d76]">
+                                ใส่พื้นที่ให้มากกว่า 0 เพื่อคำนวณ
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
                 <div className="mt-6 grid md:grid-cols-3 gap-4">
                   <div className="border border-[#d0d7de] rounded-xl p-4">
                     <div className="text-xs text-[#656d76]">ค่าวัสดุ</div>
@@ -522,7 +722,12 @@ export default function Estimate() {
                   </div>
                   <div className="border border-[#d0d7de] rounded-xl p-4">
                     <div className="text-xs text-[#656d76]">
-                      ค่าแรง (fix) {totals.laborWorkType === "wall" ? "งานผนัง" : "งานฝ้า/เพดาน"}
+                      ค่าแรง (fix){" "}
+                      {totals.laborWorkType === "wall"
+                        ? "งานผนัง"
+                        : totals.laborWorkType === "paint"
+                          ? "งานสี"
+                          : "งานฝ้า/เพดาน"}
                     </div>
                     <div className="text-[#1f2328] font-bold text-lg mt-1">
                       {formatTHB(Math.round(totals.laborSubtotal))}
