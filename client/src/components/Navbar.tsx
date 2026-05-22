@@ -20,6 +20,7 @@ export default function Navbar() {
     { label: "หน้าแรก", href: "#home" },
     { label: "สินค้า", href: "#products" },
     { label: "ผลงานของเรา", href: "/portfolio" },
+    { label: "จัดสเปคกล้อง", href: "/cctv" },
     { label: "ประเมินราคา", href: "/estimate" },
     { label: "ติดต่อเรา", href: "#contact" },
   ];

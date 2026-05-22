@@ -9,6 +9,7 @@ import AboutSection from "@/components/AboutSection";
 import ServicesSection from "@/components/ServicesSection";
 import ProductsSection from "@/components/ProductsSection";
 import EstimatePromoSection from "@/components/EstimatePromoSection";
+import CctvPromoSection from "@/components/CctvPromoSection";
 import ContactSection from "@/components/ContactSection";
 import Footer from "@/components/Footer";
 
@@ -21,6 +22,7 @@ export default function Home() {
       <AboutSection />
       <ServicesSection />
       <ProductsSection />
+      <CctvPromoSection />
       <EstimatePromoSection />
       <ContactSection />
       <Footer />
