@@ -1291,13 +1291,7 @@ export default function Estimate() {
                               <td className="px-4 py-4 text-[#1f2328] font-semibold">{idx + 1})</td>
                               <td className="px-4 py-4">
                                 <div className="text-[#0969da] font-semibold">
-                                  {row.url ? (
-                                    <a href={row.url} target="_blank" rel="noreferrer" className="hover:underline">
-                                      {row.name ?? row.key}
-                                    </a>
-                                  ) : (
-                                    row.name ?? row.key
-                                  )}
+                                  {row.name ?? row.key}
                                 </div>
                                 <div className="mt-2">
                                   <select
@@ -1413,13 +1407,7 @@ export default function Estimate() {
                           <td className="px-4 py-4 text-[#1f2328] font-semibold">1)</td>
                           <td className="px-4 py-4">
                             <div className="text-[#0969da] font-semibold">
-                              {concrete.preset?.sourceUrl ? (
-                                <a href={concrete.preset.sourceUrl} target="_blank" rel="noreferrer" className="hover:underline">
-                                  {concrete.preset.title}
-                                </a>
-                              ) : (
-                                concrete.preset?.title ?? "คอนกรีตผสมเสร็จ"
-                              )}
+                              {concrete.preset?.title ?? "คอนกรีตผสมเสร็จ"}
                             </div>
                             <div className="text-xs text-[#656d76] mt-1">{concrete.label}</div>
                           </td>
@@ -1455,13 +1443,7 @@ export default function Estimate() {
                           <td className="px-4 py-4 text-[#1f2328] font-semibold">1)</td>
                           <td className="px-4 py-4">
                             <div className="text-[#0969da] font-semibold">
-                              {brick.preset?.sourceUrl ? (
-                                <a href={brick.preset.sourceUrl} target="_blank" rel="noreferrer" className="hover:underline">
-                                  {brick.preset.title}
-                                </a>
-                              ) : (
-                                brick.preset?.title ?? "อิฐก่อผนัง"
-                              )}
+                              {brick.preset?.title ?? "อิฐก่อผนัง"}
                             </div>
                             <div className="text-xs text-[#656d76] mt-1">
                               ผนัง {brick.length}×{brick.height} ม. • ช่องเปิด {brick.openings} ตร.ม. • เผื่อ {Math.round(brick.wasteRate * 100)}%
@@ -1502,13 +1484,7 @@ export default function Estimate() {
                           <td className="px-4 py-4 text-[#1f2328] font-semibold">1)</td>
                           <td className="px-4 py-4">
                             <div className="text-[#0969da] font-semibold">
-                              {metal.preset?.sourceUrl ? (
-                                <a href={metal.preset.sourceUrl} target="_blank" rel="noreferrer" className="hover:underline">
-                                  {metal.preset.title}
-                                </a>
-                              ) : (
-                                metal.preset?.title ?? "เมทัลชีท"
-                              )}
+                              {metal.preset?.title ?? "เมทัลชีท"}
                             </div>
                             <div className="text-xs text-[#656d76] mt-1">
                               {metal.roofStyle === "gable" ? "หน้าจั่ว" : "เพิงหมาแหงน"} • {metal.length}×{metal.width} ม. • pitch {metal.pitchDeg}° • กันสาด {metal.overhang} ม. •
