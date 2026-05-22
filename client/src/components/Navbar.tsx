@@ -50,8 +50,10 @@ export default function Navbar() {
           onClick={() => handleNavClick("#home")}
           className="flex items-center gap-3 group"
         >
-          <div className="w-9 h-9 rounded-lg bg-[#0969da] flex items-center justify-center transition-transform group-hover:scale-105">
-            <img src="/sat-mark.svg" alt="SAT" className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-full bg-white ring-2 ring-[#0969da] flex items-center justify-center transition-transform group-hover:scale-105 shadow-sm">
+            <div className="w-9 h-9 rounded-full ring-2 ring-[#C9A84C] bg-white overflow-hidden">
+              <img src="/siamai-logo.png" alt="SAT" className="w-full h-full object-cover" />
+            </div>
           </div>
           <div className="text-left">
             <p className="text-[#1f2328] font-bold text-lg leading-tight">SAT</p>
