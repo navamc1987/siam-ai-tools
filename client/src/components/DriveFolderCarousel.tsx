@@ -60,13 +60,8 @@ export default function DriveFolderCarousel({
 
   return (
     <div className="bg-white border border-[#d0d7de] rounded-xl p-4 md:p-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
-        <div>
-          <h3 className="text-[#1f2328] font-bold text-lg">{title}</h3>
-        </div>
-        <a href={folderUrl} target="_blank" rel="noreferrer" className="btn-secondary px-5 py-2 text-sm text-center">
-          ดูใน Google Drive
-        </a>
+      <div className="mb-5">
+        <h3 className="text-[#1f2328] font-bold text-lg">{title}</h3>
       </div>
 
       {loading && <div className="text-[#656d76] text-sm">กำลังโหลดรูป…</div>}
