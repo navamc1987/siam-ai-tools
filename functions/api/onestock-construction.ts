@@ -72,7 +72,7 @@ async function resolveConstructionAssets() {
   if (!pageRes.ok) throw new Error(`Fetch page failed (${pageRes.status})`);
 
   const desktopMatch = pageHtml.match(
-    /src=\"(\\/osh-online\\/assets\\/desktop-[^\"]+\\.js)\"/
+    /src="(\/osh-online\/assets\/desktop-[^"]+\.js)"/
   );
   if (!desktopMatch) throw new Error("Cannot find desktop asset");
   const desktopJsUrl = `https://www.onestockhome.com${desktopMatch[1]}`;
@@ -81,7 +81,7 @@ async function resolveConstructionAssets() {
   if (!desktopRes.ok) throw new Error(`Fetch desktop failed (${desktopRes.status})`);
 
   const showMatch = desktopJs.match(
-    /construction_calculators\\/show\\.jsx\"\\s*:\\s*\\(\\)\\s*=>[^\\n]*?import\\(\"\\.\\/(show-[^\"]+\\.js)\"\\)/
+    /construction_calculators\/show\.jsx"\s*:\s*\(\)\s*=>[^\n]*?import\("\.\/(show-[^"]+\.js)"\)/
   );
   if (!showMatch) throw new Error("Cannot find show asset");
   const showJsUrl = new URL(`./${showMatch[1]}`, desktopJsUrl).toString();
@@ -89,7 +89,7 @@ async function resolveConstructionAssets() {
   const { res: showRes, text: showJs } = await fetchText(showJsUrl);
   if (!showRes.ok) throw new Error(`Fetch show failed (${showRes.status})`);
 
-  const hookMatch = showJs.match(/from\"\\.\\/(hooks-[^\"]+\\.js)\"/);
+  const hookMatch = showJs.match(/from"\.\/(hooks-[^"]+\.js)"/);
   if (!hookMatch) throw new Error("Cannot find hooks asset");
   const hooksJsUrl = new URL(`./${hookMatch[1]}`, showJsUrl).toString();
 
