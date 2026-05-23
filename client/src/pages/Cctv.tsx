@@ -476,7 +476,7 @@ export default function Cctv() {
   ]);
 
   const specRowPages = useMemo(() => {
-    const perPage = 12;
+    const perPage = 10;
     const pages: Array<typeof specRows> = [];
     for (let i = 0; i < specRows.length; i += perPage) pages.push(specRows.slice(i, i + perPage));
     return pages.length ? pages : [[]];
@@ -1633,7 +1633,7 @@ export default function Cctv() {
                         <tr key={r.key}>
                           <td className="px-4 py-2">{r.no}</td>
                           <td className="px-4 py-2">
-                            <div className="leading-snug line-clamp-2">{r.name}</div>
+                            <div className="leading-snug whitespace-normal break-words">{r.name}</div>
                           </td>
                           <td className="px-4 py-2 text-right">{formatTHB(r.qty)}</td>
                           <td className="px-4 py-2 text-right">{r.unit != null ? formatTHB(Math.round(r.unit)) : "-"}</td>
@@ -1815,7 +1815,7 @@ export default function Cctv() {
                         <tr key={r.key}>
                           <td className="px-4 py-2">{r.no}</td>
                           <td className="px-4 py-2">
-                            <div className="leading-snug line-clamp-2">{r.name}</div>
+                            <div className="leading-snug whitespace-normal break-words">{r.name}</div>
                           </td>
                           <td className="px-4 py-2 text-right">{formatTHB(r.qty)}</td>
                           <td className="px-4 py-2 text-right">{r.unit != null ? formatTHB(Math.round(r.unit)) : "-"}</td>
