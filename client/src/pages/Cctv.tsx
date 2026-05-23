@@ -24,6 +24,8 @@ type CameraLine = {
   qty: number;
 };
 
+type DownloadStatus = "idle" | "generating" | "done" | "error";
+
 function formatTHB(value: number) {
   return new Intl.NumberFormat("th-TH").format(value);
 }
@@ -95,6 +97,7 @@ export default function Cctv() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
   const [customerError, setCustomerError] = useState<string | null>(null);
+  const [customerFieldErrors, setCustomerFieldErrors] = useState<Record<string, string>>({});
 
   const [companyName, setCompanyName] = useState("");
   const [companyTaxId, setCompanyTaxId] = useState("");
@@ -104,11 +107,14 @@ export default function Cctv() {
   const [companyContactName, setCompanyContactName] = useState("");
   const [companyContactPhone, setCompanyContactPhone] = useState("");
   const [companyLineId, setCompanyLineId] = useState("");
+  const [siteSameAsCompany, setSiteSameAsCompany] = useState(false);
   const [siteAddress, setSiteAddress] = useState("");
 
   const customerSectionRef = useRef<HTMLDivElement | null>(null);
   const specPdfRef = useRef<HTMLDivElement | null>(null);
   const quotePdfRef = useRef<HTMLDivElement | null>(null);
+  const [specDownloadStatus, setSpecDownloadStatus] = useState<DownloadStatus>("idle");
+  const [quoteDownloadStatus, setQuoteDownloadStatus] = useState<DownloadStatus>("idle");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,6 +122,12 @@ export default function Cctv() {
   const [cameraProducts, setCameraProducts] = useState<KstProduct[]>([]);
   const [poeSwitchProducts, setPoeSwitchProducts] = useState<KstProduct[]>([]);
   const [hddProducts, setHddProducts] = useState<KstProduct[]>([]);
+
+  useEffect(() => {
+    if (!siteSameAsCompany) return;
+    const v = [companyAddress.trim(), companyPostcode.trim()].filter(Boolean).join(" ");
+    setSiteAddress(v);
+  }, [siteSameAsCompany, companyAddress, companyPostcode]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -487,28 +499,35 @@ export default function Cctv() {
 
   const validateCustomer = () => {
     setCustomerError(null);
+    setCustomerFieldErrors({});
 
     if (customerType === "personal") {
-      if (!customerName.trim() || !customerPhone.trim() || !customerAddress.trim()) {
-        setCustomerError("กรุณากรอกข้อมูลลูกค้า (บุคคลธรรมดา) ให้ครบ");
+      const errors: Record<string, string> = {};
+      if (!customerName.trim()) errors.customerName = "กรุณากรอกชื่อลูกค้า";
+      if (!customerPhone.trim()) errors.customerPhone = "กรุณากรอกเบอร์โทร";
+      if (!customerAddress.trim()) errors.customerAddress = "กรุณากรอกที่อยู่";
+      if (Object.keys(errors).length) {
+        setCustomerError("กรุณากรอกข้อมูลลูกค้าให้ครบ");
+        setCustomerFieldErrors(errors);
         customerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         return false;
       }
       return true;
     }
 
-    if (
-      !companyName.trim() ||
-      !companyTaxId.trim() ||
-      !companyBranch.trim() ||
-      !companyAddress.trim() ||
-      !companyPostcode.trim() ||
-      !companyContactName.trim() ||
-      !companyContactPhone.trim() ||
-      !companyLineId.trim() ||
-      !siteAddress.trim()
-    ) {
-      setCustomerError("กรุณากรอกข้อมูลลูกค้า (นิติบุคคล/บริษัท/องค์กร) ให้ครบ");
+    const errors: Record<string, string> = {};
+    if (!companyName.trim()) errors.companyName = "กรุณากรอกชื่อบริษัท/นิติบุคคล";
+    if (!companyTaxId.trim()) errors.companyTaxId = "กรุณากรอกเลขที่ผู้เสียภาษี";
+    if (!companyBranch.trim()) errors.companyBranch = "กรุณากรอกสาขา";
+    if (!companyAddress.trim()) errors.companyAddress = "กรุณากรอกที่อยู่ (บริษัท)";
+    if (!companyPostcode.trim()) errors.companyPostcode = "กรุณากรอกรหัสไปรษณีย์";
+    if (!companyContactName.trim()) errors.companyContactName = "กรุณากรอกผู้ติดต่อ";
+    if (!companyContactPhone.trim()) errors.companyContactPhone = "กรุณากรอกเบอร์โทร";
+    if (!companyLineId.trim()) errors.companyLineId = "กรุณากรอกไอดีไลน์";
+    if (!siteAddress.trim()) errors.siteAddress = "กรุณากรอกที่อยู่ (หน้างาน)";
+    if (Object.keys(errors).length) {
+      setCustomerError("กรุณากรอกข้อมูลลูกค้าให้ครบ");
+      setCustomerFieldErrors(errors);
       customerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       return false;
     }
@@ -519,52 +538,88 @@ export default function Cctv() {
     if (!validateCustomer()) return;
     if (!specPdfRef.current) return;
 
-    const fontReady = (document as unknown as { fonts?: { ready?: Promise<unknown> } }).fonts?.ready;
-    if (fontReady) await fontReady;
+    const fileName = `cctv-spec-${new Date().toISOString().slice(0, 10)}.pdf`;
+    setSpecDownloadStatus("generating");
+    const w = window.open("", "_blank");
+    if (w) w.document.body.innerHTML = "<div style='font-family: Sarabun, Tahoma, Arial, sans-serif; padding:16px;'>กำลังสร้างไฟล์ PDF...</div>";
 
-    const pages = Array.from(specPdfRef.current.querySelectorAll<HTMLElement>('[data-spec-page="true"]'));
-    if (!pages.length) return;
+    try {
+      const fontReady = (document as unknown as { fonts?: { ready?: Promise<unknown> } }).fonts?.ready;
+      if (fontReady) await fontReady;
 
-    const pdf = new jsPDF("p", "mm", "a4");
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
+      const pages = Array.from(specPdfRef.current.querySelectorAll<HTMLElement>('[data-spec-page="true"]'));
+      if (!pages.length) return;
 
-    for (let i = 0; i < pages.length; i += 1) {
-      const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-      const imgData = canvas.toDataURL("image/png");
-      const imgWidth = pageWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-      if (i < pages.length - 1) pdf.addPage();
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+
+      for (let i = 0; i < pages.length; i += 1) {
+        const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+        const imgData = canvas.toDataURL("image/png");
+        const imgWidth = pageWidth;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+        if (i < pages.length - 1) pdf.addPage();
+      }
+
+      const blob = pdf.output("blob");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      if (w) w.location.href = url;
+      else window.open(url, "_blank");
+      window.setTimeout(() => URL.revokeObjectURL(url), 120000);
+      setSpecDownloadStatus("done");
+    } catch {
+      if (w) w.close();
+      setSpecDownloadStatus("error");
     }
-
-    pdf.save(`cctv-spec-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   const downloadQuotePdf = async () => {
     if (!validateCustomer()) return;
     if (!quotePdfRef.current) return;
 
-    const fontReady = (document as unknown as { fonts?: { ready?: Promise<unknown> } }).fonts?.ready;
-    if (fontReady) await fontReady;
+    const fileName = `cctv-quote-${new Date().toISOString().slice(0, 10)}.pdf`;
+    setQuoteDownloadStatus("generating");
+    const w = window.open("", "_blank");
+    if (w) w.document.body.innerHTML = "<div style='font-family: Sarabun, Tahoma, Arial, sans-serif; padding:16px;'>กำลังสร้างไฟล์ PDF...</div>";
 
-    const pages = Array.from(quotePdfRef.current.querySelectorAll<HTMLElement>('[data-quote-page="true"]'));
-    if (!pages.length) return;
+    try {
+      const fontReady = (document as unknown as { fonts?: { ready?: Promise<unknown> } }).fonts?.ready;
+      if (fontReady) await fontReady;
 
-    const pdf = new jsPDF("p", "mm", "a4");
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
+      const pages = Array.from(quotePdfRef.current.querySelectorAll<HTMLElement>('[data-quote-page="true"]'));
+      if (!pages.length) return;
 
-    for (let i = 0; i < pages.length; i += 1) {
-      const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-      const imgData = canvas.toDataURL("image/png");
-      const imgWidth = pageWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-      if (i < pages.length - 1) pdf.addPage();
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+
+      for (let i = 0; i < pages.length; i += 1) {
+        const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+        const imgData = canvas.toDataURL("image/png");
+        const imgWidth = pageWidth;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+        if (i < pages.length - 1) pdf.addPage();
+      }
+
+      const blob = pdf.output("blob");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      if (w) w.location.href = url;
+      else window.open(url, "_blank");
+      window.setTimeout(() => URL.revokeObjectURL(url), 120000);
+      setQuoteDownloadStatus("done");
+    } catch {
+      if (w) w.close();
+      setQuoteDownloadStatus("error");
     }
-
-    pdf.save(`cctv-quote-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   return (
@@ -773,27 +828,57 @@ export default function Cctv() {
                     <div className="grid gap-1.5">
                       <label className="text-xs text-[#656d76]">ชื่อลูกค้า</label>
                       <input
+                        data-field="customerName"
                         value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                        onChange={(e) => {
+                          setCustomerName(e.target.value);
+                          if (customerFieldErrors.customerName) setCustomerFieldErrors((p) => ({ ...p, customerName: "" }));
+                        }}
+                        className={[
+                          "w-full bg-white border rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none transition-all",
+                          customerFieldErrors.customerName
+                            ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                            : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                        ].join(" ")}
                       />
+                      {customerFieldErrors.customerName ? <div className="text-xs text-red-600">{customerFieldErrors.customerName}</div> : null}
                     </div>
                     <div className="grid gap-1.5">
                       <label className="text-xs text-[#656d76]">เบอร์โทร</label>
                       <input
+                        data-field="customerPhone"
                         value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
-                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                        onChange={(e) => {
+                          setCustomerPhone(e.target.value);
+                          if (customerFieldErrors.customerPhone) setCustomerFieldErrors((p) => ({ ...p, customerPhone: "" }));
+                        }}
+                        className={[
+                          "w-full bg-white border rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none transition-all",
+                          customerFieldErrors.customerPhone
+                            ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                            : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                        ].join(" ")}
                       />
+                      {customerFieldErrors.customerPhone ? <div className="text-xs text-red-600">{customerFieldErrors.customerPhone}</div> : null}
                     </div>
                     <div className="grid gap-1.5">
                       <label className="text-xs text-[#656d76]">ที่อยู่</label>
                       <textarea
                         rows={2}
+                        data-field="customerAddress"
                         value={customerAddress}
-                        onChange={(e) => setCustomerAddress(e.target.value)}
-                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none"
+                        onChange={(e) => {
+                          setCustomerAddress(e.target.value);
+                          if (customerFieldErrors.customerAddress) setCustomerFieldErrors((p) => ({ ...p, customerAddress: "" }));
+                        }}
+                        className={[
+                          "w-full bg-white border rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none transition-all resize-none",
+                          customerFieldErrors.customerAddress
+                            ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                            : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                        ].join(" ")}
                       />
+                      {customerFieldErrors.customerAddress ? <div className="text-xs text-red-600">{customerFieldErrors.customerAddress}</div> : null}
                     </div>
                   </div>
                 ) : (
@@ -801,78 +886,181 @@ export default function Cctv() {
                     <div className="grid gap-1.5">
                       <label className="text-xs text-[#656d76]">ชื่อบริษัท/นิติบุคคล</label>
                       <input
+                        data-field="companyName"
                         value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                        onChange={(e) => {
+                          setCompanyName(e.target.value);
+                          if (customerFieldErrors.companyName) setCustomerFieldErrors((p) => ({ ...p, companyName: "" }));
+                        }}
+                        className={[
+                          "w-full bg-white border rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none transition-all",
+                          customerFieldErrors.companyName
+                            ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                            : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                        ].join(" ")}
                       />
+                      {customerFieldErrors.companyName ? <div className="text-xs text-red-600">{customerFieldErrors.companyName}</div> : null}
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="grid gap-1.5">
                         <label className="text-xs text-[#656d76]">เลขที่ผู้เสียภาษี</label>
                         <input
+                          data-field="companyTaxId"
                           value={companyTaxId}
-                          onChange={(e) => setCompanyTaxId(e.target.value)}
-                          className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                          onChange={(e) => {
+                            setCompanyTaxId(e.target.value);
+                            if (customerFieldErrors.companyTaxId) setCustomerFieldErrors((p) => ({ ...p, companyTaxId: "" }));
+                          }}
+                          className={[
+                            "w-full bg-white border rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none transition-all",
+                            customerFieldErrors.companyTaxId
+                              ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                              : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                          ].join(" ")}
                         />
+                        {customerFieldErrors.companyTaxId ? <div className="text-xs text-red-600">{customerFieldErrors.companyTaxId}</div> : null}
                       </div>
                       <div className="grid gap-1.5">
                         <label className="text-xs text-[#656d76]">สาขา</label>
                         <input
+                          data-field="companyBranch"
                           value={companyBranch}
-                          onChange={(e) => setCompanyBranch(e.target.value)}
-                          className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                          onChange={(e) => {
+                            setCompanyBranch(e.target.value);
+                            if (customerFieldErrors.companyBranch) setCustomerFieldErrors((p) => ({ ...p, companyBranch: "" }));
+                          }}
+                          className={[
+                            "w-full bg-white border rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none transition-all",
+                            customerFieldErrors.companyBranch
+                              ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                              : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                          ].join(" ")}
                         />
+                        {customerFieldErrors.companyBranch ? <div className="text-xs text-red-600">{customerFieldErrors.companyBranch}</div> : null}
                       </div>
                     </div>
                     <div className="grid gap-1.5">
                       <label className="text-xs text-[#656d76]">ที่อยู่ (บริษัท)</label>
                       <textarea
                         rows={2}
+                        data-field="companyAddress"
                         value={companyAddress}
-                        onChange={(e) => setCompanyAddress(e.target.value)}
-                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none"
+                        onChange={(e) => {
+                          setCompanyAddress(e.target.value);
+                          if (customerFieldErrors.companyAddress) setCustomerFieldErrors((p) => ({ ...p, companyAddress: "" }));
+                        }}
+                        className={[
+                          "w-full bg-white border rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none transition-all resize-none",
+                          customerFieldErrors.companyAddress
+                            ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                            : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                        ].join(" ")}
                       />
+                      {customerFieldErrors.companyAddress ? <div className="text-xs text-red-600">{customerFieldErrors.companyAddress}</div> : null}
                     </div>
                     <div className="grid gap-1.5">
                       <label className="text-xs text-[#656d76]">รหัสไปรษณีย์</label>
                       <input
+                        data-field="companyPostcode"
                         value={companyPostcode}
-                        onChange={(e) => setCompanyPostcode(e.target.value)}
-                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                        onChange={(e) => {
+                          setCompanyPostcode(e.target.value);
+                          if (customerFieldErrors.companyPostcode) setCustomerFieldErrors((p) => ({ ...p, companyPostcode: "" }));
+                        }}
+                        className={[
+                          "w-full bg-white border rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none transition-all",
+                          customerFieldErrors.companyPostcode
+                            ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                            : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                        ].join(" ")}
                       />
+                      {customerFieldErrors.companyPostcode ? <div className="text-xs text-red-600">{customerFieldErrors.companyPostcode}</div> : null}
                     </div>
                     <div className="grid gap-1.5">
                       <label className="text-xs text-[#656d76]">ผู้ติดต่อ (ลูกค้า)</label>
                       <input
+                        data-field="companyContactName"
                         value={companyContactName}
-                        onChange={(e) => setCompanyContactName(e.target.value)}
-                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                        onChange={(e) => {
+                          setCompanyContactName(e.target.value);
+                          if (customerFieldErrors.companyContactName) setCustomerFieldErrors((p) => ({ ...p, companyContactName: "" }));
+                        }}
+                        className={[
+                          "w-full bg-white border rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none transition-all",
+                          customerFieldErrors.companyContactName
+                            ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                            : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                        ].join(" ")}
                       />
+                      {customerFieldErrors.companyContactName ? <div className="text-xs text-red-600">{customerFieldErrors.companyContactName}</div> : null}
                     </div>
                     <div className="grid gap-1.5">
                       <label className="text-xs text-[#656d76]">เบอร์โทร</label>
                       <input
+                        data-field="companyContactPhone"
                         value={companyContactPhone}
-                        onChange={(e) => setCompanyContactPhone(e.target.value)}
-                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                        onChange={(e) => {
+                          setCompanyContactPhone(e.target.value);
+                          if (customerFieldErrors.companyContactPhone) setCustomerFieldErrors((p) => ({ ...p, companyContactPhone: "" }));
+                        }}
+                        className={[
+                          "w-full bg-white border rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none transition-all",
+                          customerFieldErrors.companyContactPhone
+                            ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                            : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                        ].join(" ")}
                       />
+                      {customerFieldErrors.companyContactPhone ? <div className="text-xs text-red-600">{customerFieldErrors.companyContactPhone}</div> : null}
                     </div>
                     <div className="grid gap-1.5">
                       <label className="text-xs text-[#656d76]">ไอดีไลน์</label>
                       <input
+                        data-field="companyLineId"
                         value={companyLineId}
-                        onChange={(e) => setCompanyLineId(e.target.value)}
-                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                        onChange={(e) => {
+                          setCompanyLineId(e.target.value);
+                          if (customerFieldErrors.companyLineId) setCustomerFieldErrors((p) => ({ ...p, companyLineId: "" }));
+                        }}
+                        className={[
+                          "w-full bg-white border rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none transition-all",
+                          customerFieldErrors.companyLineId
+                            ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                            : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                        ].join(" ")}
                       />
+                      {customerFieldErrors.companyLineId ? <div className="text-xs text-red-600">{customerFieldErrors.companyLineId}</div> : null}
                     </div>
                     <div className="grid gap-1.5">
                       <label className="text-xs text-[#656d76]">ที่อยู่ (หน้างาน)</label>
+                      <label className="flex items-center gap-2 text-xs text-[#1f2328]">
+                        <input
+                          type="checkbox"
+                          className="accent-[#0969da]"
+                          checked={siteSameAsCompany}
+                          onChange={(e) => {
+                            setSiteSameAsCompany(e.target.checked);
+                            if (customerFieldErrors.siteAddress) setCustomerFieldErrors((p) => ({ ...p, siteAddress: "" }));
+                          }}
+                        />
+                        ที่อยู่หน้างานเหมือนที่อยู่บริษัท
+                      </label>
                       <textarea
                         rows={2}
+                        data-field="siteAddress"
                         value={siteAddress}
-                        onChange={(e) => setSiteAddress(e.target.value)}
-                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none"
+                        onChange={(e) => {
+                          setSiteAddress(e.target.value);
+                          if (customerFieldErrors.siteAddress) setCustomerFieldErrors((p) => ({ ...p, siteAddress: "" }));
+                        }}
+                        disabled={siteSameAsCompany}
+                        className={[
+                          "w-full bg-white border rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none transition-all resize-none disabled:opacity-60",
+                          customerFieldErrors.siteAddress
+                            ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                            : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                        ].join(" ")}
                       />
+                      {customerFieldErrors.siteAddress ? <div className="text-xs text-red-600">{customerFieldErrors.siteAddress}</div> : null}
                     </div>
                   </div>
                 )}
@@ -889,17 +1077,31 @@ export default function Cctv() {
               <button
                 type="button"
                 onClick={downloadSpecPdf}
-                className="w-full py-3 text-base mt-2 rounded-xl border border-[#0969da] text-[#0969da] hover:bg-[#0969da]/5 transition-all font-semibold"
+                disabled={specDownloadStatus === "generating"}
+                className="w-full py-3 text-base mt-2 rounded-xl border border-[#0969da] text-[#0969da] hover:bg-[#0969da]/5 transition-all font-semibold disabled:opacity-60"
               >
-                ดาวน์โหลดเอกสารสเปค
+                {specDownloadStatus === "generating" ? "กำลังสร้างเอกสารสเปค..." : "ดาวน์โหลดเอกสารสเปค"}
               </button>
               <button
                 type="button"
                 onClick={downloadQuotePdf}
-                className="w-full py-3 text-base mt-2 rounded-xl border border-[#1f2328] text-[#1f2328] hover:bg-[#1f2328]/5 transition-all font-semibold"
+                disabled={quoteDownloadStatus === "generating"}
+                className="w-full py-3 text-base mt-2 rounded-xl border border-[#1f2328] text-[#1f2328] hover:bg-[#1f2328]/5 transition-all font-semibold disabled:opacity-60"
               >
-                ดาวน์โหลดใบเสนอราคา
+                {quoteDownloadStatus === "generating" ? "กำลังสร้างใบเสนอราคา..." : "ดาวน์โหลดใบเสนอราคา"}
               </button>
+              {specDownloadStatus !== "idle" || quoteDownloadStatus !== "idle" ? (
+                <div className="text-xs text-[#656d76] mt-2 grid gap-1">
+                  {specDownloadStatus === "done" ? (
+                    <div>เปิดไฟล์เอกสารสเปคแล้ว (ถ้าบล็อคป๊อปอัพ ให้เปิดไฟล์จากรายการดาวน์โหลด)</div>
+                  ) : null}
+                  {specDownloadStatus === "error" ? <div>สร้างไฟล์เอกสารสเปคไม่สำเร็จ</div> : null}
+                  {quoteDownloadStatus === "done" ? (
+                    <div>เปิดไฟล์ใบเสนอราคาแล้ว (ถ้าบล็อคป๊อปอัพ ให้เปิดไฟล์จากรายการดาวน์โหลด)</div>
+                  ) : null}
+                  {quoteDownloadStatus === "error" ? <div>สร้างไฟล์ใบเสนอราคาไม่สำเร็จ</div> : null}
+                </div>
+              ) : null}
 
               <div className="text-xs text-[#656d76] mt-3">
                 ราคาอาจเปลี่ยนแปลงได้ตามสต็อก/โปรโมชัน
@@ -1889,6 +2091,7 @@ export default function Cctv() {
                 <div>1) ราคานี้เป็นการประเมินเบื้องต้น (อาจเปลี่ยนแปลงตามการสำรวจหน้างานจริง/สต็อก/โปรโมชัน)</div>
                 <div>2) ระยะสายรวม: {formatTHB(Math.round(totals.cableWithExtra))} ม. • ค่าแรง {formatTHB(Math.round(totals.laborRate))} บาท/เมตร</div>
                 <div>3) ราคาสุทธิรวม VAT 7% แล้ว</div>
+                <div>4) เงื่อนไขการชำระเงิน: ชำระค่าสินค้า + ค่าแรงติดตั้ง 100%</div>
               </div>
             </div>
 
