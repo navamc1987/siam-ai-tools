@@ -76,6 +76,8 @@ export default function Cctv() {
   const [nvrPoe, setNvrPoe] = useState<"any" | "poe" | "nonpoe">("any");
   const [selectedNvrUrl, setSelectedNvrUrl] = useState<string>("");
   const [selectedPoeSwitchUrl, setSelectedPoeSwitchUrl] = useState<string>("");
+  const [confirmPoeOpen, setConfirmPoeOpen] = useState(false);
+  const [pendingPoeUrl, setPendingPoeUrl] = useState<string>("");
   const [selectedHddUrl, setSelectedHddUrl] = useState<string>("");
   const [hddQty, setHddQty] = useState<number>(1);
 
@@ -276,6 +278,10 @@ export default function Cctv() {
     () => poeSwitchProducts.find((p) => p.url === selectedPoeSwitchUrl) ?? null,
     [poeSwitchProducts, selectedPoeSwitchUrl]
   );
+  const pendingPoeSwitch = useMemo(
+    () => poeSwitchProducts.find((p) => p.url === pendingPoeUrl) ?? null,
+    [poeSwitchProducts, pendingPoeUrl]
+  );
 
   useEffect(() => {
     if (!selectedHddUrl && hddFiltered.length) setSelectedHddUrl(hddFiltered[0].url);
@@ -300,10 +306,11 @@ export default function Cctv() {
   useEffect(() => {
     if (!showPoeSwitchSection) {
       if (selectedPoeSwitchUrl) setSelectedPoeSwitchUrl("");
+      if (pendingPoeUrl) setPendingPoeUrl("");
+      if (confirmPoeOpen) setConfirmPoeOpen(false);
       return;
     }
-    if (!selectedPoeSwitchUrl && poeSwitchFiltered.length) setSelectedPoeSwitchUrl(poeSwitchFiltered[0].url);
-  }, [showPoeSwitchSection, selectedPoeSwitchUrl, poeSwitchFiltered]);
+  }, [showPoeSwitchSection, selectedPoeSwitchUrl, confirmPoeOpen, pendingPoeUrl]);
 
   const totals = useMemo(() => {
     const cams = Math.max(0, Math.round(totalCameraQty || 0));
@@ -312,7 +319,8 @@ export default function Cctv() {
       return sum + unit * l.qty;
     }, 0);
     const nvrUnitPrice = selectedNvr?.price ? selectedNvr.price + 1000 : 0;
-    const poeSwitchUnitPrice = showPoeSwitchSection && selectedPoeSwitch?.price ? selectedPoeSwitch.price + 300 : 0;
+    const poeSwitchUnitPrice =
+      showPoeSwitchSection && selectedPoeSwitchUrl && selectedPoeSwitch?.price ? selectedPoeSwitch.price + 300 : 0;
     const hddUnitPrice = selectedHdd?.price ? selectedHdd.price + 300 : 0;
 
     const nvrSubtotal = nvrUnitPrice;
@@ -388,7 +396,7 @@ export default function Cctv() {
   let rowNo = cameraRowsForSummary.length;
   const nvrRowNo = rowNo + 1;
   rowNo = nvrRowNo;
-  const poeRowNo = showPoeSwitchSection ? rowNo + 1 : null;
+  const poeRowNo = showPoeSwitchSection && selectedPoeSwitchUrl ? rowNo + 1 : null;
   if (poeRowNo) rowNo = poeRowNo;
   const hddRowNo = rowNo + 1;
   rowNo = hddRowNo;
@@ -424,7 +432,9 @@ export default function Cctv() {
       `เครื่องบันทึก: ${selectedNvr?.name ?? "-"}`,
       needsPoeSwitch
         ? showPoeSwitchSelection
-          ? `PoE Switch: ${selectedPoeSwitch?.name ?? "-"}`
+          ? selectedPoeSwitchUrl
+            ? `PoE Switch: ${selectedPoeSwitch?.name ?? "-"}`
+            : "PoE Switch: ยังไม่ได้เลือก (ต้องซื้อเพิ่ม)"
           : "PoE Switch: ต้องซื้อเพิ่ม (รุ่น NVR ไม่มี PoE)"
         : null,
       `HDD: ${selectedHdd?.name ?? "-"} x ${formatTHB(Math.max(0, Math.round(hddQty || 0)))} ลูก`,
@@ -477,6 +487,34 @@ export default function Cctv() {
       heightLeft -= pageHeight;
     }
     pdf.save(`cctv-estimate-${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
+  const downloadSpecPdf = () => {
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const marginX = 12;
+    const marginTop = 14;
+    const maxWidth = pageWidth - marginX * 2;
+
+    pdf.setFontSize(14);
+    pdf.text("เอกสารสเปคที่เลือก", marginX, marginTop);
+
+    pdf.setFontSize(10);
+    const lines = pdf.splitTextToSize(buildMessage(), maxWidth);
+    let y = marginTop + 8;
+    const lineHeight = 5;
+
+    for (const line of lines) {
+      if (y > pageHeight - 12) {
+        pdf.addPage();
+        y = marginTop;
+      }
+      pdf.text(String(line), marginX, y);
+      y += lineHeight;
+    }
+
+    pdf.save(`cctv-spec-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   const sendEmail = async (e: FormEvent) => {
@@ -620,16 +658,29 @@ export default function Cctv() {
                   {showPoeSwitchSection ? (
                     <div className="grid gap-2">
                       <div className="text-xs text-[#656d76]">PoE Switch</div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
-                          {selectedPoeSwitch?.imageUrl ? (
-                            <img src={selectedPoeSwitch.imageUrl} alt={selectedPoeSwitch.name} className="w-full h-full object-contain bg-white" />
-                          ) : null}
+                      {selectedPoeSwitchUrl ? (
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                            {selectedPoeSwitch?.imageUrl ? (
+                              <img src={selectedPoeSwitch.imageUrl} alt={selectedPoeSwitch.name} className="w-full h-full object-contain bg-white" />
+                            ) : null}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{selectedPoeSwitch?.name ?? "-"}</div>
+                            <div className="mt-1 flex items-center justify-end">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedPoeSwitchUrl("")}
+                                className="text-xs px-2 py-1 rounded-md border border-[#d0d7de] text-[#1f2328] hover:border-[#8c959f] transition-all"
+                              >
+                                เอาออก
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{selectedPoeSwitch?.name ?? "-"}</div>
-                        </div>
-                      </div>
+                      ) : (
+                        <div className="text-xs text-[#656d76]">ยังไม่เพิ่ม PoE Switch</div>
+                      )}
                     </div>
                   ) : null}
 
@@ -661,6 +712,13 @@ export default function Cctv() {
 
               <button type="button" onClick={() => setEstimateOpen(true)} className="btn-blue w-full py-3 text-base mt-6">
                 ส่งให้ทีมประเมิน
+              </button>
+              <button
+                type="button"
+                onClick={downloadSpecPdf}
+                className="w-full py-3 text-base mt-2 rounded-xl border border-[#0969da] text-[#0969da] hover:bg-[#0969da]/5 transition-all font-semibold"
+              >
+                ดาวน์โหลดเอกสารสเปค
               </button>
 
               <div className="text-xs text-[#656d76] mt-3">
@@ -905,14 +963,17 @@ export default function Cctv() {
                 <div className="bg-white border border-[#d0d7de] rounded-2xl p-6 md:p-8">
                   <div className="text-[#1f2328] font-bold">4) PoE Switch (สำหรับ NVR ที่ไม่ PoE)</div>
                   <div className="text-xs text-[#656d76] mt-2">
-                    ระบบจะเพิ่ม PoE Switch เพื่อจ่ายไฟให้กล้องตามจำนวนที่เลือก
+                    ไม่ได้เพิ่มเข้าตะกร้าอัตโนมัติ หากต้องการให้กดเลือกรุ่น แล้วระบบจะถามยืนยันก่อนเพิ่มเข้าตะกร้า
                   </div>
                   <div className="mt-4 grid gap-3">
                     {poeSwitchFiltered.slice(0, 8).map((p) => (
                       <button
                         key={p.url}
                         type="button"
-                        onClick={() => setSelectedPoeSwitchUrl(p.url)}
+                        onClick={() => {
+                          setPendingPoeUrl(p.url);
+                          setConfirmPoeOpen(true);
+                        }}
                         className={[
                           "text-left border rounded-xl p-4 transition-all",
                           selectedPoeSwitchUrl === p.url ? "border-[#0969da] ring-2 ring-[#0969da]/25" : "border-[#d0d7de] hover:border-[#8c959f]",
@@ -1270,6 +1331,51 @@ export default function Cctv() {
           </div>
         </div>
       </section>
+
+      <Dialog open={confirmPoeOpen} onOpenChange={setConfirmPoeOpen}>
+        <DialogContent className="bg-white border border-[#d0d7de] rounded-2xl p-6 sm:p-8 max-w-lg">
+          <DialogTitle className="text-[#1f2328] text-xl font-bold">ยืนยันเพิ่ม PoE Switch</DialogTitle>
+          <DialogDescription className="text-[#656d76] text-sm mt-1">
+            ต้องการเพิ่ม PoE Switch เข้าตะกร้าสินค้าหรือไม่
+          </DialogDescription>
+
+          <div className="mt-4 border border-[#d0d7de] rounded-xl p-4 bg-[#f6f8fa]">
+            <div className="flex items-center gap-3">
+              <div className="w-14 h-14 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                {pendingPoeSwitch?.imageUrl ? (
+                  <img src={pendingPoeSwitch.imageUrl} alt={pendingPoeSwitch.name} className="w-full h-full object-contain bg-white" />
+                ) : null}
+              </div>
+              <div className="min-w-0">
+                <div className="text-[#1f2328] font-bold text-sm leading-snug line-clamp-2">{pendingPoeSwitch?.name ?? "-"}</div>
+                <div className="text-xs text-[#656d76] mt-1">
+                  {pendingPoeSwitch?.price ? `${formatTHB(Math.round(pendingPoeSwitch.price + 300))} บาท` : "ราคาไม่พร้อมใช้งาน"}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-4 flex flex-col sm:flex-row gap-2 sm:justify-end">
+            <button
+              type="button"
+              onClick={() => setConfirmPoeOpen(false)}
+              className="px-4 py-2.5 rounded-lg border border-[#d0d7de] text-sm text-[#1f2328] hover:border-[#8c959f] transition-all"
+            >
+              ไม่เพิ่ม
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (pendingPoeUrl) setSelectedPoeSwitchUrl(pendingPoeUrl);
+                setConfirmPoeOpen(false);
+              }}
+              className="btn-blue px-5 py-2.5 text-sm"
+            >
+              เพิ่มเข้าตะกร้า
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={estimateOpen} onOpenChange={setEstimateOpen}>
         <DialogContent className="bg-white border border-[#d0d7de] rounded-2xl p-6 sm:p-8 max-w-2xl">
