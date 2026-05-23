@@ -1,5 +1,6 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import {
   estimateV2Config,
   getLaborPerUnit,
@@ -9,7 +10,10 @@ import {
   type WorkType,
 } from "@/data/estimateV2";
 import { onestockCalculatorCards, type OnestockCalculatorId } from "@/data/onestockCalculators";
-import { useEffect, useMemo, useState } from "react";
+import emailjs from "@emailjs/browser";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 function formatTHB(value: number) {
   return new Intl.NumberFormat("th-TH").format(value);
@@ -78,6 +82,19 @@ export default function Estimate() {
   const [includeWaste, setIncludeWaste] = useState(false);
   const [wasteAreaSqm, setWasteAreaSqm] = useState<number>(0);
 
+  const [estimateOpen, setEstimateOpen] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
+  const [customerMapUrl, setCustomerMapUrl] = useState("");
+  const [customerDriveUrl, setCustomerDriveUrl] = useState("");
+  const [customerNote, setCustomerNote] = useState("");
+  const [sendLoading, setSendLoading] = useState(false);
+  const [sendStatus, setSendStatus] = useState<"idle" | "success" | "error">("idle");
+  const [sendError, setSendError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const pdfRef = useRef<HTMLDivElement | null>(null);
+
   type ConstructionRow = {
     key: string;
     amountPer100Sqm: number;
@@ -103,6 +120,12 @@ export default function Estimate() {
   const [constructionData, setConstructionData] = useState<ConstructionResponse | null>(null);
   const [constructionLoading, setConstructionLoading] = useState(false);
   const [constructionError, setConstructionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!estimateOpen) return;
+    setSendStatus("idle");
+    setSendError(null);
+  }, [estimateOpen]);
 
   const constructionTypeLabel: Record<string, string> = {
     proline: "ฉาบเรียบ-โปรลายน์",
@@ -469,9 +492,17 @@ export default function Estimate() {
 
   const activeCard = onestockCalculatorCards.find((c) => c.id === calculator) ?? onestockCalculatorCards[0];
 
-  const handleContact = () => {
-    const message = [
+  const buildMessage = () => {
+    return [
       "ขอประเมินราคาเบื้องต้น",
+      "",
+      customerName ? `ชื่อลูกค้า: ${customerName}` : null,
+      customerPhone ? `เบอร์โทร: ${customerPhone}` : null,
+      customerAddress ? `ที่อยู่: ${customerAddress}` : null,
+      customerMapUrl ? `ลิงก์แผนที่: ${customerMapUrl}` : null,
+      customerDriveUrl ? `ลิงก์รูป/ไฟล์ (Google Drive): ${customerDriveUrl}` : null,
+      customerNote ? `หมายเหตุ: ${customerNote}` : null,
+      "",
       `ประเภทอาคาร: ${buildingType}`,
       `ความสะดวกในการทำงาน: ${workDifficulty}`,
       "",
@@ -535,8 +566,53 @@ export default function Estimate() {
     ]
       .filter(Boolean)
       .join("\n");
+  };
 
-    window.location.href = `/?prefill=${encodeURIComponent(message)}#contact`;
+  const downloadPdf = async () => {
+    if (!pdfRef.current) return;
+    setSendStatus("idle");
+    setSendError(null);
+    const canvas = await html2canvas(pdfRef.current, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let heightLeft = imgHeight;
+    let position = 0;
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+    while (heightLeft > 2) {
+      position -= pageHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+    pdf.save(`estimate-${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
+  const sendEmail = async (e: FormEvent) => {
+    e.preventDefault();
+    setSendLoading(true);
+    setSendStatus("idle");
+    setSendError(null);
+    try {
+      const serviceId = (import.meta.env.VITE_EMAILJS_SERVICE_ID as string | undefined) ?? "";
+      const templateId = (import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string | undefined) ?? "";
+      const publicKey = (import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string | undefined) ?? "";
+      if (!serviceId || !templateId || !publicKey) throw new Error("ระบบอีเมลยังไม่ถูกตั้งค่า");
+      if (!formRef.current) throw new Error("ไม่พบฟอร์ม");
+
+      await emailjs.sendForm(serviceId, templateId, formRef.current, { publicKey });
+      setSendStatus("success");
+      setEstimateOpen(false);
+    } catch (err) {
+      setSendStatus("error");
+      setSendError(err instanceof Error ? err.message : "ส่งอีเมลไม่สำเร็จ");
+    } finally {
+      setSendLoading(false);
+    }
   };
 
   return (
@@ -1263,7 +1339,7 @@ export default function Estimate() {
                           : "0 รายการ"}
                     </div>
                   </div>
-                  <button type="button" onClick={handleContact} className="btn-blue px-6 py-3 text-base whitespace-nowrap">
+                  <button type="button" onClick={() => setEstimateOpen(true)} className="btn-blue px-6 py-3 text-base whitespace-nowrap">
                     ส่งให้ทีมประเมิน
                   </button>
                 </div>
@@ -1627,6 +1703,227 @@ export default function Estimate() {
           </div>
         </div>
       </section>
+
+      <Dialog open={estimateOpen} onOpenChange={setEstimateOpen}>
+        <DialogContent className="bg-white border border-[#d0d7de] rounded-2xl p-6 sm:p-8 max-w-2xl">
+          <DialogTitle className="text-[#1f2328] text-xl font-bold">ส่งให้ทีมประเมิน</DialogTitle>
+          <DialogDescription className="text-[#656d76] text-sm mt-1">
+            กรอกข้อมูลติดต่อ แล้วระบบส่งอีเมลรายละเอียดให้ทีมงาน
+          </DialogDescription>
+
+          {sendStatus === "error" && (
+            <div className="mt-3 text-sm text-red-600 break-words">{sendError ?? "ส่งอีเมลไม่สำเร็จ"}</div>
+          )}
+          {sendStatus === "success" && (
+            <div className="mt-3 text-sm text-green-700 break-words">ส่งอีเมลเรียบร้อยแล้ว</div>
+          )}
+
+          <form className="mt-4 grid gap-4" ref={formRef} onSubmit={sendEmail}>
+            <input type="hidden" name="to_email" value="navamc1987@gmail.com" />
+            <input type="hidden" name="subject" value={`ขอประเมินราคาเบื้องต้น: ${activeCard.title}`} />
+            <textarea name="message" value={buildMessage()} readOnly className="hidden" />
+
+            <div ref={pdfRef} className="border border-[#d0d7de] rounded-xl p-4 bg-white">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-[#1f2328] font-bold">สรุปใบประเมินราคาเบื้องต้น</div>
+                  <div className="text-xs text-[#656d76] mt-1">{new Date().toLocaleString("th-TH")}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-[#656d76]">รวม (ไม่รวม VAT)</div>
+                  <div className="text-[#1f2328] font-bold text-lg">{formatTHB(Math.round(totals.totalExVat))} บาท</div>
+                </div>
+              </div>
+
+              <div className="mt-3 grid gap-1 text-sm">
+                <div className="text-[#1f2328] font-semibold">ข้อมูลลูกค้า</div>
+                <div className="text-[#656d76]">ชื่อลูกค้า: <span className="text-[#1f2328]">{customerName || "-"}</span></div>
+                <div className="text-[#656d76]">เบอร์โทร: <span className="text-[#1f2328]">{customerPhone || "-"}</span></div>
+                {customerAddress ? <div className="text-[#656d76]">ที่อยู่: <span className="text-[#1f2328]">{customerAddress}</span></div> : null}
+                {customerMapUrl ? <div className="text-[#656d76]">แผนที่: <span className="text-[#1f2328] break-all">{customerMapUrl}</span></div> : null}
+              </div>
+
+              <div className="mt-3 grid gap-2">
+                <div className="text-[#1f2328] font-semibold text-sm">รายการสินค้า/สรุปงาน</div>
+                <div className="text-xs text-[#656d76]">{activeCard.title}</div>
+
+                {calculator === "construction" ? (
+                  <div className="grid gap-2">
+                    {(constructionData?.rows ?? []).slice(0, 6).map((row) => (
+                      <div key={row.key} className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                          {row.imageUrl ? (
+                            <img src={row.imageUrl} alt={row.name ?? row.key} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
+                          ) : null}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{row.name ?? row.key}</div>
+                          <div className="text-xs text-[#656d76] mt-0.5">{formatTHB(row.qty)} {row.unit}</div>
+                        </div>
+                      </div>
+                    ))}
+                    {(constructionData?.rows?.length ?? 0) > 6 ? (
+                      <div className="text-xs text-[#656d76]">และอีก {formatTHB((constructionData?.rows?.length ?? 0) - 6)} รายการ</div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {calculator === "paint" && paint ? (
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                      {paint.preset?.imageUrl ? (
+                        <img src={paint.preset.imageUrl} alt={paint.modeLabel} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
+                      ) : null}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{paint.modeLabel}</div>
+                      <div className="text-xs text-[#656d76] mt-0.5">ปริมาณสีรวม {paint.litersWithWaste.toFixed(2)} ลิตร</div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {calculator === "concrete" && concrete ? (
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                      {concrete.preset?.imageUrl ? (
+                        <img src={concrete.preset.imageUrl} alt={concrete.preset.title} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
+                      ) : null}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{concrete.preset?.title ?? "คอนกรีตผสมเสร็จ"}</div>
+                      <div className="text-xs text-[#656d76] mt-0.5">{concrete.volumeWithWaste.toFixed(2)} คิว</div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {calculator === "brick" && brick ? (
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                      {brick.preset?.imageUrl ? (
+                        <img src={brick.preset.imageUrl} alt={brick.preset.title} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
+                      ) : null}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{brick.preset?.title ?? "อิฐก่อผนัง"}</div>
+                      <div className="text-xs text-[#656d76] mt-0.5">{brick.areaWithWaste.toFixed(2)} ตร.ม.</div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {calculator === "metal-sheet" && metal ? (
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                      {metal.preset?.imageUrl ? (
+                        <img src={metal.preset.imageUrl} alt={metal.preset.title} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
+                      ) : null}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{metal.preset?.title ?? "เมทัลชีท"}</div>
+                      <div className="text-xs text-[#656d76] mt-0.5">{metal.areaWithWaste.toFixed(2)} ตร.ม.</div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <label className="text-xs text-[#656d76]">ชื่อลูกค้า</label>
+                <input
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  required
+                  name="customer_name"
+                  className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                />
+              </div>
+              <div className="grid gap-2">
+                <label className="text-xs text-[#656d76]">เบอร์โทร</label>
+                <input
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  required
+                  name="customer_phone"
+                  className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <label className="text-xs text-[#656d76]">ที่อยู่</label>
+              <textarea
+                rows={2}
+                value={customerAddress}
+                onChange={(e) => setCustomerAddress(e.target.value)}
+                name="customer_address"
+                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <label className="text-xs text-[#656d76]">ลิงก์ Google Maps (วางลิงก์แชร์)</label>
+              <input
+                value={customerMapUrl}
+                onChange={(e) => setCustomerMapUrl(e.target.value)}
+                placeholder="https://maps.app.goo.gl/..."
+                name="customer_map_url"
+                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <label className="text-xs text-[#656d76]">ลิงก์รูป/ไฟล์ (Google Drive)</label>
+              <textarea
+                rows={2}
+                value={customerDriveUrl}
+                onChange={(e) => setCustomerDriveUrl(e.target.value)}
+                placeholder="วางลิงก์ Google Drive ที่แชร์แล้ว"
+                name="customer_drive_url"
+                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <label className="text-xs text-[#656d76]">อัปโหลดรูป/ไฟล์ (แนบไปกับอีเมล)</label>
+              <input
+                type="file"
+                name="my_file"
+                multiple
+                accept="image/*,application/pdf"
+                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2 text-[#1f2328] text-sm"
+              />
+              <div className="text-xs text-[#656d76]">รองรับรูปภาพ/PDF (ขนาดไฟล์รวมขึ้นกับข้อจำกัดของบริการอีเมล)</div>
+            </div>
+
+            <div className="grid gap-2">
+              <label className="text-xs text-[#656d76]">หมายเหตุเพิ่มเติม</label>
+              <textarea
+                rows={3}
+                value={customerNote}
+                onChange={(e) => setCustomerNote(e.target.value)}
+                name="customer_note"
+                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none"
+              />
+            </div>
+
+            <DialogFooter className="mt-2 flex flex-col sm:flex-row gap-2 sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setEstimateOpen(false)}
+                className="px-4 py-2.5 rounded-lg border border-[#d0d7de] text-sm text-[#1f2328] hover:border-[#8c959f] transition-all"
+              >
+                ปิด
+              </button>
+              <button type="button" onClick={downloadPdf} className="px-4 py-2.5 rounded-lg border border-[#0969da] text-sm text-[#0969da] hover:bg-[#0969da]/5 transition-all">
+                ดาวน์โหลด PDF
+              </button>
+              <button type="submit" disabled={sendLoading} className="btn-blue px-5 py-2.5 text-sm disabled:opacity-60">
+                {sendLoading ? "กำลังส่ง..." : "ส่งข้อมูลให้ทีมประเมิน"}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Footer />
     </div>

@@ -98,6 +98,8 @@ jspm_packages/
 
 # Temporary folders
 tmp/
+
+scripts/_tmp_onestock_image_query.mjs
 temp/
 
 # Database

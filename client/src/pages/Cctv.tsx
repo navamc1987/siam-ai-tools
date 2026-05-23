@@ -2,7 +2,10 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { kstCctvSources, type KstBrand } from "@/data/kstCctvSources";
-import { useEffect, useMemo, useState } from "react";
+import emailjs from "@emailjs/browser";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 type KstProduct = {
   id: string;
@@ -93,6 +96,11 @@ export default function Cctv() {
   const [customerMapUrl, setCustomerMapUrl] = useState("");
   const [customerDriveUrl, setCustomerDriveUrl] = useState("");
   const [customerNote, setCustomerNote] = useState("");
+  const [sendLoading, setSendLoading] = useState(false);
+  const [sendStatus, setSendStatus] = useState<"idle" | "success" | "error">("idle");
+  const [sendError, setSendError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const pdfRef = useRef<HTMLDivElement | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -100,6 +108,12 @@ export default function Cctv() {
   const [cameraProducts, setCameraProducts] = useState<KstProduct[]>([]);
   const [poeSwitchProducts, setPoeSwitchProducts] = useState<KstProduct[]>([]);
   const [hddProducts, setHddProducts] = useState<KstProduct[]>([]);
+
+  useEffect(() => {
+    if (!estimateOpen) return;
+    setSendStatus("idle");
+    setSendError(null);
+  }, [estimateOpen]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -384,13 +398,13 @@ export default function Cctv() {
   if (supportRowNo) rowNo = supportRowNo;
   const rackRowNo = (totals.rackTotal || 0) > 0 ? rowNo + 1 : null;
 
-  const handleContact = () => {
+  const buildMessage = () => {
     const brandLabel =
       brand === "hikvision" ? "Hikvision" : brand === "dahua" ? "Dahua" : "Uniview";
     const cameraLinesText = selectedCameras.length
       ? ["กล้อง:", ...selectedCameras.map((l) => `- ${l.product?.name ?? "-"} x ${formatTHB(l.qty)} ตัว`)].join("\n")
       : "กล้อง: -";
-    const message = [
+    return [
       "ขอจัดสเปค/ประเมินกล้องวงจรปิด",
       "",
       customerName ? `ชื่อลูกค้า: ${customerName}` : null,
@@ -439,9 +453,53 @@ export default function Cctv() {
     ]
       .filter(Boolean)
       .join("\n");
+  };
 
-    setEstimateOpen(false);
-    window.location.href = `/?prefill=${encodeURIComponent(message)}#contact`;
+  const downloadPdf = async () => {
+    if (!pdfRef.current) return;
+    setSendStatus("idle");
+    setSendError(null);
+    const canvas = await html2canvas(pdfRef.current, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let heightLeft = imgHeight;
+    let position = 0;
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+    while (heightLeft > 2) {
+      position -= pageHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+    pdf.save(`cctv-estimate-${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
+  const sendEmail = async (e: FormEvent) => {
+    e.preventDefault();
+    setSendLoading(true);
+    setSendStatus("idle");
+    setSendError(null);
+    try {
+      const serviceId = (import.meta.env.VITE_EMAILJS_SERVICE_ID as string | undefined) ?? "";
+      const templateId = (import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string | undefined) ?? "";
+      const publicKey = (import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string | undefined) ?? "";
+      if (!serviceId || !templateId || !publicKey) throw new Error("ระบบอีเมลยังไม่ถูกตั้งค่า");
+      if (!formRef.current) throw new Error("ไม่พบฟอร์ม");
+
+      await emailjs.sendForm(serviceId, templateId, formRef.current, { publicKey });
+      setSendStatus("success");
+      setEstimateOpen(false);
+    } catch (err) {
+      setSendStatus("error");
+      setSendError(err instanceof Error ? err.message : "ส่งอีเมลไม่สำเร็จ");
+    } finally {
+      setSendLoading(false);
+    }
   };
 
   return (
@@ -1179,6 +1237,13 @@ export default function Cctv() {
             กรอกข้อมูลหน้างานเพื่อให้ทีมงานติดต่อกลับและยืนยันสเปค
           </DialogDescription>
 
+          {sendStatus === "error" && (
+            <div className="mt-3 text-sm text-red-600 break-words">{sendError ?? "ส่งอีเมลไม่สำเร็จ"}</div>
+          )}
+          {sendStatus === "success" && (
+            <div className="mt-3 text-sm text-green-700 break-words">ส่งอีเมลเรียบร้อยแล้ว</div>
+          )}
+
           <div className="mt-4 border border-[#d0d7de] rounded-xl bg-[#f6f8fa] p-4 text-sm">
             <div className="text-[#1f2328] font-bold">วิธีการสั่งซื้อ</div>
             <div className="text-[#656d76] mt-2 leading-relaxed">
@@ -1188,11 +1253,97 @@ export default function Cctv() {
 
           <form
             className="mt-4 grid gap-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleContact();
-            }}
+            ref={formRef}
+            onSubmit={sendEmail}
           >
+            <input type="hidden" name="to_email" value="navamc1987@gmail.com" />
+            <input type="hidden" name="subject" value="ขอประเมินกล้องวงจรปิด" />
+            <textarea name="message" value={buildMessage()} readOnly className="hidden" />
+
+            <div ref={pdfRef} className="border border-[#d0d7de] rounded-xl p-4 bg-white">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-[#1f2328] font-bold">สรุปใบประเมินราคาเบื้องต้น</div>
+                  <div className="text-xs text-[#656d76] mt-1">{new Date().toLocaleString("th-TH")}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-[#656d76]">รวมสุทธิ</div>
+                  <div className="text-[#1f2328] font-bold text-lg">{formatTHB(Math.round(totals.totalWithVat))} บาท</div>
+                </div>
+              </div>
+
+              <div className="mt-3 grid gap-1 text-sm">
+                <div className="text-[#1f2328] font-semibold">ข้อมูลลูกค้า</div>
+                <div className="text-[#656d76]">ชื่อลูกค้า: <span className="text-[#1f2328]">{customerName || "-"}</span></div>
+                <div className="text-[#656d76]">เบอร์โทร: <span className="text-[#1f2328]">{customerPhone || "-"}</span></div>
+                {customerAddress ? <div className="text-[#656d76]">ที่อยู่: <span className="text-[#1f2328]">{customerAddress}</span></div> : null}
+                {customerMapUrl ? <div className="text-[#656d76]">แผนที่: <span className="text-[#1f2328] break-all">{customerMapUrl}</span></div> : null}
+              </div>
+
+              <div className="mt-3 grid gap-2">
+                <div className="text-[#1f2328] font-semibold text-sm">สินค้า/สเปคที่เลือก</div>
+                <div className="grid gap-2">
+                  {selectedCameras.length ? (
+                    <div className="grid gap-2">
+                      {selectedCameras.slice(0, 4).map((l) => (
+                        <div key={l.url} className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                            {l.product?.imageUrl ? (
+                              <img src={l.product.imageUrl} alt={l.product.name} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
+                            ) : null}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{l.product?.name ?? "-"}</div>
+                            <div className="text-xs text-[#656d76] mt-0.5">x {formatTHB(l.qty)} ตัว</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-[#656d76]">กล้อง: -</div>
+                  )}
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                      {selectedNvr?.imageUrl ? (
+                        <img src={selectedNvr.imageUrl} alt={selectedNvr.name} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
+                      ) : null}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{selectedNvr?.name ?? "-"}</div>
+                      <div className="text-xs text-[#656d76] mt-0.5">NVR</div>
+                    </div>
+                  </div>
+
+                  {showPoeSwitchSection ? (
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                        {selectedPoeSwitch?.imageUrl ? (
+                          <img src={selectedPoeSwitch.imageUrl} alt={selectedPoeSwitch.name} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{selectedPoeSwitch?.name ?? "-"}</div>
+                        <div className="text-xs text-[#656d76] mt-0.5">PoE Switch</div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                      {selectedHdd?.imageUrl ? (
+                        <img src={selectedHdd.imageUrl} alt={selectedHdd.name} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
+                      ) : null}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{selectedHdd?.name ?? "-"}</div>
+                      <div className="text-xs text-[#656d76] mt-0.5">x {formatTHB(Math.max(0, Math.round(hddQty || 0)))} ลูก</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="grid md:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <label className="text-xs text-[#656d76]">ชื่อลูกค้า</label>
@@ -1200,6 +1351,7 @@ export default function Cctv() {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   required
+                  name="customer_name"
                   className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
                 />
               </div>
@@ -1209,6 +1361,7 @@ export default function Cctv() {
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   required
+                  name="customer_phone"
                   className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
                 />
               </div>
@@ -1220,6 +1373,7 @@ export default function Cctv() {
                 rows={2}
                 value={customerAddress}
                 onChange={(e) => setCustomerAddress(e.target.value)}
+                name="customer_address"
                 className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none"
               />
             </div>
@@ -1230,6 +1384,7 @@ export default function Cctv() {
                 value={customerMapUrl}
                 onChange={(e) => setCustomerMapUrl(e.target.value)}
                 placeholder="https://maps.app.goo.gl/..."
+                name="customer_map_url"
                 className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
               />
             </div>
@@ -1241,8 +1396,21 @@ export default function Cctv() {
                 value={customerDriveUrl}
                 onChange={(e) => setCustomerDriveUrl(e.target.value)}
                 placeholder="วางลิงก์ Google Drive ที่แชร์แล้ว"
+                name="customer_drive_url"
                 className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none"
               />
+            </div>
+
+            <div className="grid gap-2">
+              <label className="text-xs text-[#656d76]">อัปโหลดรูป/ไฟล์ (แนบไปกับอีเมล)</label>
+              <input
+                type="file"
+                name="my_file"
+                multiple
+                accept="image/*,application/pdf"
+                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2 text-[#1f2328] text-sm"
+              />
+              <div className="text-xs text-[#656d76]">รองรับรูปภาพ/PDF (ขนาดไฟล์รวมขึ้นกับข้อจำกัดของบริการอีเมล)</div>
             </div>
 
             <div className="grid gap-2">
@@ -1251,6 +1419,7 @@ export default function Cctv() {
                 rows={3}
                 value={customerNote}
                 onChange={(e) => setCustomerNote(e.target.value)}
+                name="customer_note"
                 className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none"
               />
             </div>
@@ -1263,8 +1432,11 @@ export default function Cctv() {
               >
                 ปิด
               </button>
-              <button type="submit" className="btn-blue px-5 py-2.5 text-sm">
-                ส่งข้อมูลให้ทีมประเมิน
+              <button type="button" onClick={downloadPdf} className="px-4 py-2.5 rounded-lg border border-[#0969da] text-sm text-[#0969da] hover:bg-[#0969da]/5 transition-all">
+                ดาวน์โหลด PDF
+              </button>
+              <button type="submit" disabled={sendLoading} className="btn-blue px-5 py-2.5 text-sm disabled:opacity-60">
+                {sendLoading ? "กำลังส่ง..." : "ส่งข้อมูลให้ทีมประเมิน"}
               </button>
             </DialogFooter>
           </form>
