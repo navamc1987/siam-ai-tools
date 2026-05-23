@@ -103,6 +103,7 @@ export default function Cctv() {
   const [sendError, setSendError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
   const pdfRef = useRef<HTMLDivElement | null>(null);
+  const specPdfRef = useRef<HTMLDivElement | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -489,31 +490,26 @@ export default function Cctv() {
     pdf.save(`cctv-estimate-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
-  const downloadSpecPdf = () => {
+  const downloadSpecPdf = async () => {
+    if (!specPdfRef.current) return;
+
+    const canvas = await html2canvas(specPdfRef.current, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+    const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF("p", "mm", "a4");
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const marginX = 12;
-    const marginTop = 14;
-    const maxWidth = pageWidth - marginX * 2;
-
-    pdf.setFontSize(14);
-    pdf.text("เอกสารสเปคที่เลือก", marginX, marginTop);
-
-    pdf.setFontSize(10);
-    const lines = pdf.splitTextToSize(buildMessage(), maxWidth);
-    let y = marginTop + 8;
-    const lineHeight = 5;
-
-    for (const line of lines) {
-      if (y > pageHeight - 12) {
-        pdf.addPage();
-        y = marginTop;
-      }
-      pdf.text(String(line), marginX, y);
-      y += lineHeight;
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let heightLeft = imgHeight;
+    let position = 0;
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+    while (heightLeft > 2) {
+      position -= pageHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
     }
-
     pdf.save(`cctv-spec-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
@@ -1589,6 +1585,169 @@ export default function Cctv() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <div className="fixed left-[-99999px] top-0">
+        <div
+          ref={specPdfRef}
+          className="w-[794px] bg-white p-10 text-[#111827]"
+          style={{ fontFamily: "Tahoma, Arial, sans-serif" }}
+        >
+          <div className="flex items-start justify-between gap-6">
+            <div>
+              <div className="text-sm font-bold tracking-wide text-[#111827]">ห้างหุ้นส่วนจำกัด สยาม เอไอ ทูลส์</div>
+              <div className="text-xs text-[#6b7280] mt-1">เอกสารสเปคกล้องวงจรปิด (เบื้องต้น)</div>
+              <div className="text-xs text-[#6b7280] mt-1">{new Date().toLocaleString("th-TH")}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-[#6b7280]">รวมสุทธิ (รวม VAT 7%)</div>
+              <div className="text-xl font-bold text-[#111827]">{formatTHB(Math.round(totals.totalWithVat))} บาท</div>
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
+            <div className="border border-[#e5e7eb] rounded-lg p-4">
+              <div className="font-bold text-[#111827]">ข้อมูลลูกค้า</div>
+              <div className="mt-2 grid gap-1 text-[#374151]">
+                <div>ชื่อลูกค้า: {customerName || "-"}</div>
+                <div>เบอร์โทร: {customerPhone || "-"}</div>
+                <div>ที่อยู่: {customerAddress || "-"}</div>
+                <div className="break-all">แผนที่: {customerMapUrl || "-"}</div>
+              </div>
+            </div>
+            <div className="border border-[#e5e7eb] rounded-lg p-4">
+              <div className="font-bold text-[#111827]">สรุปสเปค</div>
+              <div className="mt-2 grid gap-1 text-[#374151]">
+                <div>
+                  ยี่ห้อ: {brand === "hikvision" ? "Hikvision" : brand === "dahua" ? "Dahua" : "Uniview"}
+                </div>
+                <div>โหมดกลางคืน: {nightMode === "fullcolor" ? "Full Color" : "IR"}</div>
+                <div>ไมค์: {needMic ? "ต้องการ" : "ไม่จำเป็น"}</div>
+                <div>โต้ตอบ: {needTalk ? "ต้องการ" : "ไม่จำเป็น"}</div>
+                <div>จำนวนกล้องรวม: {formatTHB(totals.cams)} ตัว</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 border border-[#e5e7eb] rounded-lg overflow-hidden">
+            <div className="bg-[#f3f4f6] px-4 py-2 text-sm font-bold text-[#111827]">รายการอุปกรณ์</div>
+            <table className="w-full text-sm">
+              <thead className="bg-white">
+                <tr className="border-b border-[#e5e7eb] text-[#111827]">
+                  <th className="text-left font-bold px-4 py-2">รายการ</th>
+                  <th className="text-right font-bold px-4 py-2 w-[90px]">จำนวน</th>
+                  <th className="text-right font-bold px-4 py-2 w-[130px]">ราคา/หน่วย</th>
+                  <th className="text-right font-bold px-4 py-2 w-[130px]">รวม</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#e5e7eb] text-[#111827]">
+                {selectedCameras.length ? (
+                  selectedCameras.map((l) => {
+                    const unit = l.product?.price ? l.product.price + 300 : 0;
+                    const subtotal = unit * (l.qty || 0);
+                    return (
+                      <tr key={l.url}>
+                        <td className="px-4 py-2">{l.product?.name ?? "-"}</td>
+                        <td className="px-4 py-2 text-right">{formatTHB(l.qty || 0)}</td>
+                        <td className="px-4 py-2 text-right">{unit ? `${formatTHB(Math.round(unit))}` : "-"}</td>
+                        <td className="px-4 py-2 text-right">{subtotal ? `${formatTHB(Math.round(subtotal))}` : "-"}</td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td className="px-4 py-2 text-[#6b7280]" colSpan={4}>
+                      ยังไม่ได้เลือกรุ่นกล้อง
+                    </td>
+                  </tr>
+                )}
+
+                <tr>
+                  <td className="px-4 py-2">{selectedNvr?.name ?? "-"}</td>
+                  <td className="px-4 py-2 text-right">1</td>
+                  <td className="px-4 py-2 text-right">{totals.nvrUnitPrice ? `${formatTHB(Math.round(totals.nvrUnitPrice))}` : "-"}</td>
+                  <td className="px-4 py-2 text-right">{totals.nvrSubtotal ? `${formatTHB(Math.round(totals.nvrSubtotal))}` : "-"}</td>
+                </tr>
+
+                {showPoeSwitchSection && selectedPoeSwitchUrl ? (
+                  <tr>
+                    <td className="px-4 py-2">{selectedPoeSwitch?.name ?? "-"}</td>
+                    <td className="px-4 py-2 text-right">1</td>
+                    <td className="px-4 py-2 text-right">
+                      {totals.poeSwitchUnitPrice ? `${formatTHB(Math.round(totals.poeSwitchUnitPrice))}` : "-"}
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      {totals.poeSwitchSubtotal ? `${formatTHB(Math.round(totals.poeSwitchSubtotal))}` : "-"}
+                    </td>
+                  </tr>
+                ) : null}
+
+                <tr>
+                  <td className="px-4 py-2">{selectedHdd?.name ?? "-"}</td>
+                  <td className="px-4 py-2 text-right">{formatTHB(Math.max(0, Math.round(hddQty || 0)))}</td>
+                  <td className="px-4 py-2 text-right">{totals.hddUnitPrice ? `${formatTHB(Math.round(totals.hddUnitPrice))}` : "-"}</td>
+                  <td className="px-4 py-2 text-right">{totals.hddSubtotal ? `${formatTHB(Math.round(totals.hddSubtotal))}` : "-"}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-6 border border-[#e5e7eb] rounded-lg overflow-hidden">
+            <div className="bg-[#f3f4f6] px-4 py-2 text-sm font-bold text-[#111827]">ค่าแรงและอุปกรณ์หน้างาน</div>
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-[#e5e7eb] text-[#111827]">
+                <tr>
+                  <td className="px-4 py-2">
+                    ค่าแรงติดตั้ง ({formatTHB(Math.round(totals.laborRate))} บาท/เมตร) ระยะสายรวม {formatTHB(Math.round(totals.cableWithExtra))} ม.
+                  </td>
+                  <td className="px-4 py-2 text-right w-[130px]">{formatTHB(Math.round(totals.labor))}</td>
+                </tr>
+                {(totals.supportTotal || 0) > 0 ? (
+                  <tr>
+                    <td className="px-4 py-2">เสา Support ({formatTHB(Math.round(totals.supportUnitCost || 0))} x {formatTHB(Math.round(totals.supportQty || 0))})</td>
+                    <td className="px-4 py-2 text-right">{formatTHB(Math.round(totals.supportTotal || 0))}</td>
+                  </tr>
+                ) : null}
+                {(totals.rackTotal || 0) > 0 ? (
+                  <tr>
+                    <td className="px-4 py-2">ตู้ Rack</td>
+                    <td className="px-4 py-2 text-right">{formatTHB(Math.round(totals.rackTotal || 0))}</td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-6 border border-[#e5e7eb] rounded-lg p-4">
+            <div className="grid gap-2 text-sm">
+              <div className="flex items-center justify-between gap-6">
+                <div className="text-[#374151]">ค่าวัสดุประมาณ</div>
+                <div className="font-bold text-[#111827]">{formatTHB(Math.round(totals.material))} บาท</div>
+              </div>
+              <div className="flex items-center justify-between gap-6">
+                <div className="text-[#374151]">ค่าแรงประมาณ</div>
+                <div className="font-bold text-[#111827]">{formatTHB(Math.round(totals.labor))} บาท</div>
+              </div>
+              <div className="flex items-center justify-between gap-6">
+                <div className="text-[#374151]">รวมก่อน VAT</div>
+                <div className="font-bold text-[#111827]">{formatTHB(Math.round(totals.total))} บาท</div>
+              </div>
+              <div className="flex items-center justify-between gap-6">
+                <div className="text-[#374151]">VAT 7%</div>
+                <div className="font-bold text-[#111827]">{formatTHB(Math.round(totals.vat))} บาท</div>
+              </div>
+              <div className="h-px bg-[#e5e7eb]" />
+              <div className="flex items-center justify-between gap-6">
+                <div className="text-[#111827] font-bold">รวมสุทธิ</div>
+                <div className="font-bold text-[#111827] text-lg">{formatTHB(Math.round(totals.totalWithVat))} บาท</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 text-xs text-[#6b7280] leading-relaxed">
+            ราคาอาจเปลี่ยนแปลงได้ตามสต็อก/โปรโมชัน และอาจมีรายการเพิ่มเติมตามการสำรวจหน้างานจริง
+          </div>
+        </div>
+      </div>
 
       <Footer />
     </div>
