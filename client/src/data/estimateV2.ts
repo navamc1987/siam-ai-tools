@@ -25,6 +25,7 @@ export type MaterialPreset = {
   unit: MaterialUnit;
   unitPriceExVat: number;
   sourceUrl: string;
+  imageUrl?: string;
 };
 
 export type WorkItem = {
@@ -117,6 +118,8 @@ export const materialPresets: MaterialPreset[] = [
     unitPriceExVat: 99.98 / 0.76,
     sourceUrl:
       "https://www.onestockhome.com/th/products/88794114/metal-sheet-imported-760-035-mm-aluzinc-az70_metal-sheet-aluzinc?item_id=68156315",
+    imageUrl:
+      "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=photorealistic%20metal%20sheet%20roof%20panel%20stack%20with%20aluzinc%20finish%2C%20construction%20material%2C%20clean%20studio%20lighting%2C%20sharp%20focus%2C%20high%20detail%2C%20commercial%20product%20photo&image_size=square",
   },
   {
     id: "roof-metal-sheet-040-aluzinc",
@@ -125,6 +128,8 @@ export const materialPresets: MaterialPreset[] = [
     unitPriceExVat: 105.41 / 0.76,
     sourceUrl:
       "https://www.onestockhome.com/th/products/6588808/metal-sheet-imported-760-040-mm-aluzinc-az70_metal-sheet-aluzinc?item_id=11325999",
+    imageUrl:
+      "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=photorealistic%20metal%20sheet%20roof%20panel%20stack%20with%20aluzinc%20finish%2C%20construction%20material%2C%20clean%20studio%20lighting%2C%20sharp%20focus%2C%20high%20detail%2C%20commercial%20product%20photo&image_size=square",
   },
   {
     id: "roof-metal-sheet-047-aluzinc",
@@ -133,6 +138,8 @@ export const materialPresets: MaterialPreset[] = [
     unitPriceExVat: 119.54 / 0.76,
     sourceUrl:
       "https://www.onestockhome.com/th/products/94503462/metal-sheet-imported-760-047-mm-aluzinc-az70_metal-sheet-standard-profile?item_id=12146165",
+    imageUrl:
+      "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=photorealistic%20metal%20sheet%20roof%20panel%20stack%20with%20aluzinc%20finish%2C%20construction%20material%2C%20clean%20studio%20lighting%2C%20sharp%20focus%2C%20high%20detail%2C%20commercial%20product%20photo&image_size=square",
   },
   {
     id: "roof-metal-sheet-050-aluzinc",
@@ -141,6 +148,8 @@ export const materialPresets: MaterialPreset[] = [
     unitPriceExVat: 177.57 / 0.76,
     sourceUrl:
       "https://www.onestockhome.com/th/products/13764186/metal-sheet-imported-760-05-mm-aluzinc-az70_metal-sheet-standard-profile?item_id=35767066",
+    imageUrl:
+      "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=photorealistic%20metal%20sheet%20roof%20panel%20stack%20with%20aluzinc%20finish%2C%20construction%20material%2C%20clean%20studio%20lighting%2C%20sharp%20focus%2C%20high%20detail%2C%20commercial%20product%20photo&image_size=square",
   },
   {
     id: "system-plumbing-basic",
@@ -183,6 +192,8 @@ export const materialPresets: MaterialPreset[] = [
     unit: "sqm",
     unitPriceExVat: 95,
     sourceUrl: "https://www.onestockhome.com/th/product_categories/paints",
+    imageUrl:
+      "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=photorealistic%20paint%20bucket%20with%20roller%20on%20clean%20white%20background%2C%20studio%20product%20photo%2C%20sharp%20focus%2C%20high%20detail%2C%20soft%20shadow%2C%2035mm%2C%20commercial%20product%20photography&image_size=square",
   },
   {
     id: "paint-exterior-basic",
@@ -190,6 +201,8 @@ export const materialPresets: MaterialPreset[] = [
     unit: "sqm",
     unitPriceExVat: 135,
     sourceUrl: "https://www.onestockhome.com/th/product_categories/paints",
+    imageUrl:
+      "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=photorealistic%20paint%20bucket%20with%20roller%20on%20clean%20white%20background%2C%20studio%20product%20photo%2C%20sharp%20focus%2C%20high%20detail%2C%20soft%20shadow%2C%2035mm%2C%20commercial%20product%20photography&image_size=square",
   },
   {
     id: "concrete-ready-mix-180",
@@ -197,6 +210,8 @@ export const materialPresets: MaterialPreset[] = [
     unit: "m3",
     unitPriceExVat: 2150,
     sourceUrl: "https://www.onestockhome.com/th/product_categories/cement",
+    imageUrl:
+      "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=photorealistic%20ready%20mix%20concrete%20truck%20pouring%20concrete%20into%20a%20formwork%20at%20a%20construction%20site%2C%20daylight%2C%20sharp%20focus%2C%20high%20detail%2C%20professional%20commercial%20photo&image_size=square",
   },
   {
     id: "concrete-ready-mix-210",
@@ -204,6 +219,8 @@ export const materialPresets: MaterialPreset[] = [
     unit: "m3",
     unitPriceExVat: 2250,
     sourceUrl: "https://www.onestockhome.com/th/product_categories/cement",
+    imageUrl:
+      "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=photorealistic%20ready%20mix%20concrete%20truck%20pouring%20concrete%20into%20a%20formwork%20at%20a%20construction%20site%2C%20daylight%2C%20sharp%20focus%2C%20high%20detail%2C%20professional%20commercial%20photo&image_size=square",
   },
   {
     id: "concrete-ready-mix-240",
@@ -211,6 +228,8 @@ export const materialPresets: MaterialPreset[] = [
     unit: "m3",
     unitPriceExVat: 2350,
     sourceUrl: "https://www.onestockhome.com/th/product_categories/cement",
+    imageUrl:
+      "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=photorealistic%20ready%20mix%20concrete%20truck%20pouring%20concrete%20into%20a%20formwork%20at%20a%20construction%20site%2C%20daylight%2C%20sharp%20focus%2C%20high%20detail%2C%20professional%20commercial%20photo&image_size=square",
   },
   {
     id: "concrete-ready-mix-280",
@@ -218,6 +237,8 @@ export const materialPresets: MaterialPreset[] = [
     unit: "m3",
     unitPriceExVat: 2550,
     sourceUrl: "https://www.onestockhome.com/th/product_categories/cement",
+    imageUrl:
+      "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=photorealistic%20ready%20mix%20concrete%20truck%20pouring%20concrete%20into%20a%20formwork%20at%20a%20construction%20site%2C%20daylight%2C%20sharp%20focus%2C%20high%20detail%2C%20professional%20commercial%20photo&image_size=square",
   },
   {
     id: "wall-qcon-brick-10cm",
@@ -226,6 +247,8 @@ export const materialPresets: MaterialPreset[] = [
     unitPriceExVat: 29.7 * 8.33,
     sourceUrl:
       "https://www.onestockhome.com/th/products/44313027/q-con-light-weight-brick-g2-20x60x10-cm_light-weight-brick_q-con?item_id=19939112",
+    imageUrl:
+      "https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=photorealistic%20stack%20of%20lightweight%20aerated%20concrete%20blocks%20on%20a%20pallet%2C%20construction%20materials%2C%20clean%20studio%20lighting%2C%20sharp%20focus%2C%20high%20detail%2C%20commercial%20product%20photo&image_size=square",
   },
   {
     id: "wall-cement-board-8mm-120x240",

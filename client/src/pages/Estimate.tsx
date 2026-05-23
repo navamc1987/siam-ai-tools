@@ -85,6 +85,7 @@ export default function Estimate() {
     skuOptionDetails?: { sku: string; name: string | null }[];
     selectedSku: string;
     name: string | null;
+    imageUrl: string | null;
     qty: number;
     unit: string;
     unitPrice: number;
@@ -1290,28 +1291,37 @@ export default function Estimate() {
                             <tr key={row.key} className="align-top">
                               <td className="px-4 py-4 text-[#1f2328] font-semibold">{idx + 1})</td>
                               <td className="px-4 py-4">
-                                <div className="text-[#0969da] font-semibold">
-                                  {row.name ?? row.key}
-                                </div>
-                                <div className="mt-2">
-                                  <select
-                                    value={selected}
-                                    onChange={(e) =>
-                                      setSelections((prev) => ({
-                                        ...prev,
-                                        [row.key]: e.target.value,
-                                      }))
-                                    }
-                                    className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                                  >
-                                    {(row.skuOptionDetails?.length ? row.skuOptionDetails : row.skuOptions.map((sku) => ({ sku, name: null }))).map(
-                                      (opt) => (
-                                        <option key={opt.sku} value={opt.sku}>
-                                          {opt.name ? `${opt.sku} — ${opt.name}` : opt.sku}
-                                        </option>
-                                      )
-                                    )}
-                                  </select>
+                                <div className="flex items-start gap-3">
+                                  <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                                    {row.imageUrl ? (
+                                      <img src={row.imageUrl} alt={row.name ?? row.key} className="w-full h-full object-contain bg-white" />
+                                    ) : null}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-[#0969da] font-semibold">
+                                      {row.name ?? row.key}
+                                    </div>
+                                    <div className="mt-2">
+                                      <select
+                                        value={selected}
+                                        onChange={(e) =>
+                                          setSelections((prev) => ({
+                                            ...prev,
+                                            [row.key]: e.target.value,
+                                          }))
+                                        }
+                                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                                      >
+                                        {(row.skuOptionDetails?.length ? row.skuOptionDetails : row.skuOptions.map((sku) => ({ sku, name: null }))).map(
+                                          (opt) => (
+                                            <option key={opt.sku} value={opt.sku}>
+                                              {opt.name ? `${opt.sku} — ${opt.name}` : opt.sku}
+                                            </option>
+                                          )
+                                        )}
+                                      </select>
+                                    </div>
+                                  </div>
                                 </div>
                               </td>
                               <td className="px-4 py-4 text-right text-[#1f2328]">
@@ -1359,6 +1369,7 @@ export default function Estimate() {
                       <table className="min-w-[520px] w-full text-sm">
                         <thead className="bg-[#f6f8fa] text-[#1f2328]">
                           <tr>
+                            <th className="text-left font-bold px-4 py-3 w-[84px]">รูป</th>
                             <th className="text-left font-bold px-4 py-3">ขนาดถัง (ลิตร)</th>
                             <th className="text-right font-bold px-4 py-3">จำนวน (ถัง)</th>
                             <th className="text-right font-bold px-4 py-3">ปริมาณรวม (ลิตร)</th>
@@ -1370,6 +1381,13 @@ export default function Estimate() {
                             .sort((a, b) => b.size - a.size)
                             .map((p) => (
                               <tr key={p.size}>
+                                <td className="px-4 py-3">
+                                  <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden">
+                                    {paint.preset?.imageUrl ? (
+                                      <img src={paint.preset.imageUrl} alt={paint.modeLabel} className="w-full h-full object-contain bg-white" />
+                                    ) : null}
+                                  </div>
+                                </td>
                                 <td className="px-4 py-3 text-[#1f2328] font-semibold">{p.size}</td>
                                 <td className="px-4 py-3 text-right text-[#1f2328]">{p.count}</td>
                                 <td className="px-4 py-3 text-right text-[#1f2328] font-semibold">
@@ -1379,7 +1397,7 @@ export default function Estimate() {
                             ))}
                           {!paint.plan.length && (
                             <tr>
-                              <td colSpan={3} className="px-4 py-6 text-center text-[#656d76]">
+                              <td colSpan={4} className="px-4 py-6 text-center text-[#656d76]">
                                 ใส่พื้นที่ให้มากกว่า 0 เพื่อคำนวณ
                               </td>
                             </tr>
@@ -1406,10 +1424,23 @@ export default function Estimate() {
                         <tr className="align-top">
                           <td className="px-4 py-4 text-[#1f2328] font-semibold">1)</td>
                           <td className="px-4 py-4">
-                            <div className="text-[#0969da] font-semibold">
-                              {concrete.preset?.title ?? "คอนกรีตผสมเสร็จ"}
+                            <div className="flex items-start gap-3">
+                              <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                                {concrete.preset?.imageUrl ? (
+                                  <img
+                                    src={concrete.preset.imageUrl}
+                                    alt={concrete.preset.title}
+                                    className="w-full h-full object-contain bg-white"
+                                  />
+                                ) : null}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-[#0969da] font-semibold">
+                                  {concrete.preset?.title ?? "คอนกรีตผสมเสร็จ"}
+                                </div>
+                                <div className="text-xs text-[#656d76] mt-1">{concrete.label}</div>
+                              </div>
                             </div>
-                            <div className="text-xs text-[#656d76] mt-1">{concrete.label}</div>
                           </td>
                           <td className="px-4 py-4 text-right text-[#1f2328]">
                             {formatTHB(Math.round(concrete.preset?.unitPriceExVat ?? 0))}
@@ -1442,14 +1473,27 @@ export default function Estimate() {
                         <tr className="align-top">
                           <td className="px-4 py-4 text-[#1f2328] font-semibold">1)</td>
                           <td className="px-4 py-4">
-                            <div className="text-[#0969da] font-semibold">
-                              {brick.preset?.title ?? "อิฐก่อผนัง"}
-                            </div>
-                            <div className="text-xs text-[#656d76] mt-1">
-                              ผนัง {brick.length}×{brick.height} ม. • ช่องเปิด {brick.openings} ตร.ม. • เผื่อ {Math.round(brick.wasteRate * 100)}%
-                            </div>
-                            <div className="text-xs text-[#656d76] mt-1">
-                              จำนวนอิฐประมาณ {formatTHB(Math.round(brick.pieces))} ก้อน
+                            <div className="flex items-start gap-3">
+                              <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                                {brick.preset?.imageUrl ? (
+                                  <img
+                                    src={brick.preset.imageUrl}
+                                    alt={brick.preset.title}
+                                    className="w-full h-full object-contain bg-white"
+                                  />
+                                ) : null}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-[#0969da] font-semibold">
+                                  {brick.preset?.title ?? "อิฐก่อผนัง"}
+                                </div>
+                                <div className="text-xs text-[#656d76] mt-1">
+                                  ผนัง {brick.length}×{brick.height} ม. • ช่องเปิด {brick.openings} ตร.ม. • เผื่อ {Math.round(brick.wasteRate * 100)}%
+                                </div>
+                                <div className="text-xs text-[#656d76] mt-1">
+                                  จำนวนอิฐประมาณ {formatTHB(Math.round(brick.pieces))} ก้อน
+                                </div>
+                              </div>
                             </div>
                           </td>
                           <td className="px-4 py-4 text-right text-[#1f2328]">
@@ -1483,15 +1527,28 @@ export default function Estimate() {
                         <tr className="align-top">
                           <td className="px-4 py-4 text-[#1f2328] font-semibold">1)</td>
                           <td className="px-4 py-4">
-                            <div className="text-[#0969da] font-semibold">
-                              {metal.preset?.title ?? "เมทัลชีท"}
-                            </div>
-                            <div className="text-xs text-[#656d76] mt-1">
-                              {metal.roofStyle === "gable" ? "หน้าจั่ว" : "เพิงหมาแหงน"} • {metal.length}×{metal.width} ม. • pitch {metal.pitchDeg}° • กันสาด {metal.overhang} ม. •
-                              เผื่อ {Math.round(metal.wasteRate * 100)}%
-                            </div>
-                            <div className="text-xs text-[#656d76] mt-1">
-                              แผ่นประมาณ {formatTHB(metal.totalSheetsWithWaste)} แผ่น • ยาวแผ่น {metal.slopeLength.toFixed(2)} ม. • แผ่น/ด้าน {metal.sheetsPerSide}
+                            <div className="flex items-start gap-3">
+                              <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                                {metal.preset?.imageUrl ? (
+                                  <img
+                                    src={metal.preset.imageUrl}
+                                    alt={metal.preset.title}
+                                    className="w-full h-full object-contain bg-white"
+                                  />
+                                ) : null}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-[#0969da] font-semibold">
+                                  {metal.preset?.title ?? "เมทัลชีท"}
+                                </div>
+                                <div className="text-xs text-[#656d76] mt-1">
+                                  {metal.roofStyle === "gable" ? "หน้าจั่ว" : "เพิงหมาแหงน"} • {metal.length}×{metal.width} ม. • pitch {metal.pitchDeg}° • กันสาด {metal.overhang} ม. •
+                                  เผื่อ {Math.round(metal.wasteRate * 100)}%
+                                </div>
+                                <div className="text-xs text-[#656d76] mt-1">
+                                  แผ่นประมาณ {formatTHB(metal.totalSheetsWithWaste)} แผ่น • ยาวแผ่น {metal.slopeLength.toFixed(2)} ม. • แผ่น/ด้าน {metal.sheetsPerSide}
+                                </div>
+                              </div>
                             </div>
                           </td>
                           <td className="px-4 py-4 text-right text-[#1f2328]">

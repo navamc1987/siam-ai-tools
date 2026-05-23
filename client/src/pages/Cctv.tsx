@@ -17,6 +17,11 @@ type KstCategoryResponse = {
   products: KstProduct[];
 };
 
+type CameraLine = {
+  url: string;
+  qty: number;
+};
+
 function formatTHB(value: number) {
   return new Intl.NumberFormat("th-TH").format(value);
 }
@@ -58,13 +63,14 @@ function parseHddTb(name: string) {
 export default function Cctv() {
   const [brand, setBrand] = useState<KstBrand>("hikvision");
   const showPoeSwitchSelection = brand !== "hikvision";
-  const [cameraCount, setCameraCount] = useState<number>(4);
   const [nightMode, setNightMode] = useState<"ir" | "fullcolor">("ir");
   const [needMic, setNeedMic] = useState(true);
   const [needTalk, setNeedTalk] = useState(false);
 
   const [cameraQuery, setCameraQuery] = useState("");
-  const [selectedCameraUrl, setSelectedCameraUrl] = useState<string>("");
+  const [cameraLines, setCameraLines] = useState<CameraLine[]>([]);
+  const [nvrChannel, setNvrChannel] = useState<"auto" | 4 | 8 | 16 | 32>("auto");
+  const [nvrPoe, setNvrPoe] = useState<"any" | "poe" | "nonpoe">("any");
   const [selectedNvrUrl, setSelectedNvrUrl] = useState<string>("");
   const [selectedPoeSwitchUrl, setSelectedPoeSwitchUrl] = useState<string>("");
   const [selectedHddUrl, setSelectedHddUrl] = useState<string>("");
@@ -76,7 +82,8 @@ export default function Cctv() {
   const [laborLevel, setLaborLevel] = useState<"normal" | "difficult">("normal");
   const [laborNeedClearance, setLaborNeedClearance] = useState(false);
   const [laborNeedEmt, setLaborNeedEmt] = useState(false);
-  const [supportCost, setSupportCost] = useState<number>(0);
+  const [supportUnitCost, setSupportUnitCost] = useState<number>(0);
+  const [supportQty, setSupportQty] = useState<number>(0);
   const [rackCost, setRackCost] = useState<number>(0);
 
   const [estimateOpen, setEstimateOpen] = useState(false);
@@ -104,7 +111,9 @@ export default function Cctv() {
         setCameraProducts([]);
         setPoeSwitchProducts([]);
         setHddProducts([]);
-        setSelectedCameraUrl("");
+        setCameraLines([]);
+        setNvrChannel("auto");
+        setNvrPoe("any");
         setSelectedNvrUrl("");
         setSelectedPoeSwitchUrl("");
         setSelectedHddUrl("");
@@ -164,19 +173,65 @@ export default function Cctv() {
       .sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
   }, [cameraProducts, cameraQuery, needMic, needTalk, nightMode]);
 
+  const selectedCameras = useMemo(() => {
+    return cameraLines
+      .map((l) => ({
+        ...l,
+        qty: Math.max(0, Math.round(l.qty || 0)),
+        product: cameraProducts.find((p) => p.url === l.url) ?? null,
+      }))
+      .filter((l) => l.qty > 0 && Boolean(l.product));
+  }, [cameraLines, cameraProducts]);
+
+  const totalCameraQty = useMemo(() => {
+    return selectedCameras.reduce((sum, l) => sum + l.qty, 0);
+  }, [selectedCameras]);
+
+  const addCamera = (url: string) => {
+    setCameraLines((prev) => {
+      const next = prev.slice();
+      const idx = next.findIndex((l) => l.url === url);
+      if (idx >= 0) {
+        next[idx] = { ...next[idx], qty: (next[idx]?.qty ?? 0) + 1 };
+        return next;
+      }
+      return [...next, { url, qty: 1 }];
+    });
+  };
+
+  const updateCameraQty = (url: string, qty: number) => {
+    setCameraLines((prev) =>
+      prev
+        .map((l) => (l.url === url ? { ...l, qty } : l))
+        .filter((l) => Math.max(0, Math.round(l.qty || 0)) > 0)
+    );
+  };
+
+  const removeCamera = (url: string) => {
+    setCameraLines((prev) => prev.filter((l) => l.url !== url));
+  };
+
   const nvrFiltered = useMemo(() => {
-    const needed = Math.max(1, Math.round(cameraCount || 0));
+    const needed = Math.max(1, Math.round(totalCameraQty || 0));
+    const requiredChannels = nvrChannel === "auto" ? needed : nvrChannel;
     return nvrProducts
       .filter((p) => (p.price ?? 0) > 0)
-      .map((p) => ({ ...p, channels: parseChannels(p.name) }))
-      .filter((p) => (p.channels ? p.channels >= needed : true))
+      .map((p) => ({ ...p, channels: parseChannels(p.name), hasPoe: nvrHasBuiltInPoe(p.name) }))
+      .filter((p) => {
+        if (nvrChannel === "auto") return p.channels ? p.channels >= requiredChannels : true;
+        return p.channels ? p.channels === requiredChannels : true;
+      })
+      .filter((p) => {
+        if (nvrPoe === "any") return true;
+        return nvrPoe === "poe" ? p.hasPoe : !p.hasPoe;
+      })
       .slice()
       .sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
-  }, [nvrProducts, cameraCount]);
+  }, [nvrProducts, totalCameraQty, nvrChannel, nvrPoe]);
 
   const poeSwitchFiltered = useMemo(() => {
     if (!showPoeSwitchSelection) return [];
-    const needed = Math.max(1, Math.round(cameraCount || 0));
+    const needed = Math.max(1, Math.round(totalCameraQty || 0));
     return poeSwitchProducts
       .filter((p) => (p.price ?? 0) > 0)
       .filter((p) => /\bpoe\b/i.test(p.name))
@@ -184,7 +239,7 @@ export default function Cctv() {
       .filter((p) => (p.ports ? p.ports >= needed : true))
       .slice()
       .sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
-  }, [poeSwitchProducts, cameraCount, showPoeSwitchSelection]);
+  }, [poeSwitchProducts, totalCameraQty, showPoeSwitchSelection]);
 
   const hddFiltered = useMemo(() => {
     return hddProducts
@@ -196,8 +251,8 @@ export default function Cctv() {
   }, [hddProducts]);
 
   useEffect(() => {
-    if (!selectedCameraUrl && cameraFiltered.length) setSelectedCameraUrl(cameraFiltered[0].url);
-  }, [selectedCameraUrl, cameraFiltered]);
+    if (!cameraLines.length && cameraFiltered.length) setCameraLines([{ url: cameraFiltered[0].url, qty: 4 }]);
+  }, [cameraLines.length, cameraFiltered]);
 
   useEffect(() => {
     if (!selectedNvrUrl && nvrFiltered.length) setSelectedNvrUrl(nvrFiltered[0].url);
@@ -212,10 +267,6 @@ export default function Cctv() {
     if (!selectedHddUrl && hddFiltered.length) setSelectedHddUrl(hddFiltered[0].url);
   }, [selectedHddUrl, hddFiltered]);
 
-  const selectedCamera = useMemo(
-    () => cameraProducts.find((p) => p.url === selectedCameraUrl) ?? null,
-    [cameraProducts, selectedCameraUrl]
-  );
   const selectedNvr = useMemo(
     () => nvrProducts.find((p) => p.url === selectedNvrUrl) ?? null,
     [nvrProducts, selectedNvrUrl]
@@ -241,13 +292,15 @@ export default function Cctv() {
   }, [showPoeSwitchSection, selectedPoeSwitchUrl, poeSwitchFiltered]);
 
   const totals = useMemo(() => {
-    const cams = Math.max(0, Math.round(cameraCount || 0));
-    const cameraUnitPrice = selectedCamera?.price ? selectedCamera.price + 300 : 0;
+    const cams = Math.max(0, Math.round(totalCameraQty || 0));
+    const cameraSubtotal = selectedCameras.reduce((sum, l) => {
+      const unit = l.product?.price ? l.product.price + 300 : 0;
+      return sum + unit * l.qty;
+    }, 0);
     const nvrUnitPrice = selectedNvr?.price ? selectedNvr.price + 1000 : 0;
     const poeSwitchUnitPrice = showPoeSwitchSection && selectedPoeSwitch?.price ? selectedPoeSwitch.price + 300 : 0;
     const hddUnitPrice = selectedHdd?.price ? selectedHdd.price + 300 : 0;
 
-    const cameraSubtotal = cameraUnitPrice * cams;
     const nvrSubtotal = nvrUnitPrice;
     const poeSwitchSubtotal = poeSwitchUnitPrice;
     const hddSubtotal = hddUnitPrice * Math.max(0, Math.round(hddQty || 0));
@@ -259,7 +312,9 @@ export default function Cctv() {
     const laborEmtPerMeter = laborNeedEmt ? 200 : 0;
     const laborRate = laborBasePerMeter + laborClearPerMeter + laborEmtPerMeter;
     const laborByMeter = cableWithExtra * laborRate;
-    const labor = laborByMeter + Math.max(0, supportCost || 0) + Math.max(0, rackCost || 0);
+    const supportTotal = Math.max(0, supportUnitCost || 0) * Math.max(0, Math.round(supportQty || 0));
+    const rackTotal = Math.max(0, rackCost || 0);
+    const labor = laborByMeter + supportTotal + rackTotal;
 
     const material = cameraSubtotal + nvrSubtotal + poeSwitchSubtotal + hddSubtotal;
     const total = material + labor;
@@ -270,7 +325,6 @@ export default function Cctv() {
       cams,
       baseCable,
       cableWithExtra,
-      cameraUnitPrice,
       nvrUnitPrice,
       poeSwitchUnitPrice,
       hddUnitPrice,
@@ -283,8 +337,10 @@ export default function Cctv() {
       laborEmtPerMeter,
       laborRate,
       laborByMeter,
-      supportCost,
-      rackCost,
+      supportUnitCost,
+      supportQty,
+      supportTotal,
+      rackTotal,
       labor,
       material,
       total,
@@ -292,8 +348,8 @@ export default function Cctv() {
       totalWithVat,
     };
   }, [
-    cameraCount,
-    selectedCamera?.price,
+    totalCameraQty,
+    selectedCameras,
     selectedNvr?.price,
     selectedPoeSwitch?.price,
     showPoeSwitchSection,
@@ -305,13 +361,35 @@ export default function Cctv() {
     laborLevel,
     laborNeedClearance,
     laborNeedEmt,
-    supportCost,
+    supportUnitCost,
+    supportQty,
     rackCost,
   ]);
+
+  const cameraRowsForSummary = useMemo((): Array<{ url: string; qty: number; product: KstProduct | null }> => {
+    if (selectedCameras.length) return selectedCameras;
+    return [{ url: "__empty__", qty: 0, product: null }];
+  }, [selectedCameras]);
+
+  let rowNo = cameraRowsForSummary.length;
+  const nvrRowNo = rowNo + 1;
+  rowNo = nvrRowNo;
+  const poeRowNo = showPoeSwitchSection ? rowNo + 1 : null;
+  if (poeRowNo) rowNo = poeRowNo;
+  const hddRowNo = rowNo + 1;
+  rowNo = hddRowNo;
+  const laborRowNo = rowNo + 1;
+  rowNo = laborRowNo;
+  const supportRowNo = (totals.supportTotal || 0) > 0 ? rowNo + 1 : null;
+  if (supportRowNo) rowNo = supportRowNo;
+  const rackRowNo = (totals.rackTotal || 0) > 0 ? rowNo + 1 : null;
 
   const handleContact = () => {
     const brandLabel =
       brand === "hikvision" ? "Hikvision" : brand === "dahua" ? "Dahua" : "Uniview";
+    const cameraLinesText = selectedCameras.length
+      ? ["กล้อง:", ...selectedCameras.map((l) => `- ${l.product?.name ?? "-"} x ${formatTHB(l.qty)} ตัว`)].join("\n")
+      : "กล้อง: -";
     const message = [
       "ขอจัดสเปค/ประเมินกล้องวงจรปิด",
       "",
@@ -328,7 +406,7 @@ export default function Cctv() {
       `ไมค์: ${needMic ? "ต้องการ" : "ไม่จำเป็น"}`,
       `โต้ตอบ: ${needTalk ? "ต้องการ" : "ไม่จำเป็น"}`,
       "",
-      `กล้อง: ${selectedCamera?.name ?? "-"}`,
+      cameraLinesText,
       `เครื่องบันทึก: ${selectedNvr?.name ?? "-"}`,
       needsPoeSwitch
         ? showPoeSwitchSelection
@@ -341,8 +419,10 @@ export default function Cctv() {
       `เผื่อสาย: ${formatTHB(Math.max(0, cableExtraPercent || 0))}% + ${formatTHB(Math.max(0, cableExtraMeters || 0))} ม.`,
       `ระยะสายรวม: ${formatTHB(Math.round(totals.cableWithExtra))} ม.`,
       `ค่าแรงติดตั้ง: ${formatTHB(Math.round(totals.laborRate))} บาท/เมตร (พื้นฐาน ${formatTHB(Math.round(totals.laborBasePerMeter))} + เคลียร์ ${formatTHB(Math.round(totals.laborClearPerMeter))} + EMT ${formatTHB(Math.round(totals.laborEmtPerMeter))})`,
-      (totals.supportCost || 0) > 0 ? `เสา Support: ${formatTHB(Math.round(totals.supportCost || 0))} บาท` : null,
-      (totals.rackCost || 0) > 0 ? `ตู้ Rack: ${formatTHB(Math.round(totals.rackCost || 0))} บาท` : null,
+      (totals.supportTotal || 0) > 0
+        ? `เสา Support: ${formatTHB(Math.round(totals.supportUnitCost || 0))} x ${formatTHB(Math.max(0, Math.round(totals.supportQty || 0)))} = ${formatTHB(Math.round(totals.supportTotal || 0))} บาท`
+        : null,
+      (totals.rackTotal || 0) > 0 ? `ตู้ Rack: ${formatTHB(Math.round(totals.rackTotal || 0))} บาท` : null,
       "",
       `ค่าวัสดุประมาณ: ${formatTHB(Math.round(totals.material))} บาท`,
       `ค่าแรงประมาณ: ${formatTHB(Math.round(totals.labor))} บาท`,
@@ -404,6 +484,82 @@ export default function Cctv() {
                 </div>
               </div>
 
+              <div className="mt-5 border border-[#d0d7de] rounded-xl p-4 bg-[#f6f8fa]">
+                <div className="text-[#1f2328] font-bold text-sm">สินค้า/สเปคที่เลือก</div>
+                <div className="mt-3 grid gap-3 text-sm">
+                  <div className="grid gap-2">
+                    <div className="text-xs text-[#656d76]">กล้อง</div>
+                    {selectedCameras.length ? (
+                      <div className="grid gap-2">
+                        {selectedCameras.slice(0, 3).map((l) => (
+                          <div key={l.url} className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                              {l.product?.imageUrl ? (
+                                <img src={l.product.imageUrl} alt={l.product.name} className="w-full h-full object-contain bg-white" />
+                              ) : null}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{l.product?.name ?? "-"}</div>
+                              <div className="text-xs text-[#656d76] mt-0.5">x {formatTHB(l.qty)} ตัว</div>
+                            </div>
+                          </div>
+                        ))}
+                        {selectedCameras.length > 3 ? (
+                          <div className="text-xs text-[#656d76]">และอีก {formatTHB(selectedCameras.length - 3)} รุ่น</div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-[#656d76]">ยังไม่ได้เลือกรุ่น</div>
+                    )}
+                  </div>
+
+                  <div className="grid gap-2">
+                    <div className="text-xs text-[#656d76]">เครื่องบันทึก (NVR)</div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                        {selectedNvr?.imageUrl ? (
+                          <img src={selectedNvr.imageUrl} alt={selectedNvr.name} className="w-full h-full object-contain bg-white" />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{selectedNvr?.name ?? "-"}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {showPoeSwitchSection ? (
+                    <div className="grid gap-2">
+                      <div className="text-xs text-[#656d76]">PoE Switch</div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                          {selectedPoeSwitch?.imageUrl ? (
+                            <img src={selectedPoeSwitch.imageUrl} alt={selectedPoeSwitch.name} className="w-full h-full object-contain bg-white" />
+                          ) : null}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{selectedPoeSwitch?.name ?? "-"}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="grid gap-2">
+                    <div className="text-xs text-[#656d76]">HDD</div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                        {selectedHdd?.imageUrl ? (
+                          <img src={selectedHdd.imageUrl} alt={selectedHdd.name} className="w-full h-full object-contain bg-white" />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{selectedHdd?.name ?? "-"}</div>
+                        <div className="text-xs text-[#656d76] mt-0.5">x {formatTHB(Math.max(0, Math.round(hddQty || 0)))} ลูก</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <button type="button" onClick={() => setEstimateOpen(true)} className="btn-blue w-full py-3 text-base mt-6">
                 ส่งให้ทีมประเมิน
               </button>
@@ -452,16 +608,6 @@ export default function Cctv() {
                 <div className="text-[#1f2328] font-bold">2) กล้อง</div>
                 <div className="mt-4 grid md:grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <label className="text-xs text-[#656d76]">จำนวนกล้อง (ตัว)</label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={cameraCount}
-                      onChange={(e) => setCameraCount(Number(e.target.value) || 1)}
-                      className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
-                    />
-                  </div>
-                  <div className="grid gap-2">
                     <label className="text-xs text-[#656d76]">โหมดกลางคืน</label>
                     <select
                       value={nightMode}
@@ -472,6 +618,12 @@ export default function Cctv() {
                       <option value="fullcolor">Full Color (ภาพสี)</option>
                     </select>
                   </div>
+                  <div className="grid gap-2">
+                    <label className="text-xs text-[#656d76]">จำนวนกล้องรวม (ตัว)</label>
+                    <div className="w-full bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm text-right font-bold">
+                      {formatTHB(Math.max(0, Math.round(totalCameraQty || 0)))}
+                    </div>
+                  </div>
                   <label className="flex items-center gap-2 text-sm text-[#1f2328]">
                     <input type="checkbox" className="accent-[#0969da]" checked={needMic} onChange={(e) => setNeedMic(e.target.checked)} />
                     ต้องการไมค์ (บันทึกเสียง)
@@ -480,6 +632,64 @@ export default function Cctv() {
                     <input type="checkbox" className="accent-[#0969da]" checked={needTalk} onChange={(e) => setNeedTalk(e.target.checked)} />
                     ต้องการโต้ตอบได้ (Two-way)
                   </label>
+                </div>
+
+                <div className="mt-5 border border-[#d0d7de] rounded-xl overflow-hidden">
+                  <div className="bg-[#f6f8fa] px-4 py-3 text-sm font-bold text-[#1f2328]">รายการกล้องที่เลือก (กำหนดจำนวนต่อรุ่น)</div>
+                  <div className="p-4">
+                    {selectedCameras.length ? (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-[720px] w-full text-sm">
+                          <thead className="text-[#1f2328]">
+                            <tr className="border-b border-[#d0d7de]">
+                              <th className="text-left font-bold pb-3">รุ่น</th>
+                              <th className="text-right font-bold pb-3 w-[140px]">จำนวน (ตัว)</th>
+                              <th className="text-right font-bold pb-3 w-[120px]">จัดการ</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#d0d7de]">
+                            {selectedCameras.map((l) => (
+                              <tr key={l.url} className="align-top">
+                                <td className="py-3 pr-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                                      {l.product?.imageUrl ? (
+                                        <img src={l.product.imageUrl} alt={l.product.name} className="w-full h-full object-contain bg-white" />
+                                      ) : null}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="text-[#1f2328] font-semibold">{l.product?.name ?? "-"}</div>
+                                      <div className="text-xs text-[#656d76] mt-0.5">ราคา/ตัว {l.product?.price ? formatTHB(Math.round(l.product.price + 300)) : "-"}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-3">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={l.qty}
+                                    onChange={(e) => updateCameraQty(l.url, Number(e.target.value) || 0)}
+                                    className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                                  />
+                                </td>
+                                <td className="py-3 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => removeCamera(l.url)}
+                                    className="px-3 py-2 rounded-md border border-[#d0d7de] text-[#1f2328] hover:border-[#8c959f] transition-all"
+                                  >
+                                    ลบ
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-[#656d76]">ยังไม่ได้เลือกรุ่นกล้อง</div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="mt-5 grid md:grid-cols-[1fr_auto] gap-4 items-end">
@@ -501,11 +711,8 @@ export default function Cctv() {
                     <button
                       key={p.url}
                       type="button"
-                      onClick={() => setSelectedCameraUrl(p.url)}
-                      className={[
-                        "text-left border rounded-xl p-4 transition-all",
-                        selectedCameraUrl === p.url ? "border-[#0969da] ring-2 ring-[#0969da]/25" : "border-[#d0d7de] hover:border-[#8c959f]",
-                      ].join(" ")}
+                      onClick={() => addCamera(p.url)}
+                      className="text-left border border-[#d0d7de] hover:border-[#8c959f] rounded-xl p-4 transition-all"
                     >
                       <div className="flex gap-4">
                         <div className="w-24 h-24 rounded-xl bg-white border-[6px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
@@ -518,6 +725,7 @@ export default function Cctv() {
                           <div className="text-[#656d76] text-xs mt-1">
                             {p.price ? `${formatTHB(Math.round(p.price + 300))} บาท/ตัว` : "ราคาไม่พร้อมใช้งาน"}
                           </div>
+                          <div className="text-xs mt-2 text-[#0969da] font-semibold">กดเพื่อเพิ่มรุ่นนี้</div>
                         </div>
                       </div>
                     </button>
@@ -534,8 +742,36 @@ export default function Cctv() {
                   กรุณาตรวจรุ่นที่เลือก หากไม่มี POE จะต้องซื้อ Switch Hub POE เพิ่ม
                   {needsPoeSwitch ? <span className="text-[#b35900] font-semibold"> (รุ่นที่เลือกไม่มี POE)</span> : null}
                 </div>
+                <div className="mt-4 grid md:grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <label className="text-xs text-[#656d76]">จำนวนช่อง</label>
+                    <select
+                      value={nvrChannel}
+                      onChange={(e) => setNvrChannel((e.target.value === "auto" ? "auto" : Number(e.target.value)) as "auto" | 4 | 8 | 16 | 32)}
+                      className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                    >
+                      <option value="auto">อัตโนมัติ (ตามจำนวนกล้อง)</option>
+                      <option value="4">4 CH</option>
+                      <option value="8">8 CH</option>
+                      <option value="16">16 CH</option>
+                      <option value="32">32 CH</option>
+                    </select>
+                  </div>
+                  <div className="grid gap-2">
+                    <label className="text-xs text-[#656d76]">PoE</label>
+                    <select
+                      value={nvrPoe}
+                      onChange={(e) => setNvrPoe(e.target.value as "any" | "poe" | "nonpoe")}
+                      className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                    >
+                      <option value="any">ทั้งหมด</option>
+                      <option value="poe">เฉพาะรุ่นมี PoE</option>
+                      <option value="nonpoe">เฉพาะรุ่นไม่มี PoE</option>
+                    </select>
+                  </div>
+                </div>
                 <div className="mt-4 grid gap-3">
-                  {nvrFiltered.slice(0, 8).map((p) => (
+                  {nvrFiltered.slice(0, 12).map((p) => (
                     <button
                       key={p.url}
                       type="button"
@@ -698,10 +934,10 @@ export default function Cctv() {
                     เดินท่อ EMT (+200 บาท/เมตร)
                   </label>
                   <div className="grid gap-2">
-                    <label className="text-xs text-[#656d76]">เสา Support</label>
+                    <label className="text-xs text-[#656d76]">เสา Support (ราคา/ต้น)</label>
                     <select
-                      value={supportCost}
-                      onChange={(e) => setSupportCost(Number(e.target.value) || 0)}
+                      value={supportUnitCost}
+                      onChange={(e) => setSupportUnitCost(Number(e.target.value) || 0)}
                       className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
                     >
                       <option value={0}>ไม่ใช้</option>
@@ -712,6 +948,16 @@ export default function Cctv() {
                       <option value={9500}>ตั้งเสาตอหม้อ 4m — 9,500</option>
                       <option value={15000}>ตั้งเสาตอหม้อ 6m — 15,000</option>
                     </select>
+                  </div>
+                  <div className="grid gap-2">
+                    <label className="text-xs text-[#656d76]">จำนวนเสา (ต้น)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={supportQty}
+                      onChange={(e) => setSupportQty(Number(e.target.value) || 0)}
+                      className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all text-right"
+                    />
                   </div>
                   <div className="grid gap-2">
                     <label className="text-xs text-[#656d76]">ตู้ Rack 6U</label>
@@ -737,16 +983,19 @@ export default function Cctv() {
                       <span className="text-[#656d76]">อัตราค่าแรง/เมตร</span>
                       <span className="text-[#1f2328] font-semibold">{formatTHB(Math.round(totals.laborRate))} บาท</span>
                     </div>
-                    {(totals.supportCost || 0) > 0 ? (
+                    {(totals.supportTotal || 0) > 0 ? (
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-[#656d76]">เสา Support</span>
-                        <span className="text-[#1f2328] font-semibold">{formatTHB(Math.round(totals.supportCost || 0))} บาท</span>
+                        <span className="text-[#1f2328] font-semibold">
+                          {formatTHB(Math.round(totals.supportUnitCost || 0))} x {formatTHB(Math.max(0, Math.round(totals.supportQty || 0)))} ={" "}
+                          {formatTHB(Math.round(totals.supportTotal || 0))} บาท
+                        </span>
                       </div>
                     ) : null}
-                    {(totals.rackCost || 0) > 0 ? (
+                    {(totals.rackTotal || 0) > 0 ? (
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-[#656d76]">ตู้ Rack</span>
-                        <span className="text-[#1f2328] font-semibold">{formatTHB(Math.round(totals.rackCost || 0))} บาท</span>
+                        <span className="text-[#1f2328] font-semibold">{formatTHB(Math.round(totals.rackTotal || 0))} บาท</span>
                       </div>
                     ) : null}
                   </div>
@@ -767,54 +1016,92 @@ export default function Cctv() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#d0d7de]">
+                      {cameraRowsForSummary.map((l, idx) => {
+                        const unit = l.product?.price ? l.product.price + 300 : 0;
+                        const total = unit * l.qty;
+                        return (
+                          <tr key={`${l.url}-${idx}`} className="align-top">
+                            <td className="px-4 py-4 text-[#1f2328] font-semibold">{`${idx + 1})`}</td>
+                            <td className="px-4 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                                  {l.product?.imageUrl ? (
+                                    <img src={l.product.imageUrl} alt={l.product.name} className="w-full h-full object-contain bg-white" />
+                                  ) : null}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-[#1f2328] font-semibold">{l.product?.name ?? "ยังไม่ได้เลือกรุ่นกล้อง"}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4 text-right text-[#1f2328]">{formatTHB(Math.round(unit))}</td>
+                            <td className="px-4 py-4 text-right text-[#1f2328]">{l.qty ? `${formatTHB(l.qty)} ตัว` : "-"}</td>
+                            <td className="px-4 py-4 text-right text-[#1f2328] font-semibold">{formatTHB(Math.round(total))}</td>
+                          </tr>
+                        );
+                      })}
+
                       <tr className="align-top">
-                        <td className="px-4 py-4 text-[#1f2328] font-semibold">1)</td>
+                        <td className="px-4 py-4 text-[#1f2328] font-semibold">{`${nvrRowNo})`}</td>
                         <td className="px-4 py-4">
-                          <div className="text-[#1f2328] font-semibold">{selectedCamera?.name ?? "-"}</div>
-                        </td>
-                        <td className="px-4 py-4 text-right text-[#1f2328]">{formatTHB(Math.round(totals.cameraUnitPrice))}</td>
-                        <td className="px-4 py-4 text-right text-[#1f2328]">{formatTHB(totals.cams)} ตัว</td>
-                        <td className="px-4 py-4 text-right text-[#1f2328] font-semibold">
-                          {formatTHB(Math.round(totals.cameraSubtotal))}
-                        </td>
-                      </tr>
-                      <tr className="align-top">
-                        <td className="px-4 py-4 text-[#1f2328] font-semibold">2)</td>
-                        <td className="px-4 py-4">
-                          <div className="text-[#1f2328] font-semibold">{selectedNvr?.name ?? "-"}</div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                              {selectedNvr?.imageUrl ? (
+                                <img src={selectedNvr.imageUrl} alt={selectedNvr.name} className="w-full h-full object-contain bg-white" />
+                              ) : null}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-[#1f2328] font-semibold">{selectedNvr?.name ?? "-"}</div>
+                            </div>
+                          </div>
                         </td>
                         <td className="px-4 py-4 text-right text-[#1f2328]">{formatTHB(Math.round(totals.nvrUnitPrice))}</td>
                         <td className="px-4 py-4 text-right text-[#1f2328]">1 เครื่อง</td>
-                        <td className="px-4 py-4 text-right text-[#1f2328] font-semibold">
-                          {formatTHB(Math.round(totals.nvrSubtotal))}
-                        </td>
+                        <td className="px-4 py-4 text-right text-[#1f2328] font-semibold">{formatTHB(Math.round(totals.nvrSubtotal))}</td>
                       </tr>
-                      {showPoeSwitchSection ? (
+
+                      {showPoeSwitchSection && poeRowNo ? (
                         <tr className="align-top">
-                          <td className="px-4 py-4 text-[#1f2328] font-semibold">3)</td>
+                          <td className="px-4 py-4 text-[#1f2328] font-semibold">{`${poeRowNo})`}</td>
                           <td className="px-4 py-4">
-                            <div className="text-[#1f2328] font-semibold">{selectedPoeSwitch?.name ?? "-"}</div>
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                                {selectedPoeSwitch?.imageUrl ? (
+                                  <img src={selectedPoeSwitch.imageUrl} alt={selectedPoeSwitch.name} className="w-full h-full object-contain bg-white" />
+                                ) : null}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-[#1f2328] font-semibold">{selectedPoeSwitch?.name ?? "-"}</div>
+                              </div>
+                            </div>
                           </td>
                           <td className="px-4 py-4 text-right text-[#1f2328]">{formatTHB(Math.round(totals.poeSwitchUnitPrice))}</td>
                           <td className="px-4 py-4 text-right text-[#1f2328]">1 เครื่อง</td>
-                          <td className="px-4 py-4 text-right text-[#1f2328] font-semibold">
-                            {formatTHB(Math.round(totals.poeSwitchSubtotal))}
-                          </td>
+                          <td className="px-4 py-4 text-right text-[#1f2328] font-semibold">{formatTHB(Math.round(totals.poeSwitchSubtotal))}</td>
                         </tr>
                       ) : null}
+
                       <tr className="align-top">
-                        <td className="px-4 py-4 text-[#1f2328] font-semibold">{showPoeSwitchSection ? "4)" : "3)"}</td>
+                        <td className="px-4 py-4 text-[#1f2328] font-semibold">{`${hddRowNo})`}</td>
                         <td className="px-4 py-4">
-                          <div className="text-[#1f2328] font-semibold">{selectedHdd?.name ?? "-"}</div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                              {selectedHdd?.imageUrl ? (
+                                <img src={selectedHdd.imageUrl} alt={selectedHdd.name} className="w-full h-full object-contain bg-white" />
+                              ) : null}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-[#1f2328] font-semibold">{selectedHdd?.name ?? "-"}</div>
+                            </div>
+                          </div>
                         </td>
                         <td className="px-4 py-4 text-right text-[#1f2328]">{formatTHB(Math.round(totals.hddUnitPrice))}</td>
                         <td className="px-4 py-4 text-right text-[#1f2328]">{formatTHB(Math.max(0, Math.round(hddQty || 0)))} ลูก</td>
-                        <td className="px-4 py-4 text-right text-[#1f2328] font-semibold">
-                          {formatTHB(Math.round(totals.hddSubtotal))}
-                        </td>
+                        <td className="px-4 py-4 text-right text-[#1f2328] font-semibold">{formatTHB(Math.round(totals.hddSubtotal))}</td>
                       </tr>
+
                       <tr className="align-top">
-                        <td className="px-4 py-4 text-[#1f2328] font-semibold">{showPoeSwitchSection ? "5)" : "4)"}</td>
+                        <td className="px-4 py-4 text-[#1f2328] font-semibold">{`${laborRowNo})`}</td>
                         <td className="px-4 py-4">
                           <div className="text-[#1f2328] font-semibold">ค่าแรงติดตั้ง (คิดตามระยะสาย)</div>
                           <div className="text-xs text-[#656d76] mt-1">
@@ -823,38 +1110,30 @@ export default function Cctv() {
                         </td>
                         <td className="px-4 py-4 text-right text-[#1f2328]">{formatTHB(Math.round(totals.laborRate))}</td>
                         <td className="px-4 py-4 text-right text-[#1f2328]">{formatTHB(Math.round(totals.cableWithExtra))} เมตร</td>
-                        <td className="px-4 py-4 text-right text-[#1f2328] font-semibold">
-                          {formatTHB(Math.round(totals.laborByMeter))}
-                        </td>
+                        <td className="px-4 py-4 text-right text-[#1f2328] font-semibold">{formatTHB(Math.round(totals.laborByMeter))}</td>
                       </tr>
-                      {(totals.supportCost || 0) > 0 ? (
+
+                      {(totals.supportTotal || 0) > 0 && supportRowNo ? (
                         <tr className="align-top">
-                          <td className="px-4 py-4 text-[#1f2328] font-semibold">{showPoeSwitchSection ? "6)" : "5)"}</td>
+                          <td className="px-4 py-4 text-[#1f2328] font-semibold">{`${supportRowNo})`}</td>
                           <td className="px-4 py-4">
                             <div className="text-[#1f2328] font-semibold">เสา Support</div>
                           </td>
-                          <td className="px-4 py-4 text-right text-[#1f2328]">{formatTHB(Math.round(totals.supportCost || 0))}</td>
-                          <td className="px-4 py-4 text-right text-[#1f2328]">1 งาน</td>
-                          <td className="px-4 py-4 text-right text-[#1f2328] font-semibold">{formatTHB(Math.round(totals.supportCost || 0))}</td>
+                          <td className="px-4 py-4 text-right text-[#1f2328]">{formatTHB(Math.round(totals.supportUnitCost || 0))}</td>
+                          <td className="px-4 py-4 text-right text-[#1f2328]">{formatTHB(Math.max(0, Math.round(totals.supportQty || 0)))} ต้น</td>
+                          <td className="px-4 py-4 text-right text-[#1f2328] font-semibold">{formatTHB(Math.round(totals.supportTotal || 0))}</td>
                         </tr>
                       ) : null}
-                      {(totals.rackCost || 0) > 0 ? (
+
+                      {(totals.rackTotal || 0) > 0 && rackRowNo ? (
                         <tr className="align-top">
-                          <td className="px-4 py-4 text-[#1f2328] font-semibold">
-                            {(totals.supportCost || 0) > 0
-                              ? showPoeSwitchSection
-                                ? "7)"
-                                : "6)"
-                              : showPoeSwitchSection
-                                ? "6)"
-                                : "5)"}
-                          </td>
+                          <td className="px-4 py-4 text-[#1f2328] font-semibold">{`${rackRowNo})`}</td>
                           <td className="px-4 py-4">
                             <div className="text-[#1f2328] font-semibold">ตู้ Rack 6U</div>
                           </td>
-                          <td className="px-4 py-4 text-right text-[#1f2328]">{formatTHB(Math.round(totals.rackCost || 0))}</td>
+                          <td className="px-4 py-4 text-right text-[#1f2328]">{formatTHB(Math.round(totals.rackTotal || 0))}</td>
                           <td className="px-4 py-4 text-right text-[#1f2328]">1 ตู้</td>
-                          <td className="px-4 py-4 text-right text-[#1f2328] font-semibold">{formatTHB(Math.round(totals.rackCost || 0))}</td>
+                          <td className="px-4 py-4 text-right text-[#1f2328] font-semibold">{formatTHB(Math.round(totals.rackTotal || 0))}</td>
                         </tr>
                       ) : null}
                     </tbody>

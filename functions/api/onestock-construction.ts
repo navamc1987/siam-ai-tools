@@ -20,6 +20,7 @@ type OnestockItem = {
   piecePerPackUnit: string | null;
   unit: string | null;
   url: string | null;
+  image: { url: string } | null;
   priceSummary: { priceAfterDiscount: string | null } | null;
 };
 
@@ -178,7 +179,7 @@ async function fetchItemsBySku(sku: string[]) {
   const payload = {
     operationName: "ConstructionCalculatorResultHooks",
     query:
-      "query ConstructionCalculatorResultHooks($sku:[String!]!){findItemsBySku(sku:$sku){id sku name piecePerPack piecePerPackUnit unit url priceSummary{priceAfterDiscount}}}",
+      "query ConstructionCalculatorResultHooks($sku:[String!]!){findItemsBySku(sku:$sku){id sku name piecePerPack piecePerPackUnit unit url image{url} priceSummary{priceAfterDiscount}}}",
     variables: { sku },
   };
 
@@ -287,6 +288,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         })),
         selectedSku,
         name: item?.name ?? null,
+        imageUrl: item?.image?.url ?? null,
         qty,
         unit,
         unitPrice,
