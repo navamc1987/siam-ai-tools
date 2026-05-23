@@ -1,6 +1,5 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import {
   estimateV2Config,
   getLaborPerUnit,
@@ -10,13 +9,19 @@ import {
   type WorkType,
 } from "@/data/estimateV2";
 import { onestockCalculatorCards, type OnestockCalculatorId } from "@/data/onestockCalculators";
-import emailjs from "@emailjs/browser";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 function formatTHB(value: number) {
   return new Intl.NumberFormat("th-TH").format(value);
+}
+
+function chunkArray<T>(items: T[], chunkSize: number) {
+  const size = Math.max(1, Math.floor(chunkSize));
+  const result: T[][] = [];
+  for (let i = 0; i < items.length; i += size) result.push(items.slice(i, i + size));
+  return result.length ? result : [[]];
 }
 
 export default function Estimate() {
@@ -82,18 +87,32 @@ export default function Estimate() {
   const [includeWaste, setIncludeWaste] = useState(false);
   const [wasteAreaSqm, setWasteAreaSqm] = useState<number>(0);
 
-  const [estimateOpen, setEstimateOpen] = useState(false);
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
-  const [customerAddress, setCustomerAddress] = useState("");
-  const [customerMapUrl, setCustomerMapUrl] = useState("");
-  const [customerDriveUrl, setCustomerDriveUrl] = useState("");
-  const [customerNote, setCustomerNote] = useState("");
-  const [sendLoading, setSendLoading] = useState(false);
-  const [sendStatus, setSendStatus] = useState<"idle" | "success" | "error">("idle");
-  const [sendError, setSendError] = useState<string | null>(null);
-  const formRef = useRef<HTMLFormElement | null>(null);
-  const pdfRef = useRef<HTMLDivElement | null>(null);
+  const [customerType, setCustomerType] = useState<"personal" | "company">("personal");
+  const [personalName, setPersonalName] = useState("");
+  const [personalPhone, setPersonalPhone] = useState("");
+  const [personalAddress, setPersonalAddress] = useState("");
+
+  const [companyName, setCompanyName] = useState("");
+  const [companyTaxId, setCompanyTaxId] = useState("");
+  const [companyBranch, setCompanyBranch] = useState("");
+  const [companyAddress, setCompanyAddress] = useState("");
+  const [companyPostcode, setCompanyPostcode] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactLineId, setContactLineId] = useState("");
+  const [siteSameAsCompany, setSiteSameAsCompany] = useState(false);
+  const [siteAddress, setSiteAddress] = useState("");
+
+  const [customerFieldErrors, setCustomerFieldErrors] = useState<Record<string, string>>({});
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [downloadStatus, setDownloadStatus] = useState<{
+    spec: "idle" | "generating" | "done" | "error";
+    quote: "idle" | "generating" | "done" | "error";
+  }>({ spec: "idle", quote: "idle" });
+
+  const customerBlockRef = useRef<HTMLDivElement | null>(null);
+  const specPdfRef = useRef<HTMLDivElement | null>(null);
+  const quotePdfRef = useRef<HTMLDivElement | null>(null);
 
   type ConstructionRow = {
     key: string;
@@ -122,10 +141,10 @@ export default function Estimate() {
   const [constructionError, setConstructionError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!estimateOpen) return;
-    setSendStatus("idle");
-    setSendError(null);
-  }, [estimateOpen]);
+    if (!siteSameAsCompany) return;
+    const addr = [companyAddress.trim(), companyPostcode.trim() ? `รหัสไปรษณีย์ ${companyPostcode.trim()}` : ""].filter(Boolean).join(" • ");
+    setSiteAddress(addr);
+  }, [siteSameAsCompany, companyAddress, companyPostcode]);
 
   const constructionTypeLabel: Record<string, string> = {
     proline: "ฉาบเรียบ-โปรลายน์",
@@ -492,126 +511,390 @@ export default function Estimate() {
 
   const activeCard = onestockCalculatorCards.find((c) => c.id === calculator) ?? onestockCalculatorCards[0];
 
-  const buildMessage = () => {
-    return [
-      "ขอประเมินราคาเบื้องต้น",
-      "",
-      customerName ? `ชื่อลูกค้า: ${customerName}` : null,
-      customerPhone ? `เบอร์โทร: ${customerPhone}` : null,
-      customerAddress ? `ที่อยู่: ${customerAddress}` : null,
-      customerMapUrl ? `ลิงก์แผนที่: ${customerMapUrl}` : null,
-      customerDriveUrl ? `ลิงก์รูป/ไฟล์ (Google Drive): ${customerDriveUrl}` : null,
-      customerNote ? `หมายเหตุ: ${customerNote}` : null,
-      "",
-      `ประเภทอาคาร: ${buildingType}`,
-      `ความสะดวกในการทำงาน: ${workDifficulty}`,
-      "",
-      `เครื่องคิดเลข: ${activeCard.title}`,
-      calculator === "construction"
-        ? `ประเภทงาน: ${constructionTypeLabel[constructionType] ?? constructionType}`
-        : "",
-      calculator === "paint" && paint
-        ? [
-            `ประเภทสี: ${paint.modeLabel}`,
-            `เที่ยวทา: ${paint.coats}`,
-            `อัตราการปกคลุม: ${paint.coverage} ตร.ม./ลิตร/เที่ยวทา`,
-            `เผื่อสูญเสีย: ${Math.round(paint.wasteRate * 100)}%`,
-            `ปริมาณสีรวม: ${paint.litersWithWaste.toFixed(2)} ลิตร`,
-            paint.plan.length
-              ? `แนะนำขนาดถัง: ${paint.plan
-                  .slice()
-                  .sort((a, b) => b.size - a.size)
-                  .map((p) => `${p.size}L x ${p.count}`)
-                  .join(", ")}`
-              : "",
-          ].filter(Boolean).join("\n")
-        : "",
-      calculator === "concrete" && concrete
-        ? [
-            `รายการ: ${concrete.label}`,
-            `กำลังอัด: ${concrete.strength} KSC`,
-            `เผื่อสูญเสีย: ${Math.round(concrete.wasteRate * 100)}%`,
-            `ปริมาตรคอนกรีต: ${concrete.volumeWithWaste.toFixed(2)} คิว (ม³)`,
-          ].join("\n")
-        : "",
-      calculator === "brick" && brick
-        ? [
-            `ผนัง: ${brick.length}×${brick.height} ม.`,
-            `ช่องเปิด: ${brick.openings} ตร.ม.`,
-            `เผื่อสูญเสีย: ${Math.round(brick.wasteRate * 100)}%`,
-            `พื้นที่ผนัง: ${brick.areaWithWaste.toFixed(2)} ตร.ม.`,
-            `จำนวนอิฐประมาณ: ${Math.round(brick.pieces)} ก้อน`,
-          ].join("\n")
-        : "",
-      calculator === "metal-sheet" && metal
-        ? [
-            `ทรงหลังคา: ${metal.roofStyle === "gable" ? "หน้าจั่ว" : "เพิงหมาแหงน"}`,
-            `ความหนา: ${metal.thickness} มม.`,
-            `pitch: ${metal.pitchDeg}°`,
-            `กันสาด: ${metal.overhang} ม.`,
-            `พื้นที่หลังคา: ${metal.areaWithWaste.toFixed(2)} ตร.ม.`,
-            `จำนวนแผ่นประมาณ: ${metal.totalSheetsWithWaste} แผ่น`,
-          ].join("\n")
-        : "",
-      calculator === "construction" || calculator === "paint"
-        ? `พื้นที่: ${formatTHB(Math.round(areaSqm || 0))} ตร.ม.`
-        : "",
-      includeDemolition ? `รื้อถอด: ${formatTHB(Math.round(demolitionAreaSqm || 0))} ตร.ม.` : "",
-      includeWaste ? `ขนทิ้ง: ${formatTHB(Math.round(wasteAreaSqm || 0))} ตร.ม.` : "",
-      "",
-      `รวม (ไม่รวม VAT): ${formatTHB(Math.round(totals.totalExVat))} บาท`,
-      `ช่วงราคาโดยประมาณ: ${formatTHB(totals.min)} – ${formatTHB(totals.max)} บาท`,
-      "",
-      "รบกวนติดต่อกลับเพื่อประเมินละเอียด/นัดสำรวจหน้างาน",
-    ]
-      .filter(Boolean)
-      .join("\n");
+  type EstimateMaterialItem = {
+    name: string;
+    qty: number;
+    unit: string;
+    imageUrl: string | null;
+    unitPriceExVat: number;
+    totalExVat: number;
   };
 
-  const downloadPdf = async () => {
-    if (!pdfRef.current) return;
-    setSendStatus("idle");
-    setSendError(null);
-    const canvas = await html2canvas(pdfRef.current, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("p", "mm", "a4");
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = pageWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    let heightLeft = imgHeight;
-    let position = 0;
-    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-    while (heightLeft > 2) {
-      position -= pageHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+  const vatRate = 0.07;
+  const vatAmount = Math.round(totals.totalExVat * vatRate);
+  const totalWithVat = Math.round(totals.totalExVat + vatAmount);
+  const minWithVat = Math.round(totals.min + totals.min * vatRate);
+  const maxWithVat = Math.round(totals.max + totals.max * vatRate);
+
+  const materialItems = useMemo<EstimateMaterialItem[]>(() => {
+    if (calculator === "construction") {
+      return (constructionData?.rows ?? []).map((row) => ({
+        name: row.name ?? row.key,
+        qty: row.qty,
+        unit: row.unit,
+        imageUrl: row.imageUrl,
+        unitPriceExVat: row.unitPrice,
+        totalExVat: row.total,
+      }));
     }
-    pdf.save(`estimate-${new Date().toISOString().slice(0, 10)}.pdf`);
+
+    if (calculator === "paint" && paint) {
+      const unitPrice = paint.preset?.unitPriceExVat ?? 0;
+      const qty = Math.max(0, areaSqm || 0);
+      return [
+        {
+          name: `${paint.modeLabel} (ปริมาณสีรวม ${paint.litersWithWaste.toFixed(2)} ลิตร)`,
+          qty,
+          unit: "ตร.ม.",
+          imageUrl: paint.preset?.imageUrl ?? null,
+          unitPriceExVat: unitPrice,
+          totalExVat: unitPrice * qty,
+        },
+      ];
+    }
+
+    if (calculator === "concrete" && concrete) {
+      const unitPrice = concrete.preset?.unitPriceExVat ?? 0;
+      const qty = Math.max(0, concrete.volumeWithWaste);
+      return [
+        {
+          name: `${concrete.preset?.title ?? "คอนกรีตผสมเสร็จ"} (${concrete.label})`,
+          qty,
+          unit: "คิว",
+          imageUrl: concrete.preset?.imageUrl ?? null,
+          unitPriceExVat: unitPrice,
+          totalExVat: unitPrice * qty,
+        },
+      ];
+    }
+
+    if (calculator === "brick" && brick) {
+      const unitPrice = brick.preset?.unitPriceExVat ?? 0;
+      const qty = Math.max(0, brick.areaWithWaste);
+      return [
+        {
+          name: brick.preset?.title ?? "อิฐก่อผนัง",
+          qty,
+          unit: "ตร.ม.",
+          imageUrl: brick.preset?.imageUrl ?? null,
+          unitPriceExVat: unitPrice,
+          totalExVat: unitPrice * qty,
+        },
+      ];
+    }
+
+    if (calculator === "metal-sheet" && metal) {
+      const unitPrice = metal.preset?.unitPriceExVat ?? 0;
+      const qty = Math.max(0, metal.areaWithWaste);
+      return [
+        {
+          name: `${metal.preset?.title ?? "เมทัลชีท"} (${metal.roofStyle === "gable" ? "หน้าจั่ว" : "เพิงหมาแหงน"})`,
+          qty,
+          unit: "ตร.ม.",
+          imageUrl: metal.preset?.imageUrl ?? null,
+          unitPriceExVat: unitPrice,
+          totalExVat: unitPrice * qty,
+        },
+      ];
+    }
+
+    return [];
+  }, [
+    calculator,
+    constructionData,
+    paint,
+    areaSqm,
+    concrete,
+    brick,
+    metal,
+  ]);
+
+  const rowsPerPage = 9;
+  const materialPages = useMemo(() => chunkArray(materialItems, rowsPerPage), [materialItems]);
+
+  const quoteItems = useMemo<EstimateMaterialItem[]>(() => {
+    const items: EstimateMaterialItem[] = materialItems.slice();
+
+    items.push({
+      name:
+        totals.laborWorkType === "wall"
+          ? "ค่าแรงติดตั้ง (งานผนัง)"
+          : totals.laborWorkType === "roof"
+            ? "ค่าแรงติดตั้ง (งานหลังคา)"
+            : totals.laborWorkType === "concrete"
+              ? "ค่าแรงติดตั้ง (งานคอนกรีต)"
+              : totals.laborWorkType === "paint"
+                ? "ค่าแรงติดตั้ง (งานสี)"
+                : "ค่าแรงติดตั้ง (งานฝ้า/เพดาน)",
+      qty: totals.laborQty,
+      unit: totals.laborUnitLabel,
+      imageUrl: null,
+      unitPriceExVat: totals.laborPerSqm,
+      totalExVat: totals.laborSubtotal,
+    });
+
+    if (includeDemolition) {
+      const qty = Math.max(0, demolitionAreaSqm || 0);
+      const unitPriceExVat = getLaborPerUnit("demolition", workDifficulty);
+      items.push({
+        name: "ค่าแรงรื้อถอน",
+        qty,
+        unit: "ตร.ม.",
+        imageUrl: null,
+        unitPriceExVat,
+        totalExVat: qty * unitPriceExVat,
+      });
+    }
+
+    if (includeWaste) {
+      const qty = Math.max(0, wasteAreaSqm || 0);
+      const unitPriceExVat = getLaborPerUnit("waste", workDifficulty);
+      items.push({
+        name: "ค่าแรงขนทิ้ง",
+        qty,
+        unit: "ตร.ม.",
+        imageUrl: null,
+        unitPriceExVat,
+        totalExVat: qty * unitPriceExVat,
+      });
+    }
+
+    items.push({
+      name: `ค่าดำเนินงาน (${estimateV2Config.overheadRate * 100}%)`,
+      qty: 1,
+      unit: "รายการ",
+      imageUrl: null,
+      unitPriceExVat: totals.overhead,
+      totalExVat: totals.overhead,
+    });
+
+    return items;
+  }, [
+    materialItems,
+    totals.laborWorkType,
+    totals.laborQty,
+    totals.laborUnitLabel,
+    totals.laborPerSqm,
+    totals.laborSubtotal,
+    totals.overhead,
+    includeDemolition,
+    demolitionAreaSqm,
+    includeWaste,
+    wasteAreaSqm,
+    workDifficulty,
+  ]);
+
+  const quotePages = useMemo(() => chunkArray(quoteItems, rowsPerPage), [quoteItems]);
+
+  const validateCustomer = () => {
+    const errors: Record<string, string> = {};
+    if (customerType === "personal") {
+      if (!personalName.trim()) errors.personalName = "กรุณากรอกชื่อลูกค้า";
+      if (!personalPhone.trim()) errors.personalPhone = "กรุณากรอกเบอร์โทร";
+      if (!personalAddress.trim()) errors.personalAddress = "กรุณากรอกที่อยู่";
+    } else {
+      if (!companyName.trim()) errors.companyName = "กรุณากรอกชื่อบริษัท/นิติบุคคล";
+      if (!companyTaxId.trim()) errors.companyTaxId = "กรุณากรอกเลขที่ผู้เสียภาษี";
+      if (!companyBranch.trim()) errors.companyBranch = "กรุณากรอกสาขา";
+      if (!companyAddress.trim()) errors.companyAddress = "กรุณากรอกที่อยู่บริษัท";
+      if (!companyPostcode.trim()) errors.companyPostcode = "กรุณากรอกรหัสไปรษณีย์";
+      if (!contactName.trim()) errors.contactName = "กรุณากรอกผู้ติดต่อ";
+      if (!contactPhone.trim()) errors.contactPhone = "กรุณากรอกเบอร์โทร";
+      if (!contactLineId.trim()) errors.contactLineId = "กรุณากรอกไอดีไลน์";
+      if (!siteAddress.trim()) errors.siteAddress = "กรุณากรอกที่อยู่ (หน้างาน)";
+    }
+    setCustomerFieldErrors(errors);
+    return errors;
   };
 
-  const sendEmail = async (e: FormEvent) => {
-    e.preventDefault();
-    setSendLoading(true);
-    setSendStatus("idle");
-    setSendError(null);
-    try {
-      const serviceId = (import.meta.env.VITE_EMAILJS_SERVICE_ID as string | undefined) ?? "";
-      const templateId = (import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string | undefined) ?? "";
-      const publicKey = (import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string | undefined) ?? "";
-      if (!serviceId || !templateId || !publicKey) throw new Error("ระบบอีเมลยังไม่ถูกตั้งค่า");
-      if (!formRef.current) throw new Error("ไม่พบฟอร์ม");
+  const focusFirstCustomerError = (errors: Record<string, string>) => {
+    const firstKey = Object.keys(errors)[0];
+    if (!firstKey) return;
+    const el = customerBlockRef.current?.querySelector(`[data-field="${firstKey}"]`) as
+      | HTMLInputElement
+      | HTMLTextAreaElement
+      | null;
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.focus();
+    } else {
+      customerBlockRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
-      await emailjs.sendForm(serviceId, templateId, formRef.current, { publicKey });
-      setSendStatus("success");
-      setEstimateOpen(false);
-    } catch (err) {
-      setSendStatus("error");
-      setSendError(err instanceof Error ? err.message : "ส่งอีเมลไม่สำเร็จ");
-    } finally {
-      setSendLoading(false);
+  const recordLead = async (source: "spec" | "quote") => {
+    const payload = {
+      source,
+      customer_type: customerType,
+      customer:
+        customerType === "personal"
+          ? {
+              customer_name: personalName,
+              customer_phone: personalPhone,
+              customer_address: personalAddress,
+            }
+          : {
+              company_name: companyName,
+              company_tax_id: companyTaxId,
+              company_branch: companyBranch,
+              company_address: companyAddress,
+              company_postcode: companyPostcode,
+              contact_name: contactName,
+              contact_phone: contactPhone,
+              contact_line_id: contactLineId,
+              site_same_as_company: siteSameAsCompany,
+              site_address: siteAddress,
+            },
+      selection: {
+        calculator,
+        calculator_title: activeCard.title,
+        building_type: buildingType,
+        work_difficulty: workDifficulty,
+        inputs: {
+          area_sqm: areaSqm,
+          construction_type: constructionType,
+          selections,
+          paint_mode: paintMode,
+          paint_coats: paintCoats,
+          paint_coverage_sqm_per_liter: paintCoverageSqmPerLiter,
+          paint_waste_rate: paintWasteRate,
+          concrete_element: concreteElement,
+          concrete_strength: concreteStrength,
+          concrete_waste_rate: concreteWasteRate,
+          slab: { length_m: slabLengthM, width_m: slabWidthM, thickness_cm: slabThicknessCm },
+          footing: { length_m: footingLengthM, width_m: footingWidthM, height_m: footingHeightM, count: footingCount },
+          column: { width_cm: columnWidthCm, depth_cm: columnDepthCm, height_m: columnHeightM, count: columnCount },
+          beam: { width_cm: beamWidthCm, depth_cm: beamDepthCm, length_m: beamLengthM, count: beamCount },
+          brick: { length_m: brickWallLengthM, height_m: brickWallHeightM, openings_sqm: brickOpeningsSqm, waste_rate: brickWasteRate },
+          metal: {
+            roof_style: metalRoofStyle,
+            length_m: metalLengthM,
+            width_m: metalWidthM,
+            pitch_deg: metalPitchDeg,
+            overhang_m: metalOverhangM,
+            waste_rate: metalWasteRate,
+            thickness: metalThickness,
+          },
+          demolition: { include: includeDemolition, area_sqm: demolitionAreaSqm },
+          waste: { include: includeWaste, area_sqm: wasteAreaSqm },
+        },
+        materials: materialItems.map((it) => ({ name: it.name, qty: it.qty, unit: it.unit })),
+      },
+      totals: {
+        material_subtotal: Math.round(totals.materialSubtotal),
+        labor_subtotal: Math.round(totals.laborSubtotal),
+        demolition_subtotal: Math.round(totals.demolitionSubtotal),
+        waste_subtotal: Math.round(totals.wasteSubtotal),
+        overhead: Math.round(totals.overhead),
+        total_ex_vat: Math.round(totals.totalExVat),
+        vat_rate: vatRate,
+        vat_amount: vatAmount,
+        total_with_vat: totalWithVat,
+        min_ex_vat: totals.min,
+        max_ex_vat: totals.max,
+        min_with_vat: minWithVat,
+        max_with_vat: maxWithVat,
+      },
+      page_url: typeof window !== "undefined" ? window.location.href : null,
+      user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+    };
+
+    const res = await fetch("/api/estimate-lead", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    return res.ok;
+  };
+
+  const openLoadingTab = () => {
+    if (typeof window === "undefined") return null;
+    const w = window.open("", "_blank");
+    if (w) {
+      w.document.title = "กำลังสร้างไฟล์ PDF...";
+      w.document.body.innerHTML =
+        "<div style='font-family: Sarabun, Tahoma, Arial, sans-serif; padding:16px;'>กำลังสร้างไฟล์ PDF...</div>";
+    }
+    return w;
+  };
+
+  const renderPdfFromRef = async (ref: { current: HTMLDivElement | null }, filename: string, tab: Window | null) => {
+    const root = ref.current;
+    if (!root) throw new Error("ไม่พบเอกสารสำหรับสร้าง PDF");
+    if (document.fonts?.ready) {
+      await document.fonts.ready;
+    }
+    await new Promise((r) => setTimeout(r, 50));
+
+    const pageEls = Array.from(root.querySelectorAll('[data-pdf-page="true"]')) as HTMLDivElement[];
+    const pages = pageEls.length ? pageEls : [root];
+
+    const pdf = new jsPDF("p", "mm", "a4");
+    for (let i = 0; i < pages.length; i++) {
+      const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+      const imgData = canvas.toDataURL("image/png");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const y = (pageHeight - imgHeight) / 2;
+      if (i > 0) pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, y, imgWidth, imgHeight);
+    }
+
+    const blob = pdf.output("blob");
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    if (tab) tab.location.href = url;
+    else window.open(url, "_blank");
+
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  };
+
+  const downloadSpecPdf = async () => {
+    const errors = validateCustomer();
+    if (Object.keys(errors).length) return focusFirstCustomerError(errors);
+    if (!specPdfRef.current) return;
+
+    setDownloadError(null);
+    setDownloadStatus((s) => ({ ...s, spec: "generating" }));
+    const tab = openLoadingTab();
+
+    try {
+      await renderPdfFromRef(specPdfRef, `estimate-spec-${new Date().toISOString().slice(0, 10)}.pdf`, tab);
+      setDownloadStatus((s) => ({ ...s, spec: "done" }));
+      void recordLead("spec");
+    } catch (e) {
+      setDownloadStatus((s) => ({ ...s, spec: "error" }));
+      setDownloadError(e instanceof Error ? e.message : "สร้างไฟล์ PDF ไม่สำเร็จ");
+      if (tab) tab.close();
+    }
+  };
+
+  const downloadQuotePdf = async () => {
+    const errors = validateCustomer();
+    if (Object.keys(errors).length) return focusFirstCustomerError(errors);
+    if (!quotePdfRef.current) return;
+
+    setDownloadError(null);
+    setDownloadStatus((s) => ({ ...s, quote: "generating" }));
+    const tab = openLoadingTab();
+
+    try {
+      await renderPdfFromRef(quotePdfRef, `estimate-quote-${new Date().toISOString().slice(0, 10)}.pdf`, tab);
+      setDownloadStatus((s) => ({ ...s, quote: "done" }));
+      void recordLead("quote");
+    } catch (e) {
+      setDownloadStatus((s) => ({ ...s, quote: "error" }));
+      setDownloadError(e instanceof Error ? e.message : "สร้างไฟล์ PDF ไม่สำเร็จ");
+      if (tab) tab.close();
     }
   };
 
@@ -1339,9 +1622,346 @@ export default function Estimate() {
                           : "0 รายการ"}
                     </div>
                   </div>
-                  <button type="button" onClick={() => setEstimateOpen(true)} className="btn-blue px-6 py-3 text-base whitespace-nowrap">
-                    ส่งให้ทีมประเมิน
-                  </button>
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <a
+                      href="https://line.me/ti/p/~0900072977"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn-secondary px-4 py-2.5 text-sm whitespace-nowrap"
+                    >
+                      ติดต่อ LINE
+                    </a>
+                    <button
+                      type="button"
+                      onClick={downloadSpecPdf}
+                      disabled={downloadStatus.spec === "generating"}
+                      className="btn-blue px-4 py-2.5 text-sm whitespace-nowrap disabled:opacity-60"
+                    >
+                      {downloadStatus.spec === "generating" ? "กำลังสร้างสเปค..." : "ดาวน์โหลดเอกสารสเปค"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={downloadQuotePdf}
+                      disabled={downloadStatus.quote === "generating"}
+                      className="btn-blue px-4 py-2.5 text-sm whitespace-nowrap disabled:opacity-60"
+                    >
+                      {downloadStatus.quote === "generating" ? "กำลังสร้างใบเสนอราคา..." : "ดาวน์โหลดใบเสนอราคา"}
+                    </button>
+                  </div>
+                </div>
+
+                {downloadError ? <div className="mt-4 text-sm text-red-600 break-words">{downloadError}</div> : null}
+
+                <div ref={customerBlockRef} className="mt-5 border border-[#d0d7de] rounded-xl p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="text-[#1f2328] font-bold text-sm">ข้อมูลลูกค้า</div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="customer_type"
+                          className="accent-[#0969da]"
+                          checked={customerType === "personal"}
+                          onChange={() => setCustomerType("personal")}
+                        />
+                        บุคคลธรรมดา
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="customer_type"
+                          className="accent-[#0969da]"
+                          checked={customerType === "company"}
+                          onChange={() => setCustomerType("company")}
+                        />
+                        นิติบุคคล/บริษัท/องค์กร
+                      </label>
+                    </div>
+                  </div>
+
+                  {customerType === "personal" ? (
+                    <div className="mt-4 grid gap-4">
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">ชื่อลูกค้า</label>
+                          <input
+                            data-field="personalName"
+                            value={personalName}
+                            onChange={(e) => {
+                              setPersonalName(e.target.value);
+                              if (customerFieldErrors.personalName)
+                                setCustomerFieldErrors((p) => ({ ...p, personalName: "" }));
+                            }}
+                            className={[
+                              "w-full bg-white border rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none transition-all",
+                              customerFieldErrors.personalName
+                                ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-200"
+                                : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                            ].join(" ")}
+                          />
+                          {customerFieldErrors.personalName ? (
+                            <div className="text-xs text-red-600">{customerFieldErrors.personalName}</div>
+                          ) : null}
+                        </div>
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">เบอร์โทร</label>
+                          <input
+                            data-field="personalPhone"
+                            value={personalPhone}
+                            onChange={(e) => {
+                              setPersonalPhone(e.target.value);
+                              if (customerFieldErrors.personalPhone)
+                                setCustomerFieldErrors((p) => ({ ...p, personalPhone: "" }));
+                            }}
+                            className={[
+                              "w-full bg-white border rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none transition-all",
+                              customerFieldErrors.personalPhone
+                                ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-200"
+                                : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                            ].join(" ")}
+                          />
+                          {customerFieldErrors.personalPhone ? (
+                            <div className="text-xs text-red-600">{customerFieldErrors.personalPhone}</div>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="grid gap-2">
+                        <label className="text-xs text-[#656d76]">ที่อยู่</label>
+                        <textarea
+                          data-field="personalAddress"
+                          rows={2}
+                          value={personalAddress}
+                          onChange={(e) => {
+                            setPersonalAddress(e.target.value);
+                            if (customerFieldErrors.personalAddress)
+                              setCustomerFieldErrors((p) => ({ ...p, personalAddress: "" }));
+                          }}
+                          className={[
+                            "w-full bg-white border rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none transition-all resize-none",
+                            customerFieldErrors.personalAddress
+                              ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-200"
+                              : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                          ].join(" ")}
+                        />
+                        {customerFieldErrors.personalAddress ? (
+                          <div className="text-xs text-red-600">{customerFieldErrors.personalAddress}</div>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 grid gap-4">
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">ชื่อบริษัท/นิติบุคคล</label>
+                          <input
+                            data-field="companyName"
+                            value={companyName}
+                            onChange={(e) => {
+                              setCompanyName(e.target.value);
+                              if (customerFieldErrors.companyName)
+                                setCustomerFieldErrors((p) => ({ ...p, companyName: "" }));
+                            }}
+                            className={[
+                              "w-full bg-white border rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none transition-all",
+                              customerFieldErrors.companyName
+                                ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-200"
+                                : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                            ].join(" ")}
+                          />
+                          {customerFieldErrors.companyName ? (
+                            <div className="text-xs text-red-600">{customerFieldErrors.companyName}</div>
+                          ) : null}
+                        </div>
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">เลขที่ผู้เสียภาษี</label>
+                          <input
+                            data-field="companyTaxId"
+                            value={companyTaxId}
+                            onChange={(e) => {
+                              setCompanyTaxId(e.target.value);
+                              if (customerFieldErrors.companyTaxId)
+                                setCustomerFieldErrors((p) => ({ ...p, companyTaxId: "" }));
+                            }}
+                            className={[
+                              "w-full bg-white border rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none transition-all",
+                              customerFieldErrors.companyTaxId
+                                ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-200"
+                                : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                            ].join(" ")}
+                          />
+                          {customerFieldErrors.companyTaxId ? (
+                            <div className="text-xs text-red-600">{customerFieldErrors.companyTaxId}</div>
+                          ) : null}
+                        </div>
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">สาขา</label>
+                          <input
+                            data-field="companyBranch"
+                            value={companyBranch}
+                            onChange={(e) => {
+                              setCompanyBranch(e.target.value);
+                              if (customerFieldErrors.companyBranch)
+                                setCustomerFieldErrors((p) => ({ ...p, companyBranch: "" }));
+                            }}
+                            className={[
+                              "w-full bg-white border rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none transition-all",
+                              customerFieldErrors.companyBranch
+                                ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-200"
+                                : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                            ].join(" ")}
+                          />
+                          {customerFieldErrors.companyBranch ? (
+                            <div className="text-xs text-red-600">{customerFieldErrors.companyBranch}</div>
+                          ) : null}
+                        </div>
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">รหัสไปรษณีย์</label>
+                          <input
+                            data-field="companyPostcode"
+                            value={companyPostcode}
+                            onChange={(e) => {
+                              setCompanyPostcode(e.target.value);
+                              if (customerFieldErrors.companyPostcode)
+                                setCustomerFieldErrors((p) => ({ ...p, companyPostcode: "" }));
+                            }}
+                            className={[
+                              "w-full bg-white border rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none transition-all",
+                              customerFieldErrors.companyPostcode
+                                ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-200"
+                                : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                            ].join(" ")}
+                          />
+                          {customerFieldErrors.companyPostcode ? (
+                            <div className="text-xs text-red-600">{customerFieldErrors.companyPostcode}</div>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="grid gap-2">
+                        <label className="text-xs text-[#656d76]">ที่อยู่ (บริษัท)</label>
+                        <textarea
+                          data-field="companyAddress"
+                          rows={2}
+                          value={companyAddress}
+                          onChange={(e) => {
+                            setCompanyAddress(e.target.value);
+                            if (customerFieldErrors.companyAddress)
+                              setCustomerFieldErrors((p) => ({ ...p, companyAddress: "" }));
+                          }}
+                          className={[
+                            "w-full bg-white border rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none transition-all resize-none",
+                            customerFieldErrors.companyAddress
+                              ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-200"
+                              : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                          ].join(" ")}
+                        />
+                        {customerFieldErrors.companyAddress ? (
+                          <div className="text-xs text-red-600">{customerFieldErrors.companyAddress}</div>
+                        ) : null}
+                      </div>
+
+                      <div className="grid md:grid-cols-3 gap-4">
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">ผู้ติดต่อ</label>
+                          <input
+                            data-field="contactName"
+                            value={contactName}
+                            onChange={(e) => {
+                              setContactName(e.target.value);
+                              if (customerFieldErrors.contactName)
+                                setCustomerFieldErrors((p) => ({ ...p, contactName: "" }));
+                            }}
+                            className={[
+                              "w-full bg-white border rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none transition-all",
+                              customerFieldErrors.contactName
+                                ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-200"
+                                : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                            ].join(" ")}
+                          />
+                          {customerFieldErrors.contactName ? (
+                            <div className="text-xs text-red-600">{customerFieldErrors.contactName}</div>
+                          ) : null}
+                        </div>
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">เบอร์โทร</label>
+                          <input
+                            data-field="contactPhone"
+                            value={contactPhone}
+                            onChange={(e) => {
+                              setContactPhone(e.target.value);
+                              if (customerFieldErrors.contactPhone)
+                                setCustomerFieldErrors((p) => ({ ...p, contactPhone: "" }));
+                            }}
+                            className={[
+                              "w-full bg-white border rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none transition-all",
+                              customerFieldErrors.contactPhone
+                                ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-200"
+                                : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                            ].join(" ")}
+                          />
+                          {customerFieldErrors.contactPhone ? (
+                            <div className="text-xs text-red-600">{customerFieldErrors.contactPhone}</div>
+                          ) : null}
+                        </div>
+                        <div className="grid gap-2">
+                          <label className="text-xs text-[#656d76]">ไอดีไลน์</label>
+                          <input
+                            data-field="contactLineId"
+                            value={contactLineId}
+                            onChange={(e) => {
+                              setContactLineId(e.target.value);
+                              if (customerFieldErrors.contactLineId)
+                                setCustomerFieldErrors((p) => ({ ...p, contactLineId: "" }));
+                            }}
+                            className={[
+                              "w-full bg-white border rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none transition-all",
+                              customerFieldErrors.contactLineId
+                                ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-200"
+                                : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                            ].join(" ")}
+                          />
+                          {customerFieldErrors.contactLineId ? (
+                            <div className="text-xs text-red-600">{customerFieldErrors.contactLineId}</div>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <label className="flex items-center gap-2 text-sm text-[#1f2328]">
+                        <input
+                          type="checkbox"
+                          className="accent-[#0969da]"
+                          checked={siteSameAsCompany}
+                          onChange={(e) => setSiteSameAsCompany(e.target.checked)}
+                        />
+                        ที่อยู่ (หน้างาน) เหมือนที่อยู่ (บริษัท)
+                      </label>
+
+                      <div className="grid gap-2">
+                        <label className="text-xs text-[#656d76]">ที่อยู่ (หน้างาน)</label>
+                        <textarea
+                          data-field="siteAddress"
+                          rows={2}
+                          value={siteAddress}
+                          disabled={siteSameAsCompany}
+                          onChange={(e) => {
+                            setSiteAddress(e.target.value);
+                            if (customerFieldErrors.siteAddress)
+                              setCustomerFieldErrors((p) => ({ ...p, siteAddress: "" }));
+                          }}
+                          className={[
+                            "w-full bg-white border rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none transition-all resize-none disabled:bg-[#f6f8fa]",
+                            customerFieldErrors.siteAddress
+                              ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-200"
+                              : "border-[#d0d7de] focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da]",
+                          ].join(" ")}
+                        />
+                        {customerFieldErrors.siteAddress ? (
+                          <div className="text-xs text-red-600">{customerFieldErrors.siteAddress}</div>
+                        ) : null}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {calculator === "construction" && constructionError && (
@@ -1642,7 +2262,7 @@ export default function Estimate() {
                   </div>
                 )}
 
-                <div className="mt-6 grid md:grid-cols-3 gap-4">
+                <div className="mt-6 grid md:grid-cols-4 gap-4">
                   <div className="border border-[#d0d7de] rounded-xl p-4">
                     <div className="text-xs text-[#656d76]">ค่าวัสดุ</div>
                     <div className="text-[#1f2328] font-bold text-lg mt-1">
@@ -1670,23 +2290,23 @@ export default function Estimate() {
                     </div>
                   </div>
                   <div className="border border-[#d0d7de] rounded-xl p-4">
-                    <div className="text-xs text-[#656d76]">รวม (ไม่รวม VAT)</div>
-                    <div className="text-[#1f2328] font-bold text-lg mt-1">
-                      {formatTHB(Math.round(totals.totalExVat))}
-                    </div>
-                    <div className="text-xs text-[#656d76] mt-1">
-                      รวมค่าดำเนินงาน {estimateV2Config.overheadRate * 100}% + เผื่อช่วง {estimateV2Config.bufferRate * 100}%
-                    </div>
+                    <div className="text-xs text-[#656d76]">VAT 7%</div>
+                    <div className="text-[#1f2328] font-bold text-lg mt-1">{formatTHB(vatAmount)}</div>
+                  </div>
+                  <div className="border border-[#d0d7de] rounded-xl p-4">
+                    <div className="text-xs text-[#656d76]">รวมสุทธิ (รวม VAT)</div>
+                    <div className="text-[#1f2328] font-bold text-lg mt-1">{formatTHB(totalWithVat)}</div>
+                    <div className="text-xs text-[#656d76] mt-1">รวม (ไม่รวม VAT): {formatTHB(Math.round(totals.totalExVat))}</div>
                   </div>
                 </div>
 
                 <div className="mt-6 bg-[#f6f8fa] border border-[#d0d7de] rounded-xl p-5">
-                  <div className="text-[#656d76] text-sm font-semibold uppercase tracking-wider">ช่วงราคาโดยประมาณ</div>
+                  <div className="text-[#656d76] text-sm font-semibold uppercase tracking-wider">ช่วงราคาโดยประมาณ (รวม VAT)</div>
                   <div className="text-2xl md:text-3xl font-bold text-[#1f2328] mt-1">
-                    {formatTHB(totals.min)} – {formatTHB(totals.max)} บาท
+                    {formatTHB(minWithVat)} – {formatTHB(maxWithVat)} บาท
                   </div>
                   <div className="text-[#656d76] text-sm mt-2">
-                    ราคานี้ไม่รวม VAT และคิดค่าดำเนินงาน {estimateV2Config.overheadRate * 100}% พร้อมเผื่อช่วง {estimateV2Config.bufferRate * 100}%
+                    รวม VAT 7% และคิดค่าดำเนินงาน {estimateV2Config.overheadRate * 100}% พร้อมเผื่อช่วง {estimateV2Config.bufferRate * 100}%
                   </div>
                 </div>
               </div>
@@ -1704,226 +2324,309 @@ export default function Estimate() {
         </div>
       </section>
 
-      <Dialog open={estimateOpen} onOpenChange={setEstimateOpen}>
-        <DialogContent className="bg-white border border-[#d0d7de] rounded-2xl p-6 sm:p-8 max-w-2xl">
-          <DialogTitle className="text-[#1f2328] text-xl font-bold">ส่งให้ทีมประเมิน</DialogTitle>
-          <DialogDescription className="text-[#656d76] text-sm mt-1">
-            กรอกข้อมูลติดต่อ แล้วระบบส่งอีเมลรายละเอียดให้ทีมงาน
-          </DialogDescription>
-
-          {sendStatus === "error" && (
-            <div className="mt-3 text-sm text-red-600 break-words">{sendError ?? "ส่งอีเมลไม่สำเร็จ"}</div>
-          )}
-          {sendStatus === "success" && (
-            <div className="mt-3 text-sm text-green-700 break-words">ส่งอีเมลเรียบร้อยแล้ว</div>
-          )}
-
-          <form className="mt-4 grid gap-4" ref={formRef} onSubmit={sendEmail}>
-            <input type="hidden" name="to_email" value="navamc1987@gmail.com" />
-            <input type="hidden" name="subject" value={`ขอประเมินราคาเบื้องต้น: ${activeCard.title}`} />
-            <textarea name="message" value={buildMessage()} readOnly className="hidden" />
-
-            <div ref={pdfRef} className="border border-[#d0d7de] rounded-xl p-4 bg-white">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-[#1f2328] font-bold">สรุปใบประเมินราคาเบื้องต้น</div>
-                  <div className="text-xs text-[#656d76] mt-1">{new Date().toLocaleString("th-TH")}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-[#656d76]">รวม (ไม่รวม VAT)</div>
-                  <div className="text-[#1f2328] font-bold text-lg">{formatTHB(Math.round(totals.totalExVat))} บาท</div>
-                </div>
-              </div>
-
-              <div className="mt-3 grid gap-1 text-sm">
-                <div className="text-[#1f2328] font-semibold">ข้อมูลลูกค้า</div>
-                <div className="text-[#656d76]">ชื่อลูกค้า: <span className="text-[#1f2328]">{customerName || "-"}</span></div>
-                <div className="text-[#656d76]">เบอร์โทร: <span className="text-[#1f2328]">{customerPhone || "-"}</span></div>
-                {customerAddress ? <div className="text-[#656d76]">ที่อยู่: <span className="text-[#1f2328]">{customerAddress}</span></div> : null}
-                {customerMapUrl ? <div className="text-[#656d76]">แผนที่: <span className="text-[#1f2328] break-all">{customerMapUrl}</span></div> : null}
-              </div>
-
-              <div className="mt-3 grid gap-2">
-                <div className="text-[#1f2328] font-semibold text-sm">รายการสินค้า/สรุปงาน</div>
-                <div className="text-xs text-[#656d76]">{activeCard.title}</div>
-
-                {calculator === "construction" ? (
-                  <div className="grid gap-2">
-                    {(constructionData?.rows ?? []).slice(0, 6).map((row) => (
-                      <div key={row.key} className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
-                          {row.imageUrl ? (
-                            <img src={row.imageUrl} alt={row.name ?? row.key} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
-                          ) : null}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{row.name ?? row.key}</div>
-                          <div className="text-xs text-[#656d76] mt-0.5">{formatTHB(row.qty)} {row.unit}</div>
-                        </div>
-                      </div>
-                    ))}
-                    {(constructionData?.rows?.length ?? 0) > 6 ? (
-                      <div className="text-xs text-[#656d76]">และอีก {formatTHB((constructionData?.rows?.length ?? 0) - 6)} รายการ</div>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {calculator === "paint" && paint ? (
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
-                      {paint.preset?.imageUrl ? (
-                        <img src={paint.preset.imageUrl} alt={paint.modeLabel} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
-                      ) : null}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{paint.modeLabel}</div>
-                      <div className="text-xs text-[#656d76] mt-0.5">ปริมาณสีรวม {paint.litersWithWaste.toFixed(2)} ลิตร</div>
-                    </div>
-                  </div>
-                ) : null}
-
-                {calculator === "concrete" && concrete ? (
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
-                      {concrete.preset?.imageUrl ? (
-                        <img src={concrete.preset.imageUrl} alt={concrete.preset.title} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
-                      ) : null}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{concrete.preset?.title ?? "คอนกรีตผสมเสร็จ"}</div>
-                      <div className="text-xs text-[#656d76] mt-0.5">{concrete.volumeWithWaste.toFixed(2)} คิว</div>
-                    </div>
-                  </div>
-                ) : null}
-
-                {calculator === "brick" && brick ? (
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
-                      {brick.preset?.imageUrl ? (
-                        <img src={brick.preset.imageUrl} alt={brick.preset.title} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
-                      ) : null}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{brick.preset?.title ?? "อิฐก่อผนัง"}</div>
-                      <div className="text-xs text-[#656d76] mt-0.5">{brick.areaWithWaste.toFixed(2)} ตร.ม.</div>
-                    </div>
-                  </div>
-                ) : null}
-
-                {calculator === "metal-sheet" && metal ? (
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
-                      {metal.preset?.imageUrl ? (
-                        <img src={metal.preset.imageUrl} alt={metal.preset.title} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
-                      ) : null}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{metal.preset?.title ?? "เมทัลชีท"}</div>
-                      <div className="text-xs text-[#656d76] mt-0.5">{metal.areaWithWaste.toFixed(2)} ตร.ม.</div>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <label className="text-xs text-[#656d76]">ชื่อลูกค้า</label>
-                <input
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  required
-                  name="customer_name"
-                  className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                />
-              </div>
-              <div className="grid gap-2">
-                <label className="text-xs text-[#656d76]">เบอร์โทร</label>
-                <input
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  required
-                  name="customer_phone"
-                  className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <label className="text-xs text-[#656d76]">ที่อยู่</label>
-              <textarea
-                rows={2}
-                value={customerAddress}
-                onChange={(e) => setCustomerAddress(e.target.value)}
-                name="customer_address"
-                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <label className="text-xs text-[#656d76]">ลิงก์ Google Maps (วางลิงก์แชร์)</label>
-              <input
-                value={customerMapUrl}
-                onChange={(e) => setCustomerMapUrl(e.target.value)}
-                placeholder="https://maps.app.goo.gl/..."
-                name="customer_map_url"
-                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <label className="text-xs text-[#656d76]">ลิงก์รูป/ไฟล์ (Google Drive)</label>
-              <textarea
-                rows={2}
-                value={customerDriveUrl}
-                onChange={(e) => setCustomerDriveUrl(e.target.value)}
-                placeholder="วางลิงก์ Google Drive ที่แชร์แล้ว"
-                name="customer_drive_url"
-                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <label className="text-xs text-[#656d76]">อัปโหลดรูป/ไฟล์ (แนบไปกับอีเมล)</label>
-              <input
-                type="file"
-                name="my_file"
-                multiple
-                accept="image/*,application/pdf"
-                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2 text-[#1f2328] text-sm"
-              />
-              <div className="text-xs text-[#656d76]">รองรับรูปภาพ/PDF (ขนาดไฟล์รวมขึ้นกับข้อจำกัดของบริการอีเมล)</div>
-            </div>
-
-            <div className="grid gap-2">
-              <label className="text-xs text-[#656d76]">หมายเหตุเพิ่มเติม</label>
-              <textarea
-                rows={3}
-                value={customerNote}
-                onChange={(e) => setCustomerNote(e.target.value)}
-                name="customer_note"
-                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none"
-              />
-            </div>
-
-            <DialogFooter className="mt-2 flex flex-col sm:flex-row gap-2 sm:justify-end">
-              <button
-                type="button"
-                onClick={() => setEstimateOpen(false)}
-                className="px-4 py-2.5 rounded-lg border border-[#d0d7de] text-sm text-[#1f2328] hover:border-[#8c959f] transition-all"
+      <div className="fixed left-[-99999px] top-0 w-[794px]">
+        <div ref={specPdfRef} className="grid gap-4" style={{ fontFamily: "'Sarabun', Tahoma, Arial, sans-serif" }}>
+          {materialPages.map((pageItems, pageIndex) => {
+            const totalPages = materialPages.length;
+            return (
+              <div
+                key={`spec-${pageIndex}`}
+                data-pdf-page="true"
+                className="bg-white text-[#1f2328]"
+                style={{ width: 794, minHeight: 1123, padding: 32, boxSizing: "border-box" }}
               >
-                ปิด
-              </button>
-              <button type="button" onClick={downloadPdf} className="px-4 py-2.5 rounded-lg border border-[#0969da] text-sm text-[#0969da] hover:bg-[#0969da]/5 transition-all">
-                ดาวน์โหลด PDF
-              </button>
-              <button type="submit" disabled={sendLoading} className="btn-blue px-5 py-2.5 text-sm disabled:opacity-60">
-                {sendLoading ? "กำลังส่ง..." : "ส่งข้อมูลให้ทีมประเมิน"}
-              </button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+                <div className="flex items-start justify-between gap-6">
+                  <div className="flex items-center gap-3">
+                    <img src="/siamai-logo.png" alt="SAT" className="w-14 h-14 object-contain" />
+                    <div>
+                      <div className="text-lg font-bold leading-tight">SAT (Siam AI Tools)</div>
+                      <div className="text-xs text-[#656d76]">เอกสารสเปค / รายการวัสดุ (ประเมินราคาเบื้องต้น)</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-[#656d76]">วันที่</div>
+                    <div className="text-sm font-semibold">{new Date().toLocaleDateString("th-TH")}</div>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-2 text-sm">
+                  <div className="font-bold">ข้อมูลลูกค้า</div>
+                  {customerType === "personal" ? (
+                    <div className="grid gap-1 text-[#656d76]">
+                      <div>
+                        ชื่อลูกค้า: <span className="text-[#1f2328]">{personalName || "-"}</span>
+                      </div>
+                      <div>
+                        เบอร์โทร: <span className="text-[#1f2328]">{personalPhone || "-"}</span>
+                      </div>
+                      <div>
+                        ที่อยู่: <span className="text-[#1f2328]">{personalAddress || "-"}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid gap-1 text-[#656d76]">
+                      <div>
+                        ชื่อบริษัท/นิติบุคคล: <span className="text-[#1f2328]">{companyName || "-"}</span>
+                      </div>
+                      <div>
+                        เลขที่ผู้เสียภาษี: <span className="text-[#1f2328]">{companyTaxId || "-"}</span> • สาขา:{" "}
+                        <span className="text-[#1f2328]">{companyBranch || "-"}</span>
+                      </div>
+                      <div>
+                        ที่อยู่ (บริษัท): <span className="text-[#1f2328]">{companyAddress || "-"}</span> •{" "}
+                        <span className="text-[#1f2328]">{companyPostcode || "-"}</span>
+                      </div>
+                      <div>
+                        ผู้ติดต่อ: <span className="text-[#1f2328]">{contactName || "-"}</span> • เบอร์โทร:{" "}
+                        <span className="text-[#1f2328]">{contactPhone || "-"}</span> • ไอดีไลน์:{" "}
+                        <span className="text-[#1f2328]">{contactLineId || "-"}</span>
+                      </div>
+                      <div>
+                        ที่อยู่ (หน้างาน): <span className="text-[#1f2328]">{siteAddress || "-"}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-4 grid gap-1 text-sm">
+                  <div className="font-bold">รายละเอียดงาน</div>
+                  <div className="text-[#656d76]">
+                    เครื่องคิดเลข: <span className="text-[#1f2328] font-semibold">{activeCard.title}</span> • ประเภทอาคาร:{" "}
+                    <span className="text-[#1f2328]">{buildingType}</span> • ความยากงาน:{" "}
+                    <span className="text-[#1f2328]">{workDifficulty}</span>
+                  </div>
+                  {calculator === "construction" ? (
+                    <div className="text-[#656d76]">
+                      ประเภทงาน: <span className="text-[#1f2328]">{constructionTypeLabel[constructionType] ?? constructionType}</span> • พื้นที่:{" "}
+                      <span className="text-[#1f2328]">{formatTHB(Math.round(areaSqm || 0))}</span> ตร.ม.
+                    </div>
+                  ) : null}
+                  {calculator === "paint" && paint ? (
+                    <div className="text-[#656d76]">
+                      {paint.modeLabel} • {paint.coats} เที่ยวทา • ปริมาณสีรวม {paint.litersWithWaste.toFixed(2)} ลิตร
+                    </div>
+                  ) : null}
+                  {calculator === "concrete" && concrete ? (
+                    <div className="text-[#656d76]">
+                      {concrete.label} • {concrete.volumeWithWaste.toFixed(2)} คิว
+                    </div>
+                  ) : null}
+                  {calculator === "brick" && brick ? (
+                    <div className="text-[#656d76]">พื้นที่ผนัง {brick.areaWithWaste.toFixed(2)} ตร.ม.</div>
+                  ) : null}
+                  {calculator === "metal-sheet" && metal ? (
+                    <div className="text-[#656d76]">พื้นที่หลังคา {metal.areaWithWaste.toFixed(2)} ตร.ม.</div>
+                  ) : null}
+                </div>
+
+                <div className="mt-4 border border-[#d0d7de] rounded-lg overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-[#f6f8fa]">
+                      <tr>
+                        <th className="px-3 py-2 text-left w-[52px]">ลำดับ</th>
+                        <th className="px-3 py-2 text-left">รายการวัสดุ</th>
+                        <th className="px-3 py-2 text-right w-[120px]">จำนวน</th>
+                        <th className="px-3 py-2 text-left w-[80px]">หน่วย</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#d0d7de]">
+                      {pageItems.map((it, idx) => (
+                        <tr key={`${pageIndex}-${idx}`} className="align-top">
+                          <td className="px-3 py-2">{pageIndex * rowsPerPage + idx + 1}</td>
+                          <td className="px-3 py-2">
+                            <div className="flex items-start gap-2">
+                              <div className="w-10 h-10 rounded-md bg-white border-[3px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                                {it.imageUrl ? (
+                                  <img src={it.imageUrl} alt={it.name} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
+                                ) : null}
+                              </div>
+                              <div className="whitespace-normal break-words leading-snug">{it.name}</div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-right">{formatTHB(Number(it.qty.toFixed(2)))}</td>
+                          <td className="px-3 py-2">{it.unit}</td>
+                        </tr>
+                      ))}
+                      {!pageItems.length ? (
+                        <tr>
+                          <td colSpan={4} className="px-3 py-6 text-center text-[#656d76]">
+                            ยังไม่มีรายการวัสดุ
+                          </td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                </div>
+
+                {pageIndex === totalPages - 1 ? (
+                  <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
+                    <div className="border border-[#d0d7de] rounded-lg p-4 min-h-[120px]">
+                      <div className="text-xs text-[#656d76]">ผู้จัดทำ/เสนอราคา</div>
+                      <div className="mt-10 border-t border-[#d0d7de] pt-2">ลงชื่อ ................................................</div>
+                    </div>
+                    <div className="border border-[#d0d7de] rounded-lg p-4 min-h-[120px]">
+                      <div className="text-xs text-[#656d76]">ผู้อนุมัติ/ลูกค้า</div>
+                      <div className="mt-10 border-t border-[#d0d7de] pt-2">ลงชื่อ ................................................</div>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="mt-6 flex items-center justify-between text-xs text-[#656d76]">
+                  <div>เงื่อนไขการชำระเงิน: ชำระค่าสินค้า + ค่าแรงติดตั้ง 100%</div>
+                  <div>
+                    หน้า {pageIndex + 1}/{totalPages}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div ref={quotePdfRef} className="grid gap-4" style={{ fontFamily: "'Sarabun', Tahoma, Arial, sans-serif" }}>
+          {quotePages.map((pageItems, pageIndex) => {
+            const totalPages = quotePages.length;
+            const isLast = pageIndex === totalPages - 1;
+            return (
+              <div
+                key={`quote-${pageIndex}`}
+                data-pdf-page="true"
+                className="bg-white text-[#1f2328]"
+                style={{ width: 794, minHeight: 1123, padding: 32, boxSizing: "border-box" }}
+              >
+                <div className="flex items-start justify-between gap-6">
+                  <div className="flex items-center gap-3">
+                    <img src="/siamai-logo.png" alt="SAT" className="w-14 h-14 object-contain" />
+                    <div>
+                      <div className="text-lg font-bold leading-tight">SAT (Siam AI Tools)</div>
+                      <div className="text-xs text-[#656d76]">ใบเสนอราคา (ประเมินราคาเบื้องต้น)</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-[#656d76]">วันที่</div>
+                    <div className="text-sm font-semibold">{new Date().toLocaleDateString("th-TH")}</div>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-2 text-sm">
+                  <div className="font-bold">ข้อมูลลูกค้า</div>
+                  {customerType === "personal" ? (
+                    <div className="grid gap-1 text-[#656d76]">
+                      <div>
+                        ชื่อลูกค้า: <span className="text-[#1f2328]">{personalName || "-"}</span>
+                      </div>
+                      <div>
+                        เบอร์โทร: <span className="text-[#1f2328]">{personalPhone || "-"}</span>
+                      </div>
+                      <div>
+                        ที่อยู่: <span className="text-[#1f2328]">{personalAddress || "-"}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid gap-1 text-[#656d76]">
+                      <div>
+                        ชื่อบริษัท/นิติบุคคล: <span className="text-[#1f2328]">{companyName || "-"}</span>
+                      </div>
+                      <div>
+                        เลขที่ผู้เสียภาษี: <span className="text-[#1f2328]">{companyTaxId || "-"}</span> • สาขา:{" "}
+                        <span className="text-[#1f2328]">{companyBranch || "-"}</span>
+                      </div>
+                      <div>
+                        ที่อยู่ (บริษัท): <span className="text-[#1f2328]">{companyAddress || "-"}</span> •{" "}
+                        <span className="text-[#1f2328]">{companyPostcode || "-"}</span>
+                      </div>
+                      <div>
+                        ผู้ติดต่อ: <span className="text-[#1f2328]">{contactName || "-"}</span> • เบอร์โทร:{" "}
+                        <span className="text-[#1f2328]">{contactPhone || "-"}</span> • ไอดีไลน์:{" "}
+                        <span className="text-[#1f2328]">{contactLineId || "-"}</span>
+                      </div>
+                      <div>
+                        ที่อยู่ (หน้างาน): <span className="text-[#1f2328]">{siteAddress || "-"}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-4 border border-[#d0d7de] rounded-lg overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-[#f6f8fa]">
+                      <tr>
+                        <th className="px-3 py-2 text-left w-[52px]">ลำดับ</th>
+                        <th className="px-3 py-2 text-left">รายการ</th>
+                        <th className="px-3 py-2 text-right w-[120px]">ราคา/หน่วย</th>
+                        <th className="px-3 py-2 text-right w-[110px]">จำนวน</th>
+                        <th className="px-3 py-2 text-right w-[120px]">รวม</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#d0d7de]">
+                      {pageItems.map((it, idx) => (
+                        <tr key={`${pageIndex}-${idx}`} className="align-top">
+                          <td className="px-3 py-2">{pageIndex * rowsPerPage + idx + 1}</td>
+                          <td className="px-3 py-2">
+                            <div className="flex items-start gap-2">
+                              <div className="w-10 h-10 rounded-md bg-white border-[3px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
+                                {it.imageUrl ? (
+                                  <img src={it.imageUrl} alt={it.name} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
+                                ) : null}
+                              </div>
+                              <div className="whitespace-normal break-words leading-snug">{it.name}</div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-right">{formatTHB(Math.round(it.unitPriceExVat))}</td>
+                          <td className="px-3 py-2 text-right">
+                            {formatTHB(Number(it.qty.toFixed(2)))} {it.unit}
+                          </td>
+                          <td className="px-3 py-2 text-right">{formatTHB(Math.round(it.totalExVat))}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {isLast ? (
+                  <>
+                    <div className="mt-5 grid md:grid-cols-3 gap-3 text-sm">
+                      <div className="border border-[#d0d7de] rounded-lg p-3">
+                        <div className="text-xs text-[#656d76]">รวม (ไม่รวม VAT)</div>
+                        <div className="text-base font-bold">{formatTHB(Math.round(totals.totalExVat))}</div>
+                      </div>
+                      <div className="border border-[#d0d7de] rounded-lg p-3">
+                        <div className="text-xs text-[#656d76]">VAT 7%</div>
+                        <div className="text-base font-bold">{formatTHB(vatAmount)}</div>
+                      </div>
+                      <div className="border border-[#d0d7de] rounded-lg p-3">
+                        <div className="text-xs text-[#656d76]">รวมสุทธิ (รวม VAT)</div>
+                        <div className="text-base font-bold">{formatTHB(totalWithVat)}</div>
+                      </div>
+                    </div>
+                    <div className="mt-3 text-xs text-[#656d76]">
+                      ช่วงราคาโดยประมาณ (รวม VAT): {formatTHB(minWithVat)} – {formatTHB(maxWithVat)} บาท • รวมค่าดำเนินงาน{" "}
+                      {estimateV2Config.overheadRate * 100}% พร้อมเผื่อช่วง {estimateV2Config.bufferRate * 100}%
+                    </div>
+
+                    <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
+                      <div className="border border-[#d0d7de] rounded-lg p-4 min-h-[120px]">
+                        <div className="text-xs text-[#656d76]">ผู้จัดทำ/เสนอราคา</div>
+                        <div className="mt-10 border-t border-[#d0d7de] pt-2">ลงชื่อ ................................................</div>
+                      </div>
+                      <div className="border border-[#d0d7de] rounded-lg p-4 min-h-[120px]">
+                        <div className="text-xs text-[#656d76]">ผู้อนุมัติ/ลูกค้า</div>
+                        <div className="mt-10 border-t border-[#d0d7de] pt-2">ลงชื่อ ................................................</div>
+                      </div>
+                    </div>
+                  </>
+                ) : null}
+
+                <div className="mt-6 flex items-center justify-between text-xs text-[#656d76]">
+                  <div>เงื่อนไขการชำระเงิน: ชำระค่าสินค้า + ค่าแรงติดตั้ง 100%</div>
+                  <div>
+                    หน้า {pageIndex + 1}/{totalPages}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       <Footer />
     </div>
