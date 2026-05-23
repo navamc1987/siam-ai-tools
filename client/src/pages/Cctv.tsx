@@ -556,9 +556,41 @@ export default function Cctv() {
                                 <img src={l.product.imageUrl} alt={l.product.name} className="w-full h-full object-contain bg-white" />
                               ) : null}
                             </div>
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{l.product?.name ?? "-"}</div>
-                              <div className="text-xs text-[#656d76] mt-0.5">x {formatTHB(l.qty)} ตัว</div>
+                              <div className="mt-1 flex items-center justify-between gap-2">
+                                <div className="text-xs text-[#656d76]">จำนวน (ตัว)</div>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => updateCameraQty(l.url, Math.max(0, (l.qty ?? 0) - 1))}
+                                    className="w-7 h-7 rounded-md border border-[#d0d7de] text-[#1f2328] hover:border-[#8c959f] transition-all"
+                                  >
+                                    -
+                                  </button>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    value={l.qty}
+                                    onChange={(e) => updateCameraQty(l.url, Number(e.target.value) || 0)}
+                                    className="w-14 h-7 bg-white border border-[#d0d7de] rounded-md px-2 text-[#1f2328] text-xs text-right focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => updateCameraQty(l.url, (l.qty ?? 0) + 1)}
+                                    className="w-7 h-7 rounded-md border border-[#d0d7de] text-[#1f2328] hover:border-[#8c959f] transition-all"
+                                  >
+                                    +
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeCamera(l.url)}
+                                    className="w-7 h-7 rounded-md border border-[#d0d7de] text-[#1f2328] hover:border-[#8c959f] transition-all"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -609,9 +641,18 @@ export default function Cctv() {
                           <img src={selectedHdd.imageUrl} alt={selectedHdd.name} className="w-full h-full object-contain bg-white" />
                         ) : null}
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{selectedHdd?.name ?? "-"}</div>
-                        <div className="text-xs text-[#656d76] mt-0.5">x {formatTHB(Math.max(0, Math.round(hddQty || 0)))} ลูก</div>
+                        <div className="mt-1 flex items-center justify-between gap-2">
+                          <div className="text-xs text-[#656d76]">จำนวน (ลูก)</div>
+                          <input
+                            type="number"
+                            min={0}
+                            value={hddQty}
+                            onChange={(e) => setHddQty(Number(e.target.value) || 0)}
+                            className="w-16 h-7 bg-white border border-[#d0d7de] rounded-md px-2 text-[#1f2328] text-xs text-right focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
