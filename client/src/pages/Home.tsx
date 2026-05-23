@@ -4,6 +4,7 @@
  */
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
+import ProductLogosSection from "@/components/ProductLogosSection";
 import FeaturedRenovationSection from "@/components/FeaturedRenovationSection";
 import AboutSection from "@/components/AboutSection";
 import ServicesSection from "@/components/ServicesSection";
@@ -18,6 +19,7 @@ export default function Home() {
     <div className="min-h-screen bg-[#1A1A2E]">
       <Navbar />
       <HeroSection />
+      <ProductLogosSection />
       <FeaturedRenovationSection />
       <AboutSection />
       <ServicesSection />
