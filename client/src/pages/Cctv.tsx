@@ -25,6 +25,7 @@ type CameraLine = {
 };
 
 type DownloadStatus = "idle" | "generating" | "done" | "error";
+type LeadStatus = "idle" | "saving" | "saved" | "error";
 
 function formatTHB(value: number) {
   return new Intl.NumberFormat("th-TH").format(value);
@@ -115,6 +116,8 @@ export default function Cctv() {
   const quotePdfRef = useRef<HTMLDivElement | null>(null);
   const [specDownloadStatus, setSpecDownloadStatus] = useState<DownloadStatus>("idle");
   const [quoteDownloadStatus, setQuoteDownloadStatus] = useState<DownloadStatus>("idle");
+  const [specLeadStatus, setSpecLeadStatus] = useState<LeadStatus>("idle");
+  const [quoteLeadStatus, setQuoteLeadStatus] = useState<LeadStatus>("idle");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -534,12 +537,72 @@ export default function Cctv() {
     return true;
   };
 
+  const recordLead = async (source: "spec" | "quote") => {
+    const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? "";
+    const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ?? "";
+    if (!supabaseUrl || !supabaseAnonKey) return false;
+
+    const payload = {
+      source,
+      customer_type: customerType,
+      customer:
+        customerType === "personal"
+          ? {
+              customer_name: customerName,
+              customer_phone: customerPhone,
+              customer_address: customerAddress,
+            }
+          : {
+              company_name: companyName,
+              company_tax_id: companyTaxId,
+              company_branch: companyBranch,
+              company_address: companyAddress,
+              company_postcode: companyPostcode,
+              contact_name: companyContactName,
+              contact_phone: companyContactPhone,
+              contact_line_id: companyLineId,
+              site_address: siteAddress,
+            },
+      selection: {
+        brand,
+        nightMode,
+        needMic,
+        needTalk,
+        rows: specRows,
+      },
+      totals: {
+        material: Math.round(totals.material),
+        labor: Math.round(totals.labor),
+        total: Math.round(totals.total),
+        vat: Math.round(totals.vat),
+        totalWithVat: Math.round(totals.totalWithVat),
+        cableWithExtra: Math.round(totals.cableWithExtra),
+        laborRate: Math.round(totals.laborRate),
+      },
+      page_url: typeof window !== "undefined" ? window.location.href : null,
+      user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+    };
+
+    const res = await fetch(`${supabaseUrl.replace(/\/$/, "")}/rest/v1/cctv_leads`, {
+      method: "POST",
+      headers: {
+        apikey: supabaseAnonKey,
+        Authorization: `Bearer ${supabaseAnonKey}`,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify(payload),
+    });
+    return res.ok;
+  };
+
   const downloadSpecPdf = async () => {
     if (!validateCustomer()) return;
     if (!specPdfRef.current) return;
 
     const fileName = `cctv-spec-${new Date().toISOString().slice(0, 10)}.pdf`;
     setSpecDownloadStatus("generating");
+    setSpecLeadStatus("saving");
     const w = window.open("", "_blank");
     if (w) w.document.body.innerHTML = "<div style='font-family: Sarabun, Tahoma, Arial, sans-serif; padding:16px;'>กำลังสร้างไฟล์ PDF...</div>";
 
@@ -572,9 +635,12 @@ export default function Cctv() {
       else window.open(url, "_blank");
       window.setTimeout(() => URL.revokeObjectURL(url), 120000);
       setSpecDownloadStatus("done");
+      const ok = await recordLead("spec");
+      setSpecLeadStatus(ok ? "saved" : "error");
     } catch {
       if (w) w.close();
       setSpecDownloadStatus("error");
+      setSpecLeadStatus("error");
     }
   };
 
@@ -584,6 +650,7 @@ export default function Cctv() {
 
     const fileName = `cctv-quote-${new Date().toISOString().slice(0, 10)}.pdf`;
     setQuoteDownloadStatus("generating");
+    setQuoteLeadStatus("saving");
     const w = window.open("", "_blank");
     if (w) w.document.body.innerHTML = "<div style='font-family: Sarabun, Tahoma, Arial, sans-serif; padding:16px;'>กำลังสร้างไฟล์ PDF...</div>";
 
@@ -616,9 +683,12 @@ export default function Cctv() {
       else window.open(url, "_blank");
       window.setTimeout(() => URL.revokeObjectURL(url), 120000);
       setQuoteDownloadStatus("done");
+      const ok = await recordLead("quote");
+      setQuoteLeadStatus(ok ? "saved" : "error");
     } catch {
       if (w) w.close();
       setQuoteDownloadStatus("error");
+      setQuoteLeadStatus("error");
     }
   };
 
@@ -1096,10 +1166,16 @@ export default function Cctv() {
                     <div>เปิดไฟล์เอกสารสเปคแล้ว (ถ้าบล็อคป๊อปอัพ ให้เปิดไฟล์จากรายการดาวน์โหลด)</div>
                   ) : null}
                   {specDownloadStatus === "error" ? <div>สร้างไฟล์เอกสารสเปคไม่สำเร็จ</div> : null}
+                  {specLeadStatus === "saving" ? <div>กำลังบันทึกข้อมูล...</div> : null}
+                  {specLeadStatus === "saved" ? <div>บันทึกข้อมูลเรียบร้อย</div> : null}
+                  {specLeadStatus === "error" ? <div>บันทึกข้อมูลไม่สำเร็จ</div> : null}
                   {quoteDownloadStatus === "done" ? (
                     <div>เปิดไฟล์ใบเสนอราคาแล้ว (ถ้าบล็อคป๊อปอัพ ให้เปิดไฟล์จากรายการดาวน์โหลด)</div>
                   ) : null}
                   {quoteDownloadStatus === "error" ? <div>สร้างไฟล์ใบเสนอราคาไม่สำเร็จ</div> : null}
+                  {quoteLeadStatus === "saving" ? <div>กำลังบันทึกข้อมูล...</div> : null}
+                  {quoteLeadStatus === "saved" ? <div>บันทึกข้อมูลเรียบร้อย</div> : null}
+                  {quoteLeadStatus === "error" ? <div>บันทึกข้อมูลไม่สำเร็จ</div> : null}
                 </div>
               ) : null}
 
