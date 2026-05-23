@@ -538,10 +538,6 @@ export default function Cctv() {
   };
 
   const recordLead = async (source: "spec" | "quote") => {
-    const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? "";
-    const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ?? "";
-    if (!supabaseUrl || !supabaseAnonKey) return false;
-
     const payload = {
       source,
       customer_type: customerType,
@@ -583,13 +579,10 @@ export default function Cctv() {
       user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
     };
 
-    const res = await fetch(`${supabaseUrl.replace(/\/$/, "")}/rest/v1/cctv_leads`, {
+    const res = await fetch("/api/cctv-lead", {
       method: "POST",
       headers: {
-        apikey: supabaseAnonKey,
-        Authorization: `Bearer ${supabaseAnonKey}`,
         "Content-Type": "application/json",
-        Prefer: "return=minimal",
       },
       body: JSON.stringify(payload),
     });
