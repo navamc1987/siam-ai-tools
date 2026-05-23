@@ -9,8 +9,8 @@ export type KstCategorySources = {
 
 export const kstCctvSources: Record<KstBrand, KstCategorySources> = {
   hikvision: {
-    nvr: "https://www.kstsystem.co.th/Hikvision-NVR",
-    poeSwitches: ["https://www.kstsystem.co.th/category/Hikvision-Managed-Switch", "https://www.kstsystem.co.th/category/RG-NBS3100-Series-(PoE)"],
+    nvr: "https://www.kstsystem.co.th/category/Hikvision-NVR",
+    poeSwitches: [],
     cameras: [
       "https://www.kstsystem.co.th/category/Hikvision-EasyIP-4.0-Acusense",
       "https://www.kstsystem.co.th/category/%E0%B8%81%E0%B8%A5%E0%B9%89%E0%B8%AD%E0%B8%87%E0%B8%A7%E0%B8%87%E0%B8%88%E0%B8%A3%E0%B8%9B%E0%B8%B4%E0%B8%94-Hikvision-EasyIP-4.0-ColorVu-4MP",

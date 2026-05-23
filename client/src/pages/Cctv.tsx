@@ -57,6 +57,7 @@ function parseHddTb(name: string) {
 
 export default function Cctv() {
   const [brand, setBrand] = useState<KstBrand>("hikvision");
+  const showPoeSwitchSelection = brand !== "hikvision";
   const [cameraCount, setCameraCount] = useState<number>(4);
   const [nightMode, setNightMode] = useState<"ir" | "fullcolor">("ir");
   const [needMic, setNeedMic] = useState(true);
@@ -174,6 +175,7 @@ export default function Cctv() {
   }, [nvrProducts, cameraCount]);
 
   const poeSwitchFiltered = useMemo(() => {
+    if (!showPoeSwitchSelection) return [];
     const needed = Math.max(1, Math.round(cameraCount || 0));
     return poeSwitchProducts
       .filter((p) => (p.price ?? 0) > 0)
@@ -182,7 +184,7 @@ export default function Cctv() {
       .filter((p) => (p.ports ? p.ports >= needed : true))
       .slice()
       .sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
-  }, [poeSwitchProducts, cameraCount]);
+  }, [poeSwitchProducts, cameraCount, showPoeSwitchSelection]);
 
   const hddFiltered = useMemo(() => {
     return hddProducts
@@ -228,19 +230,21 @@ export default function Cctv() {
     return !nvrHasBuiltInPoe(selectedNvr.name);
   }, [selectedNvr]);
 
+  const showPoeSwitchSection = needsPoeSwitch && showPoeSwitchSelection;
+
   useEffect(() => {
-    if (!needsPoeSwitch) {
+    if (!showPoeSwitchSection) {
       if (selectedPoeSwitchUrl) setSelectedPoeSwitchUrl("");
       return;
     }
     if (!selectedPoeSwitchUrl && poeSwitchFiltered.length) setSelectedPoeSwitchUrl(poeSwitchFiltered[0].url);
-  }, [needsPoeSwitch, selectedPoeSwitchUrl, poeSwitchFiltered]);
+  }, [showPoeSwitchSection, selectedPoeSwitchUrl, poeSwitchFiltered]);
 
   const totals = useMemo(() => {
     const cams = Math.max(0, Math.round(cameraCount || 0));
     const cameraUnitPrice = selectedCamera?.price ? selectedCamera.price + 300 : 0;
     const nvrUnitPrice = selectedNvr?.price ? selectedNvr.price + 1000 : 0;
-    const poeSwitchUnitPrice = needsPoeSwitch && selectedPoeSwitch?.price ? selectedPoeSwitch.price + 300 : 0;
+    const poeSwitchUnitPrice = showPoeSwitchSection && selectedPoeSwitch?.price ? selectedPoeSwitch.price + 300 : 0;
     const hddUnitPrice = selectedHdd?.price ? selectedHdd.price + 300 : 0;
 
     const cameraSubtotal = cameraUnitPrice * cams;
@@ -292,7 +296,7 @@ export default function Cctv() {
     selectedCamera?.price,
     selectedNvr?.price,
     selectedPoeSwitch?.price,
-    needsPoeSwitch,
+    showPoeSwitchSection,
     selectedHdd?.price,
     hddQty,
     cablePerCameraM,
@@ -326,7 +330,11 @@ export default function Cctv() {
       "",
       `กล้อง: ${selectedCamera?.name ?? "-"}`,
       `เครื่องบันทึก: ${selectedNvr?.name ?? "-"}`,
-      needsPoeSwitch ? `PoE Switch: ${selectedPoeSwitch?.name ?? "-"}` : null,
+      needsPoeSwitch
+        ? showPoeSwitchSelection
+          ? `PoE Switch: ${selectedPoeSwitch?.name ?? "-"}`
+          : "PoE Switch: ต้องซื้อเพิ่ม (รุ่น NVR ไม่มี PoE)"
+        : null,
       `HDD: ${selectedHdd?.name ?? "-"} x ${formatTHB(Math.max(0, Math.round(hddQty || 0)))} ลูก`,
       "",
       `ระยะสายเฉลี่ย: ${formatTHB(Math.max(0, cablePerCameraM || 0))} ม./จุด`,
@@ -522,6 +530,10 @@ export default function Cctv() {
 
               <div className="bg-white border border-[#d0d7de] rounded-2xl p-6 md:p-8">
                 <div className="text-[#1f2328] font-bold">3) เครื่องบันทึก (NVR)</div>
+                <div className="text-xs text-[#656d76] mt-2">
+                  กรุณาตรวจรุ่นที่เลือก หากไม่มี POE จะต้องซื้อ Switch Hub POE เพิ่ม
+                  {needsPoeSwitch ? <span className="text-[#b35900] font-semibold"> (รุ่นที่เลือกไม่มี POE)</span> : null}
+                </div>
                 <div className="mt-4 grid gap-3">
                   {nvrFiltered.slice(0, 8).map((p) => (
                     <button
@@ -554,7 +566,7 @@ export default function Cctv() {
                 </div>
               </div>
 
-              {needsPoeSwitch ? (
+              {showPoeSwitchSection ? (
                 <div className="bg-white border border-[#d0d7de] rounded-2xl p-6 md:p-8">
                   <div className="text-[#1f2328] font-bold">4) PoE Switch (สำหรับ NVR ที่ไม่ PoE)</div>
                   <div className="text-xs text-[#656d76] mt-2">
@@ -594,7 +606,7 @@ export default function Cctv() {
               ) : null}
 
               <div className="bg-white border border-[#d0d7de] rounded-2xl p-6 md:p-8">
-                <div className="text-[#1f2328] font-bold">{needsPoeSwitch ? "5) HDD" : "4) HDD"}</div>
+                <div className="text-[#1f2328] font-bold">{showPoeSwitchSection ? "5) HDD" : "4) HDD"}</div>
                 <div className="mt-4 grid md:grid-cols-2 gap-4 items-end">
                   <div className="grid gap-2">
                     <label className="text-xs text-[#656d76]">จำนวน HDD (ลูก)</label>
@@ -624,7 +636,7 @@ export default function Cctv() {
               </div>
 
               <div className="bg-white border border-[#d0d7de] rounded-2xl p-6 md:p-8">
-                <div className="text-[#1f2328] font-bold">{needsPoeSwitch ? "6) งานติดตั้ง / ระยะสาย" : "5) งานติดตั้ง / ระยะสาย"}</div>
+                <div className="text-[#1f2328] font-bold">{showPoeSwitchSection ? "6) งานติดตั้ง / ระยะสาย" : "5) งานติดตั้ง / ระยะสาย"}</div>
                 <div className="mt-4 grid md:grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <label className="text-xs text-[#656d76]">ระยะสายเฉลี่ย (เมตร/จุด)</label>
@@ -742,7 +754,7 @@ export default function Cctv() {
               </div>
 
               <div className="bg-white border border-[#d0d7de] rounded-2xl p-6 md:p-8">
-                <div className="text-[#1f2328] font-bold">{needsPoeSwitch ? "7) รายการสรุป" : "6) รายการสรุป"}</div>
+                <div className="text-[#1f2328] font-bold">{showPoeSwitchSection ? "7) รายการสรุป" : "6) รายการสรุป"}</div>
                 <div className="mt-4 overflow-x-auto border border-[#d0d7de] rounded-xl">
                   <table className="min-w-[900px] w-full text-sm">
                     <thead className="bg-[#f6f8fa] text-[#1f2328]">
@@ -777,7 +789,7 @@ export default function Cctv() {
                           {formatTHB(Math.round(totals.nvrSubtotal))}
                         </td>
                       </tr>
-                      {needsPoeSwitch ? (
+                      {showPoeSwitchSection ? (
                         <tr className="align-top">
                           <td className="px-4 py-4 text-[#1f2328] font-semibold">3)</td>
                           <td className="px-4 py-4">
@@ -791,7 +803,7 @@ export default function Cctv() {
                         </tr>
                       ) : null}
                       <tr className="align-top">
-                        <td className="px-4 py-4 text-[#1f2328] font-semibold">{needsPoeSwitch ? "4)" : "3)"}</td>
+                        <td className="px-4 py-4 text-[#1f2328] font-semibold">{showPoeSwitchSection ? "4)" : "3)"}</td>
                         <td className="px-4 py-4">
                           <div className="text-[#1f2328] font-semibold">{selectedHdd?.name ?? "-"}</div>
                         </td>
@@ -802,7 +814,7 @@ export default function Cctv() {
                         </td>
                       </tr>
                       <tr className="align-top">
-                        <td className="px-4 py-4 text-[#1f2328] font-semibold">{needsPoeSwitch ? "5)" : "4)"}</td>
+                        <td className="px-4 py-4 text-[#1f2328] font-semibold">{showPoeSwitchSection ? "5)" : "4)"}</td>
                         <td className="px-4 py-4">
                           <div className="text-[#1f2328] font-semibold">ค่าแรงติดตั้ง (คิดตามระยะสาย)</div>
                           <div className="text-xs text-[#656d76] mt-1">
@@ -817,7 +829,7 @@ export default function Cctv() {
                       </tr>
                       {(totals.supportCost || 0) > 0 ? (
                         <tr className="align-top">
-                          <td className="px-4 py-4 text-[#1f2328] font-semibold">{needsPoeSwitch ? "6)" : "5)"}</td>
+                          <td className="px-4 py-4 text-[#1f2328] font-semibold">{showPoeSwitchSection ? "6)" : "5)"}</td>
                           <td className="px-4 py-4">
                             <div className="text-[#1f2328] font-semibold">เสา Support</div>
                           </td>
@@ -829,7 +841,13 @@ export default function Cctv() {
                       {(totals.rackCost || 0) > 0 ? (
                         <tr className="align-top">
                           <td className="px-4 py-4 text-[#1f2328] font-semibold">
-                            {(totals.supportCost || 0) > 0 ? (needsPoeSwitch ? "7)" : "6)") : needsPoeSwitch ? "6)" : "5)"}
+                            {(totals.supportCost || 0) > 0
+                              ? showPoeSwitchSection
+                                ? "7)"
+                                : "6)"
+                              : showPoeSwitchSection
+                                ? "6)"
+                                : "5)"}
                           </td>
                           <td className="px-4 py-4">
                             <div className="text-[#1f2328] font-semibold">ตู้ Rack 6U</div>
