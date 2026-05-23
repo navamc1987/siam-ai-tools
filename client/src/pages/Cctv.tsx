@@ -2,10 +2,9 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { kstCctvSources, type KstBrand } from "@/data/kstCctvSources";
-import emailjs from "@emailjs/browser";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type KstProduct = {
   id: string;
@@ -91,19 +90,25 @@ export default function Cctv() {
   const [supportQty, setSupportQty] = useState<number>(0);
   const [rackCost, setRackCost] = useState<number>(0);
 
-  const [estimateOpen, setEstimateOpen] = useState(false);
+  const [customerType, setCustomerType] = useState<"personal" | "company">("personal");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
-  const [customerMapUrl, setCustomerMapUrl] = useState("");
-  const [customerDriveUrl, setCustomerDriveUrl] = useState("");
-  const [customerNote, setCustomerNote] = useState("");
-  const [sendLoading, setSendLoading] = useState(false);
-  const [sendStatus, setSendStatus] = useState<"idle" | "success" | "error">("idle");
-  const [sendError, setSendError] = useState<string | null>(null);
-  const formRef = useRef<HTMLFormElement | null>(null);
-  const pdfRef = useRef<HTMLDivElement | null>(null);
+  const [customerError, setCustomerError] = useState<string | null>(null);
+
+  const [companyName, setCompanyName] = useState("");
+  const [companyTaxId, setCompanyTaxId] = useState("");
+  const [companyBranch, setCompanyBranch] = useState("");
+  const [companyAddress, setCompanyAddress] = useState("");
+  const [companyPostcode, setCompanyPostcode] = useState("");
+  const [companyContactName, setCompanyContactName] = useState("");
+  const [companyContactPhone, setCompanyContactPhone] = useState("");
+  const [companyLineId, setCompanyLineId] = useState("");
+  const [siteAddress, setSiteAddress] = useState("");
+
+  const customerSectionRef = useRef<HTMLDivElement | null>(null);
   const specPdfRef = useRef<HTMLDivElement | null>(null);
+  const quotePdfRef = useRef<HTMLDivElement | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,12 +116,6 @@ export default function Cctv() {
   const [cameraProducts, setCameraProducts] = useState<KstProduct[]>([]);
   const [poeSwitchProducts, setPoeSwitchProducts] = useState<KstProduct[]>([]);
   const [hddProducts, setHddProducts] = useState<KstProduct[]>([]);
-
-  useEffect(() => {
-    if (!estimateOpen) return;
-    setSendStatus("idle");
-    setSendError(null);
-  }, [estimateOpen]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -407,133 +406,165 @@ export default function Cctv() {
   if (supportRowNo) rowNo = supportRowNo;
   const rackRowNo = (totals.rackTotal || 0) > 0 ? rowNo + 1 : null;
 
-  const buildMessage = () => {
-    const brandLabel =
-      brand === "hikvision" ? "Hikvision" : brand === "dahua" ? "Dahua" : "Uniview";
-    const cameraLinesText = selectedCameras.length
-      ? ["กล้อง:", ...selectedCameras.map((l) => `- ${l.product?.name ?? "-"} x ${formatTHB(l.qty)} ตัว`)].join("\n")
-      : "กล้อง: -";
-    return [
-      "ขอจัดสเปค/ประเมินกล้องวงจรปิด",
-      "",
-      customerName ? `ชื่อลูกค้า: ${customerName}` : null,
-      customerPhone ? `เบอร์โทร: ${customerPhone}` : null,
-      customerAddress ? `ที่อยู่: ${customerAddress}` : null,
-      customerMapUrl ? `ลิงก์แผนที่: ${customerMapUrl}` : null,
-      customerDriveUrl ? `ลิงก์รูป/ไฟล์ (Google Drive): ${customerDriveUrl}` : null,
-      customerNote ? `หมายเหตุ: ${customerNote}` : null,
-      "",
-      `ยี่ห้อ: ${brandLabel}`,
-      `จำนวนกล้อง: ${formatTHB(totals.cams)} ตัว`,
-      `โหมดกลางคืน: ${nightMode === "fullcolor" ? "Full Color" : "IR"}`,
-      `ไมค์: ${needMic ? "ต้องการ" : "ไม่จำเป็น"}`,
-      `โต้ตอบ: ${needTalk ? "ต้องการ" : "ไม่จำเป็น"}`,
-      "",
-      cameraLinesText,
-      `เครื่องบันทึก: ${selectedNvr?.name ?? "-"}`,
-      needsPoeSwitch
-        ? showPoeSwitchSelection
-          ? selectedPoeSwitchUrl
-            ? `PoE Switch: ${selectedPoeSwitch?.name ?? "-"}`
-            : "PoE Switch: ยังไม่ได้เลือก (ต้องซื้อเพิ่ม)"
-          : "PoE Switch: ต้องซื้อเพิ่ม (รุ่น NVR ไม่มี PoE)"
-        : null,
-      `HDD: ${selectedHdd?.name ?? "-"} x ${formatTHB(Math.max(0, Math.round(hddQty || 0)))} ลูก`,
-      "",
-      `ระยะสายเฉลี่ย: ${formatTHB(Math.max(0, cablePerCameraM || 0))} ม./จุด`,
-      `เผื่อสาย: ${formatTHB(Math.max(0, cableExtraPercent || 0))}% + ${formatTHB(Math.max(0, cableExtraMeters || 0))} ม.`,
-      `ระยะสายรวม: ${formatTHB(Math.round(totals.cableWithExtra))} ม.`,
-      `ค่าแรงติดตั้ง: ${formatTHB(Math.round(totals.laborRate))} บาท/เมตร (พื้นฐาน ${formatTHB(Math.round(totals.laborBasePerMeter))} + เคลียร์ ${formatTHB(Math.round(totals.laborClearPerMeter))} + EMT ${formatTHB(Math.round(totals.laborEmtPerMeter))})`,
-      (totals.supportTotal || 0) > 0
-        ? `เสา Support: ${formatTHB(Math.round(totals.supportUnitCost || 0))} x ${formatTHB(Math.max(0, Math.round(totals.supportQty || 0)))} = ${formatTHB(Math.round(totals.supportTotal || 0))} บาท`
-        : null,
-      (totals.rackTotal || 0) > 0 ? `ตู้ Rack: ${formatTHB(Math.round(totals.rackTotal || 0))} บาท` : null,
-      "",
-      `ค่าวัสดุประมาณ: ${formatTHB(Math.round(totals.material))} บาท`,
-      `ค่าแรงประมาณ: ${formatTHB(Math.round(totals.labor))} บาท`,
-      `รวมก่อน VAT: ${formatTHB(Math.round(totals.total))} บาท`,
-      `VAT 7%: ${formatTHB(Math.round(totals.vat))} บาท`,
-      `รวมสุทธิ: ${formatTHB(Math.round(totals.totalWithVat))} บาท`,
-      "",
-      "วิธีการสั่งซื้อ",
-      "1) เลือกรายการสินค้าและสเปค",
-      "2) กด ส่งให้ทีมประเมิน รอการติดต่อกลับ",
-      "3) เตรียมข้อมูล: รูปตำแหน่งติดตั้งกล้อง/เครื่องบันทึก/เราท์เตอร์, รูปพื้นที่บ้านโดยรวม, แบบแปลน (ถ้ามี), ที่อยู่",
-      "",
-      "รบกวนติดต่อกลับเพื่อยืนยันสเปค/หน้างาน/เส้นทางเดินสาย",
-    ]
-      .filter(Boolean)
-      .join("\n");
-  };
+  const specRows = useMemo(() => {
+    const rows: Array<{
+      no: number;
+      key: string;
+      name: string;
+      qty: number;
+      unit: number | null;
+      subtotal: number | null;
+    }> = [];
 
-  const downloadPdf = async () => {
-    if (!pdfRef.current) return;
-    setSendStatus("idle");
-    setSendError(null);
-    const canvas = await html2canvas(pdfRef.current, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("p", "mm", "a4");
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = pageWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    let heightLeft = imgHeight;
-    let position = 0;
-    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-    while (heightLeft > 2) {
-      position -= pageHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+    for (const l of selectedCameras) {
+      const unit = l.product?.price ? l.product.price + 300 : null;
+      const qty = Math.max(0, Math.round(l.qty || 0));
+      rows.push({
+        no: 0,
+        key: l.url,
+        name: l.product?.name ?? "-",
+        qty,
+        unit,
+        subtotal: unit != null ? unit * qty : null,
+      });
     }
-    pdf.save(`cctv-estimate-${new Date().toISOString().slice(0, 10)}.pdf`);
+
+    rows.push({
+      no: 0,
+      key: "nvr",
+      name: selectedNvr?.name ?? "-",
+      qty: 1,
+      unit: totals.nvrUnitPrice || null,
+      subtotal: totals.nvrSubtotal || null,
+    });
+
+    if (showPoeSwitchSection && selectedPoeSwitchUrl) {
+      rows.push({
+        no: 0,
+        key: "poe",
+        name: selectedPoeSwitch?.name ?? "-",
+        qty: 1,
+        unit: totals.poeSwitchUnitPrice || null,
+        subtotal: totals.poeSwitchSubtotal || null,
+      });
+    }
+
+    rows.push({
+      no: 0,
+      key: "hdd",
+      name: selectedHdd?.name ?? "-",
+      qty: Math.max(0, Math.round(hddQty || 0)),
+      unit: totals.hddUnitPrice || null,
+      subtotal: totals.hddSubtotal || null,
+    });
+
+    return rows.map((r, idx) => ({ ...r, no: idx + 1 }));
+  }, [
+    selectedCameras,
+    selectedNvr?.name,
+    selectedPoeSwitch?.name,
+    selectedPoeSwitchUrl,
+    selectedHdd?.name,
+    hddQty,
+    showPoeSwitchSection,
+    totals.hddSubtotal,
+    totals.hddUnitPrice,
+    totals.nvrSubtotal,
+    totals.nvrUnitPrice,
+    totals.poeSwitchSubtotal,
+    totals.poeSwitchUnitPrice,
+  ]);
+
+  const specRowPages = useMemo(() => {
+    const perPage = 12;
+    const pages: Array<typeof specRows> = [];
+    for (let i = 0; i < specRows.length; i += perPage) pages.push(specRows.slice(i, i + perPage));
+    return pages.length ? pages : [[]];
+  }, [specRows]);
+
+  const specPageCount = specRowPages.length + 1;
+  const quotePageCount = specRowPages.length + 1;
+
+  const validateCustomer = () => {
+    setCustomerError(null);
+
+    if (customerType === "personal") {
+      if (!customerName.trim() || !customerPhone.trim() || !customerAddress.trim()) {
+        setCustomerError("กรุณากรอกข้อมูลลูกค้า (บุคคลธรรมดา) ให้ครบ");
+        customerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        return false;
+      }
+      return true;
+    }
+
+    if (
+      !companyName.trim() ||
+      !companyTaxId.trim() ||
+      !companyBranch.trim() ||
+      !companyAddress.trim() ||
+      !companyPostcode.trim() ||
+      !companyContactName.trim() ||
+      !companyContactPhone.trim() ||
+      !companyLineId.trim() ||
+      !siteAddress.trim()
+    ) {
+      setCustomerError("กรุณากรอกข้อมูลลูกค้า (นิติบุคคล/บริษัท/องค์กร) ให้ครบ");
+      customerSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return false;
+    }
+    return true;
   };
 
   const downloadSpecPdf = async () => {
+    if (!validateCustomer()) return;
     if (!specPdfRef.current) return;
 
-    const canvas = await html2canvas(specPdfRef.current, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-    const imgData = canvas.toDataURL("image/png");
+    const fontReady = (document as unknown as { fonts?: { ready?: Promise<unknown> } }).fonts?.ready;
+    if (fontReady) await fontReady;
+
+    const pages = Array.from(specPdfRef.current.querySelectorAll<HTMLElement>('[data-spec-page="true"]'));
+    if (!pages.length) return;
+
     const pdf = new jsPDF("p", "mm", "a4");
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = pageWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    let heightLeft = imgHeight;
-    let position = 0;
-    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-    while (heightLeft > 2) {
-      position -= pageHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+
+    for (let i = 0; i < pages.length; i += 1) {
+      const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+      const imgData = canvas.toDataURL("image/png");
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+      if (i < pages.length - 1) pdf.addPage();
     }
+
     pdf.save(`cctv-spec-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
-  const sendEmail = async (e: FormEvent) => {
-    e.preventDefault();
-    setSendLoading(true);
-    setSendStatus("idle");
-    setSendError(null);
-    try {
-      const serviceId = (import.meta.env.VITE_EMAILJS_SERVICE_ID as string | undefined) ?? "";
-      const templateId = (import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string | undefined) ?? "";
-      const publicKey = (import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string | undefined) ?? "";
-      if (!serviceId || !templateId || !publicKey) throw new Error("ระบบอีเมลยังไม่ถูกตั้งค่า");
-      if (!formRef.current) throw new Error("ไม่พบฟอร์ม");
+  const downloadQuotePdf = async () => {
+    if (!validateCustomer()) return;
+    if (!quotePdfRef.current) return;
 
-      await emailjs.sendForm(serviceId, templateId, formRef.current, { publicKey });
-      setSendStatus("success");
-      setEstimateOpen(false);
-    } catch (err) {
-      setSendStatus("error");
-      setSendError(err instanceof Error ? err.message : "ส่งอีเมลไม่สำเร็จ");
-    } finally {
-      setSendLoading(false);
+    const fontReady = (document as unknown as { fonts?: { ready?: Promise<unknown> } }).fonts?.ready;
+    if (fontReady) await fontReady;
+
+    const pages = Array.from(quotePdfRef.current.querySelectorAll<HTMLElement>('[data-quote-page="true"]'));
+    if (!pages.length) return;
+
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    for (let i = 0; i < pages.length; i += 1) {
+      const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+      const imgData = canvas.toDataURL("image/png");
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+      if (i < pages.length - 1) pdf.addPage();
     }
+
+    pdf.save(`cctv-quote-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   return (
@@ -706,15 +737,168 @@ export default function Cctv() {
                 </div>
               </div>
 
-              <button type="button" onClick={() => setEstimateOpen(true)} className="btn-blue w-full py-3 text-base mt-6">
-                ส่งให้ทีมประเมิน
-              </button>
+              <div ref={customerSectionRef} className="mt-5 border border-[#d0d7de] rounded-xl p-4 bg-[#f6f8fa]">
+                <div className="text-[#1f2328] font-bold text-sm">ข้อมูลลูกค้า (จำเป็นสำหรับเอกสาร)</div>
+                {customerError ? <div className="text-xs text-red-600 mt-2">{customerError}</div> : null}
+
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCustomerType("personal")}
+                    className={[
+                      "px-3 py-2 rounded-lg border text-xs font-semibold transition-all",
+                      customerType === "personal"
+                        ? "bg-[#e7f0ff] border-[#0969da] text-[#0969da]"
+                        : "bg-white border-[#d0d7de] text-[#1f2328] hover:border-[#8c959f]",
+                    ].join(" ")}
+                  >
+                    บุคคลธรรมดา
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCustomerType("company")}
+                    className={[
+                      "px-3 py-2 rounded-lg border text-xs font-semibold transition-all",
+                      customerType === "company"
+                        ? "bg-[#e7f0ff] border-[#0969da] text-[#0969da]"
+                        : "bg-white border-[#d0d7de] text-[#1f2328] hover:border-[#8c959f]",
+                    ].join(" ")}
+                  >
+                    นิติบุคคล/บริษัท/องค์กร
+                  </button>
+                </div>
+
+                {customerType === "personal" ? (
+                  <div className="mt-3 grid gap-3 text-sm">
+                    <div className="grid gap-1.5">
+                      <label className="text-xs text-[#656d76]">ชื่อลูกค้า</label>
+                      <input
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                      />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <label className="text-xs text-[#656d76]">เบอร์โทร</label>
+                      <input
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                      />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <label className="text-xs text-[#656d76]">ที่อยู่</label>
+                      <textarea
+                        rows={2}
+                        value={customerAddress}
+                        onChange={(e) => setCustomerAddress(e.target.value)}
+                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-3 grid gap-3 text-sm">
+                    <div className="grid gap-1.5">
+                      <label className="text-xs text-[#656d76]">ชื่อบริษัท/นิติบุคคล</label>
+                      <input
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="grid gap-1.5">
+                        <label className="text-xs text-[#656d76]">เลขที่ผู้เสียภาษี</label>
+                        <input
+                          value={companyTaxId}
+                          onChange={(e) => setCompanyTaxId(e.target.value)}
+                          className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                        />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <label className="text-xs text-[#656d76]">สาขา</label>
+                        <input
+                          value={companyBranch}
+                          onChange={(e) => setCompanyBranch(e.target.value)}
+                          className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid gap-1.5">
+                      <label className="text-xs text-[#656d76]">ที่อยู่ (บริษัท)</label>
+                      <textarea
+                        rows={2}
+                        value={companyAddress}
+                        onChange={(e) => setCompanyAddress(e.target.value)}
+                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none"
+                      />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <label className="text-xs text-[#656d76]">รหัสไปรษณีย์</label>
+                      <input
+                        value={companyPostcode}
+                        onChange={(e) => setCompanyPostcode(e.target.value)}
+                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                      />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <label className="text-xs text-[#656d76]">ผู้ติดต่อ (ลูกค้า)</label>
+                      <input
+                        value={companyContactName}
+                        onChange={(e) => setCompanyContactName(e.target.value)}
+                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                      />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <label className="text-xs text-[#656d76]">เบอร์โทร</label>
+                      <input
+                        value={companyContactPhone}
+                        onChange={(e) => setCompanyContactPhone(e.target.value)}
+                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                      />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <label className="text-xs text-[#656d76]">ไอดีไลน์</label>
+                      <input
+                        value={companyLineId}
+                        onChange={(e) => setCompanyLineId(e.target.value)}
+                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
+                      />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <label className="text-xs text-[#656d76]">ที่อยู่ (หน้างาน)</label>
+                      <textarea
+                        rows={2}
+                        value={siteAddress}
+                        onChange={(e) => setSiteAddress(e.target.value)}
+                        className="w-full bg-white border border-[#d0d7de] rounded-md px-3 py-2 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <a
+                href="https://line.me/ti/p/~0900072977"
+                target="_blank"
+                rel="noreferrer"
+                className="btn-blue w-full py-3 text-base mt-6 text-center block"
+              >
+                ติดต่อ LINE
+              </a>
               <button
                 type="button"
                 onClick={downloadSpecPdf}
                 className="w-full py-3 text-base mt-2 rounded-xl border border-[#0969da] text-[#0969da] hover:bg-[#0969da]/5 transition-all font-semibold"
               >
                 ดาวน์โหลดเอกสารสเปค
+              </button>
+              <button
+                type="button"
+                onClick={downloadQuotePdf}
+                className="w-full py-3 text-base mt-2 rounded-xl border border-[#1f2328] text-[#1f2328] hover:bg-[#1f2328]/5 transition-all font-semibold"
+              >
+                ดาวน์โหลดใบเสนอราคา
               </button>
 
               <div className="text-xs text-[#656d76] mt-3">
@@ -1373,378 +1557,367 @@ export default function Cctv() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={estimateOpen} onOpenChange={setEstimateOpen}>
-        <DialogContent className="bg-white border border-[#d0d7de] rounded-2xl p-6 sm:p-8 max-w-2xl">
-          <DialogTitle className="text-[#1f2328] text-xl font-bold">ส่งให้ทีมประเมิน</DialogTitle>
-          <DialogDescription className="text-[#656d76] text-sm mt-1">
-            กรอกข้อมูลหน้างานเพื่อให้ทีมงานติดต่อกลับและยืนยันสเปค
-          </DialogDescription>
-
-          {sendStatus === "error" && (
-            <div className="mt-3 text-sm text-red-600 break-words">{sendError ?? "ส่งอีเมลไม่สำเร็จ"}</div>
-          )}
-          {sendStatus === "success" && (
-            <div className="mt-3 text-sm text-green-700 break-words">ส่งอีเมลเรียบร้อยแล้ว</div>
-          )}
-
-          <div className="mt-4 border border-[#d0d7de] rounded-xl bg-[#f6f8fa] p-4 text-sm">
-            <div className="text-[#1f2328] font-bold">วิธีการสั่งซื้อ</div>
-            <div className="text-[#656d76] mt-2 leading-relaxed">
-              1) เลือกรายการสินค้าและสเปค • 2) กด ส่งให้ทีมประเมิน รอการติดต่อกลับ • 3) เตรียมรูปหน้างาน/ตำแหน่งติดตั้ง/แบบแปลน (ถ้ามี) และแนบลิงก์ Google Drive
-            </div>
-          </div>
-
-          <form
-            className="mt-4 grid gap-4"
-            ref={formRef}
-            onSubmit={sendEmail}
-          >
-            <input type="hidden" name="to_email" value="navamc1987@gmail.com" />
-            <input type="hidden" name="subject" value="ขอประเมินกล้องวงจรปิด" />
-            <textarea name="message" value={buildMessage()} readOnly className="hidden" />
-
-            <div ref={pdfRef} className="border border-[#d0d7de] rounded-xl p-4 bg-white">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-[#1f2328] font-bold">สรุปใบประเมินราคาเบื้องต้น</div>
-                  <div className="text-xs text-[#656d76] mt-1">{new Date().toLocaleString("th-TH")}</div>
+      <div className="fixed left-[-99999px] top-0">
+        <div ref={specPdfRef} className="grid gap-4" style={{ fontFamily: "'Sarabun', Tahoma, Arial, sans-serif" }}>
+          {specRowPages.map((rows, pageIdx) => (
+            <div key={`spec-items-${pageIdx}`} data-spec-page="true" className="w-[794px] h-[1123px] bg-white box-border p-10 flex flex-col text-[#111827]">
+              <div className="flex items-start justify-between gap-6">
+                <div className="flex items-center gap-3">
+                  <img src="/siamai-logo.png" alt="SAT" className="h-10 w-auto" />
+                  <div>
+                    <div className="text-sm font-bold tracking-wide">ห้างหุ้นส่วนจำกัด สยาม เอไอ ทูลส์</div>
+                    <div className="text-xs text-[#6b7280] mt-0.5">เอกสารสเปคกล้องวงจรปิด (เบื้องต้น)</div>
+                    <div className="text-xs text-[#6b7280] mt-0.5">{new Date().toLocaleString("th-TH")}</div>
+                  </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-xs text-[#656d76]">รวมสุทธิ</div>
-                  <div className="text-[#1f2328] font-bold text-lg">{formatTHB(Math.round(totals.totalWithVat))} บาท</div>
+                  <div className="text-xs text-[#6b7280]">รวมสุทธิ (รวม VAT 7%)</div>
+                  <div className="text-lg font-bold">{formatTHB(Math.round(totals.totalWithVat))} บาท</div>
                 </div>
               </div>
 
-              <div className="mt-3 grid gap-1 text-sm">
-                <div className="text-[#1f2328] font-semibold">ข้อมูลลูกค้า</div>
-                <div className="text-[#656d76]">ชื่อลูกค้า: <span className="text-[#1f2328]">{customerName || "-"}</span></div>
-                <div className="text-[#656d76]">เบอร์โทร: <span className="text-[#1f2328]">{customerPhone || "-"}</span></div>
-                {customerAddress ? <div className="text-[#656d76]">ที่อยู่: <span className="text-[#1f2328]">{customerAddress}</span></div> : null}
-                {customerMapUrl ? <div className="text-[#656d76]">แผนที่: <span className="text-[#1f2328] break-all">{customerMapUrl}</span></div> : null}
-              </div>
-
-              <div className="mt-3 grid gap-2">
-                <div className="text-[#1f2328] font-semibold text-sm">สินค้า/สเปคที่เลือก</div>
-                <div className="grid gap-2">
-                  {selectedCameras.length ? (
-                    <div className="grid gap-2">
-                      {selectedCameras.slice(0, 4).map((l) => (
-                        <div key={l.url} className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
-                            {l.product?.imageUrl ? (
-                              <img src={l.product.imageUrl} alt={l.product.name} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
-                            ) : null}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{l.product?.name ?? "-"}</div>
-                            <div className="text-xs text-[#656d76] mt-0.5">x {formatTHB(l.qty)} ตัว</div>
-                          </div>
+              <div className="mt-5 grid grid-cols-2 gap-4 text-xs">
+                <div className="border border-[#e5e7eb] rounded-lg p-4">
+                  <div className="font-bold">ข้อมูลลูกค้า</div>
+                  <div className="mt-2 grid gap-1 text-[#374151]">
+                    {customerType === "personal" ? (
+                      <>
+                        <div>ประเภท: บุคคลธรรมดา</div>
+                        <div>ชื่อลูกค้า: {customerName || "-"}</div>
+                        <div>เบอร์โทร: {customerPhone || "-"}</div>
+                        <div>ที่อยู่: {customerAddress || "-"}</div>
+                      </>
+                    ) : (
+                      <>
+                        <div>ประเภท: นิติบุคคล/บริษัท/องค์กร</div>
+                        <div>ชื่อบริษัท/นิติบุคคล: {companyName || "-"}</div>
+                        <div>
+                          เลขที่ผู้เสียภาษี: {companyTaxId || "-"} • สาขา: {companyBranch || "-"}
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-xs text-[#656d76]">กล้อง: -</div>
-                  )}
-
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
-                      {selectedNvr?.imageUrl ? (
-                        <img src={selectedNvr.imageUrl} alt={selectedNvr.name} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
-                      ) : null}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{selectedNvr?.name ?? "-"}</div>
-                      <div className="text-xs text-[#656d76] mt-0.5">NVR</div>
-                    </div>
+                        <div>ที่อยู่ (บริษัท): {companyAddress || "-"} {companyPostcode ? ` ${companyPostcode}` : ""}</div>
+                        <div>
+                          ผู้ติดต่อ: {companyContactName || "-"} • โทร: {companyContactPhone || "-"} • ไลน์: {companyLineId || "-"}
+                        </div>
+                        <div>ที่อยู่ (หน้างาน): {siteAddress || "-"}</div>
+                      </>
+                    )}
                   </div>
-
-                  {showPoeSwitchSection ? (
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
-                        {selectedPoeSwitch?.imageUrl ? (
-                          <img src={selectedPoeSwitch.imageUrl} alt={selectedPoeSwitch.name} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
-                        ) : null}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{selectedPoeSwitch?.name ?? "-"}</div>
-                        <div className="text-xs text-[#656d76] mt-0.5">PoE Switch</div>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-white border-[4px] border-white shadow-sm ring-1 ring-[#d0d7de] overflow-hidden shrink-0">
-                      {selectedHdd?.imageUrl ? (
-                        <img src={selectedHdd.imageUrl} alt={selectedHdd.name} crossOrigin="anonymous" className="w-full h-full object-contain bg-white" />
-                      ) : null}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[#1f2328] font-semibold text-xs leading-snug line-clamp-2">{selectedHdd?.name ?? "-"}</div>
-                      <div className="text-xs text-[#656d76] mt-0.5">x {formatTHB(Math.max(0, Math.round(hddQty || 0)))} ลูก</div>
-                    </div>
+                </div>
+                <div className="border border-[#e5e7eb] rounded-lg p-4">
+                  <div className="font-bold">สรุปสเปค</div>
+                  <div className="mt-2 grid gap-1 text-[#374151]">
+                    <div>ยี่ห้อ: {brand === "hikvision" ? "Hikvision" : brand === "dahua" ? "Dahua" : "Uniview"}</div>
+                    <div>โหมดกลางคืน: {nightMode === "fullcolor" ? "Full Color" : "IR"}</div>
+                    <div>ไมค์: {needMic ? "ต้องการ" : "ไม่จำเป็น"}</div>
+                    <div>โต้ตอบ: {needTalk ? "ต้องการ" : "ไม่จำเป็น"}</div>
+                    <div>จำนวนกล้องรวม: {formatTHB(totals.cams)} ตัว</div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <label className="text-xs text-[#656d76]">ชื่อลูกค้า</label>
-                <input
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  required
-                  name="customer_name"
-                  className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                />
-              </div>
-              <div className="grid gap-2">
-                <label className="text-xs text-[#656d76]">เบอร์โทร</label>
-                <input
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  required
-                  name="customer_phone"
-                  className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <label className="text-xs text-[#656d76]">ที่อยู่</label>
-              <textarea
-                rows={2}
-                value={customerAddress}
-                onChange={(e) => setCustomerAddress(e.target.value)}
-                name="customer_address"
-                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <label className="text-xs text-[#656d76]">ลิงก์ Google Maps (วางลิงก์แชร์)</label>
-              <input
-                value={customerMapUrl}
-                onChange={(e) => setCustomerMapUrl(e.target.value)}
-                placeholder="https://maps.app.goo.gl/..."
-                name="customer_map_url"
-                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <label className="text-xs text-[#656d76]">ลิงก์รูป/ไฟล์ (Google Drive)</label>
-              <textarea
-                rows={2}
-                value={customerDriveUrl}
-                onChange={(e) => setCustomerDriveUrl(e.target.value)}
-                placeholder="วางลิงก์ Google Drive ที่แชร์แล้ว"
-                name="customer_drive_url"
-                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <label className="text-xs text-[#656d76]">อัปโหลดรูป/ไฟล์ (แนบไปกับอีเมล)</label>
-              <input
-                type="file"
-                name="my_file"
-                multiple
-                accept="image/*,application/pdf"
-                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2 text-[#1f2328] text-sm"
-              />
-              <div className="text-xs text-[#656d76]">รองรับรูปภาพ/PDF (ขนาดไฟล์รวมขึ้นกับข้อจำกัดของบริการอีเมล)</div>
-            </div>
-
-            <div className="grid gap-2">
-              <label className="text-xs text-[#656d76]">หมายเหตุเพิ่มเติม</label>
-              <textarea
-                rows={3}
-                value={customerNote}
-                onChange={(e) => setCustomerNote(e.target.value)}
-                name="customer_note"
-                className="w-full bg-white border border-[#d0d7de] rounded-md px-4 py-2.5 text-[#1f2328] text-sm focus:outline-none focus:border-[#0969da] focus:ring-1 focus:ring-[#0969da] transition-all resize-none"
-              />
-            </div>
-
-            <DialogFooter className="mt-2 flex flex-col sm:flex-row gap-2 sm:justify-end">
-              <button
-                type="button"
-                onClick={() => setEstimateOpen(false)}
-                className="px-4 py-2.5 rounded-lg border border-[#d0d7de] text-sm text-[#1f2328] hover:border-[#8c959f] transition-all"
-              >
-                ปิด
-              </button>
-              <button type="button" onClick={downloadPdf} className="px-4 py-2.5 rounded-lg border border-[#0969da] text-sm text-[#0969da] hover:bg-[#0969da]/5 transition-all">
-                ดาวน์โหลด PDF
-              </button>
-              <button type="submit" disabled={sendLoading} className="btn-blue px-5 py-2.5 text-sm disabled:opacity-60">
-                {sendLoading ? "กำลังส่ง..." : "ส่งข้อมูลให้ทีมประเมิน"}
-              </button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <div className="fixed left-[-99999px] top-0">
-        <div
-          ref={specPdfRef}
-          className="w-[794px] bg-white p-10 text-[#111827]"
-          style={{ fontFamily: "Tahoma, Arial, sans-serif" }}
-        >
-          <div className="flex items-start justify-between gap-6">
-            <div>
-              <div className="text-sm font-bold tracking-wide text-[#111827]">ห้างหุ้นส่วนจำกัด สยาม เอไอ ทูลส์</div>
-              <div className="text-xs text-[#6b7280] mt-1">เอกสารสเปคกล้องวงจรปิด (เบื้องต้น)</div>
-              <div className="text-xs text-[#6b7280] mt-1">{new Date().toLocaleString("th-TH")}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-xs text-[#6b7280]">รวมสุทธิ (รวม VAT 7%)</div>
-              <div className="text-xl font-bold text-[#111827]">{formatTHB(Math.round(totals.totalWithVat))} บาท</div>
-            </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
-            <div className="border border-[#e5e7eb] rounded-lg p-4">
-              <div className="font-bold text-[#111827]">ข้อมูลลูกค้า</div>
-              <div className="mt-2 grid gap-1 text-[#374151]">
-                <div>ชื่อลูกค้า: {customerName || "-"}</div>
-                <div>เบอร์โทร: {customerPhone || "-"}</div>
-                <div>ที่อยู่: {customerAddress || "-"}</div>
-                <div className="break-all">แผนที่: {customerMapUrl || "-"}</div>
-              </div>
-            </div>
-            <div className="border border-[#e5e7eb] rounded-lg p-4">
-              <div className="font-bold text-[#111827]">สรุปสเปค</div>
-              <div className="mt-2 grid gap-1 text-[#374151]">
-                <div>
-                  ยี่ห้อ: {brand === "hikvision" ? "Hikvision" : brand === "dahua" ? "Dahua" : "Uniview"}
-                </div>
-                <div>โหมดกลางคืน: {nightMode === "fullcolor" ? "Full Color" : "IR"}</div>
-                <div>ไมค์: {needMic ? "ต้องการ" : "ไม่จำเป็น"}</div>
-                <div>โต้ตอบ: {needTalk ? "ต้องการ" : "ไม่จำเป็น"}</div>
-                <div>จำนวนกล้องรวม: {formatTHB(totals.cams)} ตัว</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 border border-[#e5e7eb] rounded-lg overflow-hidden">
-            <div className="bg-[#f3f4f6] px-4 py-2 text-sm font-bold text-[#111827]">รายการอุปกรณ์</div>
-            <table className="w-full text-sm">
-              <thead className="bg-white">
-                <tr className="border-b border-[#e5e7eb] text-[#111827]">
-                  <th className="text-left font-bold px-4 py-2">รายการ</th>
-                  <th className="text-right font-bold px-4 py-2 w-[90px]">จำนวน</th>
-                  <th className="text-right font-bold px-4 py-2 w-[130px]">ราคา/หน่วย</th>
-                  <th className="text-right font-bold px-4 py-2 w-[130px]">รวม</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#e5e7eb] text-[#111827]">
-                {selectedCameras.length ? (
-                  selectedCameras.map((l) => {
-                    const unit = l.product?.price ? l.product.price + 300 : 0;
-                    const subtotal = unit * (l.qty || 0);
-                    return (
-                      <tr key={l.url}>
-                        <td className="px-4 py-2">{l.product?.name ?? "-"}</td>
-                        <td className="px-4 py-2 text-right">{formatTHB(l.qty || 0)}</td>
-                        <td className="px-4 py-2 text-right">{unit ? `${formatTHB(Math.round(unit))}` : "-"}</td>
-                        <td className="px-4 py-2 text-right">{subtotal ? `${formatTHB(Math.round(subtotal))}` : "-"}</td>
+              <div className="mt-5 border border-[#e5e7eb] rounded-lg overflow-hidden flex-1">
+                <div className="bg-[#f3f4f6] px-4 py-2 text-xs font-bold">รายการอุปกรณ์</div>
+                <table className="w-full text-xs">
+                  <thead className="bg-white">
+                    <tr className="border-b border-[#e5e7eb]">
+                      <th className="text-left font-bold px-4 py-2 w-[60px]">ลำดับ</th>
+                      <th className="text-left font-bold px-4 py-2">รายการ</th>
+                      <th className="text-right font-bold px-4 py-2 w-[80px]">จำนวน</th>
+                      <th className="text-right font-bold px-4 py-2 w-[120px]">ราคา/หน่วย</th>
+                      <th className="text-right font-bold px-4 py-2 w-[120px]">รวม</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#e5e7eb]">
+                    {rows.length ? (
+                      rows.map((r) => (
+                        <tr key={r.key}>
+                          <td className="px-4 py-2">{r.no}</td>
+                          <td className="px-4 py-2">
+                            <div className="leading-snug line-clamp-2">{r.name}</div>
+                          </td>
+                          <td className="px-4 py-2 text-right">{formatTHB(r.qty)}</td>
+                          <td className="px-4 py-2 text-right">{r.unit != null ? formatTHB(Math.round(r.unit)) : "-"}</td>
+                          <td className="px-4 py-2 text-right">{r.subtotal != null ? formatTHB(Math.round(r.subtotal)) : "-"}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td className="px-4 py-2 text-[#6b7280]" colSpan={5}>
+                          -
+                        </td>
                       </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td className="px-4 py-2 text-[#6b7280]" colSpan={4}>
-                      ยังไม่ได้เลือกรุ่นกล้อง
-                    </td>
-                  </tr>
-                )}
-
-                <tr>
-                  <td className="px-4 py-2">{selectedNvr?.name ?? "-"}</td>
-                  <td className="px-4 py-2 text-right">1</td>
-                  <td className="px-4 py-2 text-right">{totals.nvrUnitPrice ? `${formatTHB(Math.round(totals.nvrUnitPrice))}` : "-"}</td>
-                  <td className="px-4 py-2 text-right">{totals.nvrSubtotal ? `${formatTHB(Math.round(totals.nvrSubtotal))}` : "-"}</td>
-                </tr>
-
-                {showPoeSwitchSection && selectedPoeSwitchUrl ? (
-                  <tr>
-                    <td className="px-4 py-2">{selectedPoeSwitch?.name ?? "-"}</td>
-                    <td className="px-4 py-2 text-right">1</td>
-                    <td className="px-4 py-2 text-right">
-                      {totals.poeSwitchUnitPrice ? `${formatTHB(Math.round(totals.poeSwitchUnitPrice))}` : "-"}
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      {totals.poeSwitchSubtotal ? `${formatTHB(Math.round(totals.poeSwitchSubtotal))}` : "-"}
-                    </td>
-                  </tr>
-                ) : null}
-
-                <tr>
-                  <td className="px-4 py-2">{selectedHdd?.name ?? "-"}</td>
-                  <td className="px-4 py-2 text-right">{formatTHB(Math.max(0, Math.round(hddQty || 0)))}</td>
-                  <td className="px-4 py-2 text-right">{totals.hddUnitPrice ? `${formatTHB(Math.round(totals.hddUnitPrice))}` : "-"}</td>
-                  <td className="px-4 py-2 text-right">{totals.hddSubtotal ? `${formatTHB(Math.round(totals.hddSubtotal))}` : "-"}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mt-6 border border-[#e5e7eb] rounded-lg overflow-hidden">
-            <div className="bg-[#f3f4f6] px-4 py-2 text-sm font-bold text-[#111827]">ค่าแรงและอุปกรณ์หน้างาน</div>
-            <table className="w-full text-sm">
-              <tbody className="divide-y divide-[#e5e7eb] text-[#111827]">
-                <tr>
-                  <td className="px-4 py-2">
-                    ค่าแรงติดตั้ง ({formatTHB(Math.round(totals.laborRate))} บาท/เมตร) ระยะสายรวม {formatTHB(Math.round(totals.cableWithExtra))} ม.
-                  </td>
-                  <td className="px-4 py-2 text-right w-[130px]">{formatTHB(Math.round(totals.labor))}</td>
-                </tr>
-                {(totals.supportTotal || 0) > 0 ? (
-                  <tr>
-                    <td className="px-4 py-2">เสา Support ({formatTHB(Math.round(totals.supportUnitCost || 0))} x {formatTHB(Math.round(totals.supportQty || 0))})</td>
-                    <td className="px-4 py-2 text-right">{formatTHB(Math.round(totals.supportTotal || 0))}</td>
-                  </tr>
-                ) : null}
-                {(totals.rackTotal || 0) > 0 ? (
-                  <tr>
-                    <td className="px-4 py-2">ตู้ Rack</td>
-                    <td className="px-4 py-2 text-right">{formatTHB(Math.round(totals.rackTotal || 0))}</td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mt-6 border border-[#e5e7eb] rounded-lg p-4">
-            <div className="grid gap-2 text-sm">
-              <div className="flex items-center justify-between gap-6">
-                <div className="text-[#374151]">ค่าวัสดุประมาณ</div>
-                <div className="font-bold text-[#111827]">{formatTHB(Math.round(totals.material))} บาท</div>
+                    )}
+                  </tbody>
+                </table>
               </div>
-              <div className="flex items-center justify-between gap-6">
-                <div className="text-[#374151]">ค่าแรงประมาณ</div>
-                <div className="font-bold text-[#111827]">{formatTHB(Math.round(totals.labor))} บาท</div>
+
+              <div className="mt-5 flex items-center justify-between text-[11px] text-[#6b7280]">
+                <div>siamai.cloud • 098-592-6522</div>
+                <div>หน้า {pageIdx + 1}/{specPageCount}</div>
               </div>
-              <div className="flex items-center justify-between gap-6">
-                <div className="text-[#374151]">รวมก่อน VAT</div>
-                <div className="font-bold text-[#111827]">{formatTHB(Math.round(totals.total))} บาท</div>
+            </div>
+          ))}
+
+          <div data-spec-page="true" className="w-[794px] h-[1123px] bg-white box-border p-10 flex flex-col text-[#111827]">
+            <div className="flex items-start justify-between gap-6">
+              <div className="flex items-center gap-3">
+                <img src="/siamai-logo.png" alt="SAT" className="h-10 w-auto" />
+                <div>
+                  <div className="text-sm font-bold tracking-wide">ห้างหุ้นส่วนจำกัด สยาม เอไอ ทูลส์</div>
+                  <div className="text-xs text-[#6b7280] mt-0.5">สรุปและอนุมัติสเปค</div>
+                  <div className="text-xs text-[#6b7280] mt-0.5">{new Date().toLocaleString("th-TH")}</div>
+                </div>
               </div>
-              <div className="flex items-center justify-between gap-6">
-                <div className="text-[#374151]">VAT 7%</div>
-                <div className="font-bold text-[#111827]">{formatTHB(Math.round(totals.vat))} บาท</div>
+              <div className="text-right">
+                <div className="text-xs text-[#6b7280]">รวมสุทธิ (รวม VAT 7%)</div>
+                <div className="text-lg font-bold">{formatTHB(Math.round(totals.totalWithVat))} บาท</div>
               </div>
-              <div className="h-px bg-[#e5e7eb]" />
-              <div className="flex items-center justify-between gap-6">
-                <div className="text-[#111827] font-bold">รวมสุทธิ</div>
-                <div className="font-bold text-[#111827] text-lg">{formatTHB(Math.round(totals.totalWithVat))} บาท</div>
+            </div>
+
+            <div className="mt-5 border border-[#e5e7eb] rounded-lg p-5">
+              <div className="text-sm font-bold">สรุปราคา</div>
+              <div className="mt-3 grid gap-2 text-sm">
+                <div className="flex items-center justify-between gap-6">
+                  <div className="text-[#374151]">ค่าวัสดุประมาณ</div>
+                  <div className="font-bold">{formatTHB(Math.round(totals.material))} บาท</div>
+                </div>
+                <div className="flex items-center justify-between gap-6">
+                  <div className="text-[#374151]">ค่าแรงประมาณ</div>
+                  <div className="font-bold">{formatTHB(Math.round(totals.labor))} บาท</div>
+                </div>
+                <div className="flex items-center justify-between gap-6">
+                  <div className="text-[#374151]">รวมก่อน VAT</div>
+                  <div className="font-bold">{formatTHB(Math.round(totals.total))} บาท</div>
+                </div>
+                <div className="flex items-center justify-between gap-6">
+                  <div className="text-[#374151]">VAT 7%</div>
+                  <div className="font-bold">{formatTHB(Math.round(totals.vat))} บาท</div>
+                </div>
+                <div className="h-px bg-[#e5e7eb]" />
+                <div className="flex items-center justify-between gap-6">
+                  <div className="font-bold">รวมสุทธิ</div>
+                  <div className="font-bold text-lg">{formatTHB(Math.round(totals.totalWithVat))} บาท</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 border border-[#e5e7eb] rounded-lg p-5 text-sm">
+              <div className="font-bold">รายละเอียดงานติดตั้ง</div>
+              <div className="mt-2 grid gap-1 text-[#374151]">
+                <div>ระยะสายเฉลี่ย: {formatTHB(Math.max(0, cablePerCameraM || 0))} ม./จุด</div>
+                <div>เผื่อสาย: {formatTHB(Math.max(0, cableExtraPercent || 0))}% + {formatTHB(Math.max(0, cableExtraMeters || 0))} ม.</div>
+                <div>ระยะสายรวม: {formatTHB(Math.round(totals.cableWithExtra))} ม.</div>
+                <div>ค่าแรงติดตั้ง: {formatTHB(Math.round(totals.laborRate))} บาท/เมตร</div>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-6 text-sm">
+              <div className="border border-[#e5e7eb] rounded-lg p-5">
+                <div className="font-bold">ผู้จัดทำ/เสนอราคา</div>
+                <div className="mt-10 border-b border-[#111827]" />
+                <div className="mt-2 text-xs text-[#6b7280]">ลายเซ็น / ผู้จัดทำ</div>
+                <div className="mt-6 border-b border-[#111827]" />
+                <div className="mt-2 text-xs text-[#6b7280]">วันที่</div>
+              </div>
+              <div className="border border-[#e5e7eb] rounded-lg p-5">
+                <div className="font-bold">ผู้อนุมัติ/ลูกค้า</div>
+                <div className="mt-10 border-b border-[#111827]" />
+                <div className="mt-2 text-xs text-[#6b7280]">ลายเซ็น / ผู้อนุมัติ</div>
+                <div className="mt-6 border-b border-[#111827]" />
+                <div className="mt-2 text-xs text-[#6b7280]">วันที่</div>
+              </div>
+            </div>
+
+            <div className="mt-auto">
+              <div className="mt-6 text-xs text-[#6b7280] leading-relaxed">
+                ราคาอาจเปลี่ยนแปลงได้ตามสต็อก/โปรโมชัน และอาจมีรายการเพิ่มเติมตามการสำรวจหน้างานจริง (เอกสารฉบับนี้เป็นการประเมินเบื้องต้น)
+              </div>
+              <div className="mt-3 flex items-center justify-between text-[11px] text-[#6b7280]">
+                <div>siamai.cloud • 098-592-6522</div>
+                <div>หน้า {specPageCount}/{specPageCount}</div>
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="mt-6 text-xs text-[#6b7280] leading-relaxed">
-            ราคาอาจเปลี่ยนแปลงได้ตามสต็อก/โปรโมชัน และอาจมีรายการเพิ่มเติมตามการสำรวจหน้างานจริง
+        <div ref={quotePdfRef} className="grid gap-4" style={{ fontFamily: "'Sarabun', Tahoma, Arial, sans-serif" }}>
+          {specRowPages.map((rows, pageIdx) => (
+            <div key={`quote-items-${pageIdx}`} data-quote-page="true" className="w-[794px] h-[1123px] bg-white box-border p-10 flex flex-col text-[#111827]">
+              <div className="flex items-start justify-between gap-6">
+                <div className="flex items-center gap-3">
+                  <img src="/siamai-logo.png" alt="SAT" className="h-10 w-auto" />
+                  <div>
+                    <div className="text-sm font-bold tracking-wide">ห้างหุ้นส่วนจำกัด สยาม เอไอ ทูลส์</div>
+                    <div className="text-xs text-[#6b7280] mt-0.5">ใบเสนอราคา (Quotation)</div>
+                    <div className="text-xs text-[#6b7280] mt-0.5">{new Date().toLocaleString("th-TH")}</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-[#6b7280]">รวมสุทธิ (รวม VAT 7%)</div>
+                  <div className="text-lg font-bold">{formatTHB(Math.round(totals.totalWithVat))} บาท</div>
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-4 text-xs">
+                <div className="border border-[#e5e7eb] rounded-lg p-4">
+                  <div className="font-bold">ข้อมูลลูกค้า</div>
+                  <div className="mt-2 grid gap-1 text-[#374151]">
+                    {customerType === "personal" ? (
+                      <>
+                        <div>ประเภท: บุคคลธรรมดา</div>
+                        <div>ชื่อลูกค้า: {customerName || "-"}</div>
+                        <div>เบอร์โทร: {customerPhone || "-"}</div>
+                        <div>ที่อยู่: {customerAddress || "-"}</div>
+                      </>
+                    ) : (
+                      <>
+                        <div>ประเภท: นิติบุคคล/บริษัท/องค์กร</div>
+                        <div>ชื่อบริษัท/นิติบุคคล: {companyName || "-"}</div>
+                        <div>
+                          เลขที่ผู้เสียภาษี: {companyTaxId || "-"} • สาขา: {companyBranch || "-"}
+                        </div>
+                        <div>ที่อยู่ (บริษัท): {companyAddress || "-"} {companyPostcode ? ` ${companyPostcode}` : ""}</div>
+                        <div>
+                          ผู้ติดต่อ: {companyContactName || "-"} • โทร: {companyContactPhone || "-"} • ไลน์: {companyLineId || "-"}
+                        </div>
+                        <div>ที่อยู่ (หน้างาน): {siteAddress || "-"}</div>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="border border-[#e5e7eb] rounded-lg p-4">
+                  <div className="font-bold">ขอบเขตงาน</div>
+                  <div className="mt-2 grid gap-1 text-[#374151]">
+                    <div>ยี่ห้อ: {brand === "hikvision" ? "Hikvision" : brand === "dahua" ? "Dahua" : "Uniview"}</div>
+                    <div>โหมดกลางคืน: {nightMode === "fullcolor" ? "Full Color" : "IR"}</div>
+                    <div>ไมค์: {needMic ? "ต้องการ" : "ไม่จำเป็น"}</div>
+                    <div>โต้ตอบ: {needTalk ? "ต้องการ" : "ไม่จำเป็น"}</div>
+                    <div>จำนวนกล้องรวม: {formatTHB(totals.cams)} ตัว</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 border border-[#e5e7eb] rounded-lg overflow-hidden flex-1">
+                <div className="bg-[#f3f4f6] px-4 py-2 text-xs font-bold">รายการสินค้า/อุปกรณ์</div>
+                <table className="w-full text-xs">
+                  <thead className="bg-white">
+                    <tr className="border-b border-[#e5e7eb]">
+                      <th className="text-left font-bold px-4 py-2 w-[60px]">ลำดับ</th>
+                      <th className="text-left font-bold px-4 py-2">รายการ</th>
+                      <th className="text-right font-bold px-4 py-2 w-[80px]">จำนวน</th>
+                      <th className="text-right font-bold px-4 py-2 w-[120px]">ราคา/หน่วย</th>
+                      <th className="text-right font-bold px-4 py-2 w-[120px]">รวม</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#e5e7eb]">
+                    {rows.length ? (
+                      rows.map((r) => (
+                        <tr key={r.key}>
+                          <td className="px-4 py-2">{r.no}</td>
+                          <td className="px-4 py-2">
+                            <div className="leading-snug line-clamp-2">{r.name}</div>
+                          </td>
+                          <td className="px-4 py-2 text-right">{formatTHB(r.qty)}</td>
+                          <td className="px-4 py-2 text-right">{r.unit != null ? formatTHB(Math.round(r.unit)) : "-"}</td>
+                          <td className="px-4 py-2 text-right">{r.subtotal != null ? formatTHB(Math.round(r.subtotal)) : "-"}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td className="px-4 py-2 text-[#6b7280]" colSpan={5}>
+                          -
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-5 flex items-center justify-between text-[11px] text-[#6b7280]">
+                <div>siamai.cloud • 098-592-6522</div>
+                <div>หน้า {pageIdx + 1}/{quotePageCount}</div>
+              </div>
+            </div>
+          ))}
+
+          <div data-quote-page="true" className="w-[794px] h-[1123px] bg-white box-border p-10 flex flex-col text-[#111827]">
+            <div className="flex items-start justify-between gap-6">
+              <div className="flex items-center gap-3">
+                <img src="/siamai-logo.png" alt="SAT" className="h-10 w-auto" />
+                <div>
+                  <div className="text-sm font-bold tracking-wide">ห้างหุ้นส่วนจำกัด สยาม เอไอ ทูลส์</div>
+                  <div className="text-xs text-[#6b7280] mt-0.5">สรุปราคาและอนุมัติใบเสนอราคา</div>
+                  <div className="text-xs text-[#6b7280] mt-0.5">{new Date().toLocaleString("th-TH")}</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-[#6b7280]">รวมสุทธิ (รวม VAT 7%)</div>
+                <div className="text-lg font-bold">{formatTHB(Math.round(totals.totalWithVat))} บาท</div>
+              </div>
+            </div>
+
+            <div className="mt-5 border border-[#e5e7eb] rounded-lg p-5">
+              <div className="text-sm font-bold">สรุปราคา</div>
+              <div className="mt-3 grid gap-2 text-sm">
+                <div className="flex items-center justify-between gap-6">
+                  <div className="text-[#374151]">ค่าวัสดุประมาณ</div>
+                  <div className="font-bold">{formatTHB(Math.round(totals.material))} บาท</div>
+                </div>
+                <div className="flex items-center justify-between gap-6">
+                  <div className="text-[#374151]">ค่าแรงประมาณ</div>
+                  <div className="font-bold">{formatTHB(Math.round(totals.labor))} บาท</div>
+                </div>
+                <div className="flex items-center justify-between gap-6">
+                  <div className="text-[#374151]">รวมก่อน VAT</div>
+                  <div className="font-bold">{formatTHB(Math.round(totals.total))} บาท</div>
+                </div>
+                <div className="flex items-center justify-between gap-6">
+                  <div className="text-[#374151]">VAT 7%</div>
+                  <div className="font-bold">{formatTHB(Math.round(totals.vat))} บาท</div>
+                </div>
+                <div className="h-px bg-[#e5e7eb]" />
+                <div className="flex items-center justify-between gap-6">
+                  <div className="font-bold">รวมสุทธิ</div>
+                  <div className="font-bold text-lg">{formatTHB(Math.round(totals.totalWithVat))} บาท</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 border border-[#e5e7eb] rounded-lg p-5 text-sm">
+              <div className="font-bold">เงื่อนไขเบื้องต้น</div>
+              <div className="mt-2 grid gap-1 text-[#374151]">
+                <div>1) ราคานี้เป็นการประเมินเบื้องต้น (อาจเปลี่ยนแปลงตามการสำรวจหน้างานจริง/สต็อก/โปรโมชัน)</div>
+                <div>2) ระยะสายรวม: {formatTHB(Math.round(totals.cableWithExtra))} ม. • ค่าแรง {formatTHB(Math.round(totals.laborRate))} บาท/เมตร</div>
+                <div>3) ราคาสุทธิรวม VAT 7% แล้ว</div>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-6 text-sm">
+              <div className="border border-[#e5e7eb] rounded-lg p-5">
+                <div className="font-bold">ผู้จัดทำ/เสนอราคา</div>
+                <div className="mt-10 border-b border-[#111827]" />
+                <div className="mt-2 text-xs text-[#6b7280]">ลายเซ็น / ผู้จัดทำ</div>
+                <div className="mt-6 border-b border-[#111827]" />
+                <div className="mt-2 text-xs text-[#6b7280]">วันที่</div>
+              </div>
+              <div className="border border-[#e5e7eb] rounded-lg p-5">
+                <div className="font-bold">ผู้อนุมัติ/ลูกค้า</div>
+                <div className="mt-10 border-b border-[#111827]" />
+                <div className="mt-2 text-xs text-[#6b7280]">ลายเซ็น / ผู้อนุมัติ</div>
+                <div className="mt-6 border-b border-[#111827]" />
+                <div className="mt-2 text-xs text-[#6b7280]">วันที่</div>
+              </div>
+            </div>
+
+            <div className="mt-auto">
+              <div className="mt-6 text-xs text-[#6b7280] leading-relaxed">
+                siamai.cloud • 098-592-6522 • Line: 0900072977
+              </div>
+              <div className="mt-3 flex items-center justify-between text-[11px] text-[#6b7280]">
+                <div>siamai.cloud • 098-592-6522</div>
+                <div>หน้า {quotePageCount}/{quotePageCount}</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
