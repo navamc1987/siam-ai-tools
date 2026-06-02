@@ -1,6 +1,6 @@
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
-import { obec2569Items, obec2569Source, type ObecPriceItem, type ObecPriceType } from "@/data/obec2569";
+import { obec2569Items, type ObecPriceItem, type ObecPriceType } from "@/data/obec2569";
 import { useMemo, useState } from "react";
 
 function formatTHB(value: number) {
@@ -66,37 +66,10 @@ export default function Obec2569() {
                     ค้นหา + เทียบปี 2568 + ใส่จำนวนเพื่อคำนวณยอดรวมแบบเร็ว (ราคากลาง ไม่รวม VAT/ขนส่ง)
                   </p>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <a
-                    href={obec2569Source.pdfUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-sm font-semibold transition-all"
-                  >
-                    เปิดเอกสารอ้างอิง (PDF)
-                  </a>
-                  <a
-                    href={obec2569Source.articleUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-semibold transition-all"
-                  >
-                    บทความสรุป (OneStockHome)
-                  </a>
-                  <a
-                    href={obec2569Source.electricalLaborUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-semibold transition-all"
-                  >
-                    ค่าแรงไฟฟ้า (ละเอียด)
-                  </a>
-                </div>
               </div>
 
               <div className="mt-6 grid gap-2 text-xs text-white/60">
-                <div>หมายเหตุ: หน้านี้ใช้ชุดข้อมูล “ตัวอย่าง” เพื่อทำเครื่องมือเช็คแบบง่าย หากต้องอ้างอิงทางการให้ตรวจสอบกับเอกสาร PDF</div>
+                <div>หมายเหตุ: หน้านี้ใช้ชุดข้อมูล “ตัวอย่าง” เพื่อทำเครื่องมือเช็คแบบง่าย ราคากลางยังไม่รวม VAT/ค่าขนส่ง และอาจต่างตามพื้นที่</div>
               </div>
             </div>
 
