@@ -95,12 +95,12 @@ export default function Obec2569() {
             </div>
             <div className="h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent" />
             <div className="p-6 md:p-8">
-              <div className="grid lg:grid-cols-[420px_1fr] gap-6 items-start">
+              <div className="grid lg:grid-cols-[520px_1fr] gap-6 items-start">
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm font-bold">แบบบ้านตัวอย่าง (2D)</div>
-                      <div className="text-xs text-white/60 mt-1">คลิกส่วนต่าง ๆ เพื่อกรองรายการที่เกี่ยวข้อง</div>
+                      <div className="text-sm font-bold">แบบบ้านตัวอย่าง (3D)</div>
+                      <div className="text-xs text-white/60 mt-1">คลิกส่วนของบ้านเพื่อกรองรายการ (หลังคา/ผนัง/ฐานราก)</div>
                     </div>
                     <button
                       type="button"
@@ -113,66 +113,113 @@ export default function Obec2569() {
 
                   <div className="mt-4 relative rounded-xl overflow-hidden border border-white/10 bg-gradient-to-b from-[#0f1b3f] to-[#0b1020]">
                     <div className="absolute inset-0 opacity-60" style={{ background: "radial-gradient(circle at 30% 20%, rgba(52,211,153,0.25), transparent 55%), radial-gradient(circle at 80% 70%, rgba(59,130,246,0.25), transparent 55%)" }} />
-                    <div className="relative p-4">
-                      <div className="relative w-full aspect-[16/11]">
-                        <div className="absolute inset-0 rounded-lg border border-white/10 bg-white/5" />
+                    <div className="relative p-5">
+                      <div className="relative w-full aspect-[4/3]">
+                        <div className="absolute inset-0 rounded-2xl border border-white/10 bg-white/5" />
 
-                        <button
-                          type="button"
-                          onClick={() => setActiveTag("roof")}
-                          className={[
-                            "absolute left-[16%] top-[14%] w-[68%] h-[26%] rounded-lg border transition-all",
-                            activeTag === "roof"
-                              ? "border-[#22c55e] bg-[#22c55e]/15"
-                              : "border-white/10 bg-white/5 hover:bg-white/10",
-                          ].join(" ")}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setActiveTag("wall")}
-                          className={[
-                            "absolute left-[18%] top-[41%] w-[64%] h-[30%] rounded-lg border transition-all",
-                            activeTag === "wall"
-                              ? "border-[#60a5fa] bg-[#60a5fa]/15"
-                              : "border-white/10 bg-white/5 hover:bg-white/10",
-                          ].join(" ")}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setActiveTag("foundation")}
-                          className={[
-                            "absolute left-[14%] top-[74%] w-[72%] h-[14%] rounded-lg border transition-all",
-                            activeTag === "foundation"
-                              ? "border-[#f59e0b] bg-[#f59e0b]/15"
-                              : "border-white/10 bg-white/5 hover:bg-white/10",
-                          ].join(" ")}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setActiveTag("electrical")}
-                          className={[
-                            "absolute left-[8%] top-[44%] w-[8%] h-[22%] rounded-lg border transition-all",
-                            activeTag === "electrical"
-                              ? "border-[#a78bfa] bg-[#a78bfa]/15"
-                              : "border-white/10 bg-white/5 hover:bg-white/10",
-                          ].join(" ")}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setActiveTag("plumbing")}
-                          className={[
-                            "absolute right-[8%] top-[44%] w-[8%] h-[22%] rounded-lg border transition-all",
-                            activeTag === "plumbing"
-                              ? "border-[#38bdf8] bg-[#38bdf8]/15"
-                              : "border-white/10 bg-white/5 hover:bg-white/10",
-                          ].join(" ")}
-                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="relative w-[92%] h-[88%] max-w-[520px]">
+                            <div
+                              className="absolute left-1/2 top-[10%] -translate-x-1/2 w-[78%] h-[30%] rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 to-white/0"
+                              style={{ transform: "skewX(-18deg) rotate(-2deg)" }}
+                            />
+                            <div
+                              className="absolute left-1/2 top-[38%] -translate-x-1/2 w-[76%] h-[34%] rounded-2xl border border-white/10 bg-gradient-to-br from-white/8 to-white/0"
+                              style={{ transform: "skewX(-8deg) rotate(0deg)" }}
+                            />
+                            <div
+                              className="absolute left-1/2 top-[72%] -translate-x-1/2 w-[82%] h-[16%] rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 to-white/0"
+                              style={{ transform: "skewX(-10deg) rotate(0deg)" }}
+                            />
 
-                        <div className="absolute left-4 bottom-4 text-xs text-white/70">
-                          กรอง:{" "}
-                          <span className="text-white font-semibold">
-                            {activeTag === "all" ? "ทั้งหมด" : tagLabel[activeTag]}
-                          </span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveTag("roof")}
+                              className={[
+                                "absolute left-1/2 top-[12%] -translate-x-1/2 w-[78%] h-[28%] rounded-2xl border transition-all backdrop-blur-[2px]",
+                                activeTag === "roof"
+                                  ? "border-[#22c55e] bg-gradient-to-br from-[#22c55e]/25 to-[#22c55e]/5 shadow-[0_0_0_1px_rgba(34,197,94,0.25),0_10px_30px_rgba(34,197,94,0.15)]"
+                                  : "border-white/10 bg-gradient-to-br from-white/10 to-white/0 hover:border-white/25 hover:bg-white/10",
+                              ].join(" ")}
+                              style={{ transform: "translateX(-50%) skewX(-18deg) rotate(-2deg)" }}
+                            >
+                              <div
+                                className="absolute inset-0 flex items-center justify-center gap-2 text-sm font-extrabold"
+                                style={{ transform: "skewX(18deg) rotate(2deg)" }}
+                              >
+                                หลังคา
+                                <span className="text-xs font-semibold text-white/60">(Roof)</span>
+                              </div>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setActiveTag("wall")}
+                              className={[
+                                "absolute left-1/2 top-[40%] -translate-x-1/2 w-[76%] h-[34%] rounded-2xl border transition-all backdrop-blur-[2px]",
+                                activeTag === "wall"
+                                  ? "border-[#60a5fa] bg-gradient-to-br from-[#60a5fa]/25 to-[#60a5fa]/5 shadow-[0_0_0_1px_rgba(96,165,250,0.25),0_10px_30px_rgba(96,165,250,0.15)]"
+                                  : "border-white/10 bg-gradient-to-br from-white/10 to-white/0 hover:border-white/25 hover:bg-white/10",
+                              ].join(" ")}
+                              style={{ transform: "translateX(-50%) skewX(-8deg) rotate(0deg)" }}
+                            >
+                              <div className="absolute inset-0 flex items-center justify-center gap-2 text-sm font-extrabold">
+                                ผนัง
+                                <span className="text-xs font-semibold text-white/60">(Wall)</span>
+                              </div>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setActiveTag("foundation")}
+                              className={[
+                                "absolute left-1/2 top-[72%] -translate-x-1/2 w-[82%] h-[16%] rounded-2xl border transition-all backdrop-blur-[2px]",
+                                activeTag === "foundation"
+                                  ? "border-[#f59e0b] bg-gradient-to-br from-[#f59e0b]/25 to-[#f59e0b]/5 shadow-[0_0_0_1px_rgba(245,158,11,0.25),0_10px_30px_rgba(245,158,11,0.15)]"
+                                  : "border-white/10 bg-gradient-to-br from-white/10 to-white/0 hover:border-white/25 hover:bg-white/10",
+                              ].join(" ")}
+                              style={{ transform: "translateX(-50%) skewX(-10deg) rotate(0deg)" }}
+                            >
+                              <div className="absolute inset-0 flex items-center justify-center gap-2 text-sm font-extrabold">
+                                ฐานราก
+                                <span className="text-xs font-semibold text-white/60">(Foundation)</span>
+                              </div>
+                            </button>
+
+                            <div className="absolute left-4 top-4 flex flex-col gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setActiveTag("electrical")}
+                                className={[
+                                  "px-3 py-2 rounded-xl border text-xs font-bold text-left transition-all",
+                                  activeTag === "electrical"
+                                    ? "border-[#a78bfa] bg-[#a78bfa]/20"
+                                    : "border-white/10 bg-white/5 hover:bg-white/10",
+                                ].join(" ")}
+                              >
+                                ไฟฟ้า
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setActiveTag("plumbing")}
+                                className={[
+                                  "px-3 py-2 rounded-xl border text-xs font-bold text-left transition-all",
+                                  activeTag === "plumbing"
+                                    ? "border-[#38bdf8] bg-[#38bdf8]/20"
+                                    : "border-white/10 bg-white/5 hover:bg-white/10",
+                                ].join(" ")}
+                              >
+                                สุขาภิบาล
+                              </button>
+                            </div>
+
+                            <div className="absolute right-4 bottom-4 text-xs text-white/70">
+                              กรอง:{" "}
+                              <span className="text-white font-semibold">
+                                {activeTag === "all" ? "ทั้งหมด" : tagLabel[activeTag]}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -383,4 +430,3 @@ export default function Obec2569() {
     </div>
   );
 }
-
