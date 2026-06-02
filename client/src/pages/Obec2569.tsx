@@ -18,6 +18,208 @@ const tagLabel: Record<ObecTag, string> = {
   general: "ทั่วไป",
 };
 
+function HouseModel({
+  activeTag,
+  onSelectTag,
+}: {
+  activeTag: ObecTag | "all";
+  onSelectTag: (tag: ObecTag | "all") => void;
+}) {
+  const partClass = (tag: ObecTag, base: string, active: string) =>
+    [
+      "cursor-pointer transition-all outline-none",
+      activeTag === tag ? active : base,
+      "hover:opacity-95 focus-visible:opacity-95",
+    ].join(" ");
+
+  const partHandlers = (tag: ObecTag) => ({
+    role: "button" as const,
+    tabIndex: 0,
+    onClick: () => onSelectTag(tag),
+    onKeyDown: (e: { key: string }) => {
+      if (e.key === "Enter" || e.key === " ") onSelectTag(tag);
+    },
+  });
+
+  return (
+    <div className="relative w-full aspect-[4/3]">
+      <div className="absolute inset-0 rounded-2xl border border-white/10 bg-white/5" />
+      <div className="absolute inset-0 flex items-center justify-center p-4">
+        <div className="w-full max-w-[560px]">
+          <div className="relative">
+            <div className="absolute -inset-3 rounded-[28px] bg-gradient-to-br from-[#22c55e]/15 via-[#60a5fa]/10 to-[#f59e0b]/15 blur-xl" />
+            <div className="relative rounded-[28px] border border-white/10 bg-black/10 p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs text-white/70">
+                  กรอง:{" "}
+                  <span className="text-white font-semibold">
+                    {activeTag === "all" ? "ทั้งหมด" : tagLabel[activeTag]}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onSelectTag("all")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/15 border border-white/15 transition-all"
+                >
+                  ล้างตัวกรอง
+                </button>
+              </div>
+
+              <svg viewBox="0 0 520 360" className="mt-3 w-full h-auto select-none">
+                <g opacity="0.55">
+                  <path d="M70 290 L260 340 L450 290 L260 240 Z" fill="rgba(255,255,255,0.05)" />
+                  <path d="M80 286 L260 332 L440 286" stroke="rgba(255,255,255,0.08)" strokeWidth="2" fill="none" />
+                </g>
+
+                <g {...partHandlers("foundation")}>
+                  <path
+                    className={partClass(
+                      "foundation",
+                      "fill-[rgba(245,158,11,0.10)] stroke-white/15",
+                      "fill-[rgba(245,158,11,0.25)] stroke-[#f59e0b]"
+                    )}
+                    d="M120 265 L260 310 L400 265 L260 220 Z"
+                    strokeWidth="2"
+                  />
+                  <path
+                    className={partClass(
+                      "foundation",
+                      "fill-[rgba(245,158,11,0.08)] stroke-white/10",
+                      "fill-[rgba(245,158,11,0.18)] stroke-[#f59e0b]"
+                    )}
+                    d="M120 265 L120 285 L260 332 L260 310 Z"
+                    strokeWidth="2"
+                  />
+                  <path
+                    className={partClass(
+                      "foundation",
+                      "fill-[rgba(245,158,11,0.06)] stroke-white/10",
+                      "fill-[rgba(245,158,11,0.16)] stroke-[#f59e0b]"
+                    )}
+                    d="M260 310 L260 332 L400 285 L400 265 Z"
+                    strokeWidth="2"
+                  />
+                </g>
+
+                <g {...partHandlers("wall")}>
+                  <path
+                    className={partClass(
+                      "wall",
+                      "fill-[rgba(96,165,250,0.10)] stroke-white/15",
+                      "fill-[rgba(96,165,250,0.25)] stroke-[#60a5fa]"
+                    )}
+                    d="M150 205 L260 245 L260 310 L150 265 Z"
+                    strokeWidth="2"
+                  />
+                  <path
+                    className={partClass(
+                      "wall",
+                      "fill-[rgba(96,165,250,0.08)] stroke-white/10",
+                      "fill-[rgba(96,165,250,0.20)] stroke-[#60a5fa]"
+                    )}
+                    d="M260 245 L370 205 L370 265 L260 310 Z"
+                    strokeWidth="2"
+                  />
+                  <path
+                    d="M215 248 L260 270 L260 310 L215 288 Z"
+                    fill="rgba(0,0,0,0.18)"
+                    stroke="rgba(255,255,255,0.10)"
+                    strokeWidth="2"
+                  />
+                  <path
+                    d="M185 236 L215 252 L215 274 L185 258 Z"
+                    fill="rgba(255,255,255,0.06)"
+                    stroke="rgba(255,255,255,0.10)"
+                    strokeWidth="2"
+                  />
+                </g>
+
+                <g {...partHandlers("roof")}>
+                  <path
+                    className={partClass(
+                      "roof",
+                      "fill-[rgba(34,197,94,0.10)] stroke-white/15",
+                      "fill-[rgba(34,197,94,0.25)] stroke-[#22c55e]"
+                    )}
+                    d="M140 190 L260 130 L380 190 L260 250 Z"
+                    strokeWidth="2"
+                  />
+                  <path
+                    className={partClass(
+                      "roof",
+                      "fill-[rgba(34,197,94,0.08)] stroke-white/10",
+                      "fill-[rgba(34,197,94,0.20)] stroke-[#22c55e]"
+                    )}
+                    d="M260 130 L260 250 L380 190 Z"
+                    strokeWidth="2"
+                  />
+                  <path
+                    className={partClass(
+                      "roof",
+                      "fill-[rgba(34,197,94,0.06)] stroke-white/10",
+                      "fill-[rgba(34,197,94,0.16)] stroke-[#22c55e]"
+                    )}
+                    d="M260 130 L140 190 L260 250 Z"
+                    strokeWidth="2"
+                  />
+                </g>
+
+                <g opacity="0.85" pointerEvents="none">
+                  <text x="260" y="120" textAnchor="middle" fill="rgba(255,255,255,0.75)" fontSize="14" fontWeight="700">
+                    โมเดลบ้านตัวอย่าง
+                  </text>
+                  <text x="260" y="140" textAnchor="middle" fill="rgba(255,255,255,0.55)" fontSize="12">
+                    คลิก หลังคา / ผนัง / ฐานราก เพื่อกรองรายการ
+                  </text>
+                </g>
+              </svg>
+
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => onSelectTag("roof")}
+                  className={[
+                    "px-3 py-2 rounded-xl border text-xs font-bold transition-all",
+                    activeTag === "roof"
+                      ? "border-[#22c55e] bg-[#22c55e]/20"
+                      : "border-white/10 bg-white/5 hover:bg-white/10",
+                  ].join(" ")}
+                >
+                  หลังคา
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSelectTag("wall")}
+                  className={[
+                    "px-3 py-2 rounded-xl border text-xs font-bold transition-all",
+                    activeTag === "wall"
+                      ? "border-[#60a5fa] bg-[#60a5fa]/20"
+                      : "border-white/10 bg-white/5 hover:bg-white/10",
+                  ].join(" ")}
+                >
+                  ผนัง
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSelectTag("foundation")}
+                  className={[
+                    "px-3 py-2 rounded-xl border text-xs font-bold transition-all",
+                    activeTag === "foundation"
+                      ? "border-[#f59e0b] bg-[#f59e0b]/20"
+                      : "border-white/10 bg-white/5 hover:bg-white/10",
+                  ].join(" ")}
+                >
+                  ฐานราก
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Obec2569() {
   const [type, setType] = useState<ObecPriceType>("material");
   const [activeTag, setActiveTag] = useState<ObecTag | "all">("all");
@@ -65,7 +267,7 @@ export default function Obec2569() {
                     สำรวจราคากลางวัสดุ & ค่าแรง (สพฐ. ปีงบประมาณ 2569)
                   </h1>
                   <p className="mt-3 text-white/75 max-w-3xl">
-                    เครื่องมือเช็คแบบเร็ว: เลือกจุดบนแบบบ้าน 2D → ค้นหารายการ → ใส่จำนวน → ดูราคาแบบคร่าว ๆ
+                    เครื่องมือเช็คแบบเร็ว: เลือกส่วนบนโมเดลบ้าน → ค้นหารายการ → ใส่จำนวน → ดูราคาแบบคร่าว ๆ
                   </p>
                 </div>
 
@@ -99,129 +301,15 @@ export default function Obec2569() {
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm font-bold">แบบบ้านตัวอย่าง (3D)</div>
+                      <div className="text-sm font-bold">โมเดลบ้านตัวอย่าง</div>
                       <div className="text-xs text-white/60 mt-1">คลิกส่วนของบ้านเพื่อกรองรายการ (หลังคา/ผนัง/ฐานราก)</div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTag("all")}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/15 border border-white/15 transition-all"
-                    >
-                      ล้างตัวกรอง
-                    </button>
                   </div>
 
                   <div className="mt-4 relative rounded-xl overflow-hidden border border-white/10 bg-gradient-to-b from-[#0f1b3f] to-[#0b1020]">
                     <div className="absolute inset-0 opacity-60" style={{ background: "radial-gradient(circle at 30% 20%, rgba(52,211,153,0.25), transparent 55%), radial-gradient(circle at 80% 70%, rgba(59,130,246,0.25), transparent 55%)" }} />
                     <div className="relative p-5">
-                      <div className="relative w-full aspect-[4/3]">
-                        <div className="absolute inset-0 rounded-2xl border border-white/10 bg-white/5" />
-
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="relative w-[92%] h-[88%] max-w-[520px]">
-                            <div
-                              className="absolute left-1/2 top-[10%] -translate-x-1/2 w-[78%] h-[30%] rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 to-white/0"
-                              style={{ transform: "skewX(-18deg) rotate(-2deg)" }}
-                            />
-                            <div
-                              className="absolute left-1/2 top-[38%] -translate-x-1/2 w-[76%] h-[34%] rounded-2xl border border-white/10 bg-gradient-to-br from-white/8 to-white/0"
-                              style={{ transform: "skewX(-8deg) rotate(0deg)" }}
-                            />
-                            <div
-                              className="absolute left-1/2 top-[72%] -translate-x-1/2 w-[82%] h-[16%] rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 to-white/0"
-                              style={{ transform: "skewX(-10deg) rotate(0deg)" }}
-                            />
-
-                            <button
-                              type="button"
-                              onClick={() => setActiveTag("roof")}
-                              className={[
-                                "absolute left-1/2 top-[12%] -translate-x-1/2 w-[78%] h-[28%] rounded-2xl border transition-all backdrop-blur-[2px]",
-                                activeTag === "roof"
-                                  ? "border-[#22c55e] bg-gradient-to-br from-[#22c55e]/25 to-[#22c55e]/5 shadow-[0_0_0_1px_rgba(34,197,94,0.25),0_10px_30px_rgba(34,197,94,0.15)]"
-                                  : "border-white/10 bg-gradient-to-br from-white/10 to-white/0 hover:border-white/25 hover:bg-white/10",
-                              ].join(" ")}
-                              style={{ transform: "translateX(-50%) skewX(-18deg) rotate(-2deg)" }}
-                            >
-                              <div
-                                className="absolute inset-0 flex items-center justify-center gap-2 text-sm font-extrabold"
-                                style={{ transform: "skewX(18deg) rotate(2deg)" }}
-                              >
-                                หลังคา
-                                <span className="text-xs font-semibold text-white/60">(Roof)</span>
-                              </div>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => setActiveTag("wall")}
-                              className={[
-                                "absolute left-1/2 top-[40%] -translate-x-1/2 w-[76%] h-[34%] rounded-2xl border transition-all backdrop-blur-[2px]",
-                                activeTag === "wall"
-                                  ? "border-[#60a5fa] bg-gradient-to-br from-[#60a5fa]/25 to-[#60a5fa]/5 shadow-[0_0_0_1px_rgba(96,165,250,0.25),0_10px_30px_rgba(96,165,250,0.15)]"
-                                  : "border-white/10 bg-gradient-to-br from-white/10 to-white/0 hover:border-white/25 hover:bg-white/10",
-                              ].join(" ")}
-                              style={{ transform: "translateX(-50%) skewX(-8deg) rotate(0deg)" }}
-                            >
-                              <div className="absolute inset-0 flex items-center justify-center gap-2 text-sm font-extrabold">
-                                ผนัง
-                                <span className="text-xs font-semibold text-white/60">(Wall)</span>
-                              </div>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => setActiveTag("foundation")}
-                              className={[
-                                "absolute left-1/2 top-[72%] -translate-x-1/2 w-[82%] h-[16%] rounded-2xl border transition-all backdrop-blur-[2px]",
-                                activeTag === "foundation"
-                                  ? "border-[#f59e0b] bg-gradient-to-br from-[#f59e0b]/25 to-[#f59e0b]/5 shadow-[0_0_0_1px_rgba(245,158,11,0.25),0_10px_30px_rgba(245,158,11,0.15)]"
-                                  : "border-white/10 bg-gradient-to-br from-white/10 to-white/0 hover:border-white/25 hover:bg-white/10",
-                              ].join(" ")}
-                              style={{ transform: "translateX(-50%) skewX(-10deg) rotate(0deg)" }}
-                            >
-                              <div className="absolute inset-0 flex items-center justify-center gap-2 text-sm font-extrabold">
-                                ฐานราก
-                                <span className="text-xs font-semibold text-white/60">(Foundation)</span>
-                              </div>
-                            </button>
-
-                            <div className="absolute left-4 top-4 flex flex-col gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setActiveTag("electrical")}
-                                className={[
-                                  "px-3 py-2 rounded-xl border text-xs font-bold text-left transition-all",
-                                  activeTag === "electrical"
-                                    ? "border-[#a78bfa] bg-[#a78bfa]/20"
-                                    : "border-white/10 bg-white/5 hover:bg-white/10",
-                                ].join(" ")}
-                              >
-                                ไฟฟ้า
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setActiveTag("plumbing")}
-                                className={[
-                                  "px-3 py-2 rounded-xl border text-xs font-bold text-left transition-all",
-                                  activeTag === "plumbing"
-                                    ? "border-[#38bdf8] bg-[#38bdf8]/20"
-                                    : "border-white/10 bg-white/5 hover:bg-white/10",
-                                ].join(" ")}
-                              >
-                                สุขาภิบาล
-                              </button>
-                            </div>
-
-                            <div className="absolute right-4 bottom-4 text-xs text-white/70">
-                              กรอง:{" "}
-                              <span className="text-white font-semibold">
-                                {activeTag === "all" ? "ทั้งหมด" : tagLabel[activeTag]}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                      <HouseModel activeTag={activeTag} onSelectTag={setActiveTag} />
                     </div>
                   </div>
 
@@ -406,7 +494,7 @@ export default function Obec2569() {
 
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-white/60">
                     <div>
-                      Tip: เลือก “หลังคา/ผนัง/ฐานราก” จากแบบ 2D เพื่อกรองรายการให้ตรงส่วนงานเร็วขึ้น
+                      Tip: เลือก “หลังคา/ผนัง/ฐานราก” จากโมเดลบ้าน เพื่อกรองรายการให้ตรงส่วนงานเร็วขึ้น
                     </div>
                     <button
                       type="button"
