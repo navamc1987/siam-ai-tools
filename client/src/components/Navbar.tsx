@@ -22,6 +22,7 @@ export default function Navbar() {
     { label: "ผลงานของเรา", href: "/portfolio" },
     { label: "จัดสเปคกล้อง", href: "/cctv" },
     { label: "ประเมินราคา", href: "/estimate" },
+    { label: "ราคากลาง สพฐ. 2569", href: "/obec-2569" },
     { label: "ติดต่อเรา", href: "#contact" },
   ];
 

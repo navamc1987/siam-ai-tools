@@ -4,6 +4,7 @@ import NotFound from "@/pages/NotFound";
 import Portfolio from "@/pages/Portfolio";
 import Estimate from "@/pages/Estimate";
 import Cctv from "@/pages/Cctv";
+import Obec2569 from "@/pages/Obec2569";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -17,6 +18,7 @@ function Router() {
       <Route path={"/portfolio"} component={Portfolio} />
       <Route path={"/estimate"} component={Estimate} />
       <Route path={"/cctv"} component={Cctv} />
+      <Route path={"/obec-2569"} component={Obec2569} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
